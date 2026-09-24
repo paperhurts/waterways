@@ -86,6 +86,12 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .tools button[aria-pressed="true"]{background:var(--spring);color:var(--bg);border-color:var(--spring)}
 .gauge .e{font:italic 400 .7rem var(--serif);color:var(--muted);margin-left:3px}
 @media (min-width:900px){
+  body.aq #wrap{display:grid;grid-template-columns:minmax(0,1fr) 25rem;grid-template-rows:auto minmax(0,1fr) auto auto auto}
+  body.aq header{grid-column:1/-1}
+  body.aq #stage{grid-column:1;grid-row:2}
+  body.aq #aq{grid-column:2;grid-row:2;margin:0 16px 12px 0;align-self:end;max-width:none}
+  body.aq .tools,body.aq #profile,body.aq #status{grid-column:1/-1}
+
   header{padding:22px 28px 8px}
   #card{left:auto;right:16px;bottom:16px}
 }
@@ -426,7 +432,7 @@ function ramp(){const dark=matchMedia("(prefers-color-scheme: dark)").matches&&d
   return dark?[[0,[22,22,30]],[20,[28,36,54]],[40,[36,62,88]],[60,[46,92,112]],[90,[64,128,136]]]:[[0,[228,230,222]],[20,[208,218,221]],[40,[180,201,211]],[60,[150,182,199]],[90,[118,158,184]]]}
 function paintSurface(Z){curZ=Z;const r=ramp();const img=sctx.createImageData(NX,NY);
   for(let i=0;i<NY;i++)for(let j=0;j<NX;j++){const v=Z[i*NX+j];let k=0;while(k<r.length-2&&v>r[k+1][0])k++;const [v0,c0]=r[k],[v1,c1]=r[k+1];const t=Math.max(0,Math.min(1,(v-v0)/(v1-v0)));
-    const o=((NY-1-i)*NX+j)*4;img.data[o]=c0[0]+(c1[0]-c0[0])*t;img.data[o+1]=c0[1]+(c1[1]-c0[1])*t;img.data[o+2]=c0[2]+(c1[2]-c0[2])*t;img.data[o+3]=255}
+    const o=((NY-1-i)*NX+j)*4;img.data[o]=c0[0]+(c1[0]-c0[0])*t;img.data[o+1]=c0[1]+(c1[1]-c0[1])*t;img.data[o+2]=c0[2]+(c1[2]-c0[2])*t;const e=Math.min(i,j,NY-1-i,NX-1-j);img.data[o+3]=e>=10?255:Math.round(255*(e/10)**1.5)}
   sctx.putImageData(img,0,0)}
 function drawAquifer(c){
   if(!curZ)return;const h=AQ.res/2;
