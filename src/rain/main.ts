@@ -3,6 +3,7 @@ import "./rain.css";
 import { InfoCard } from "../shared/card";
 import { escapeHtml, loadData, showLoadError } from "../shared/data";
 import { KM_PER_UNIT, bounds, pointAt, project, type XY } from "../shared/geo";
+import { drawJournal, journalCardHtml, loadJournalOverlay, type JournalOverlay } from "../shared/journal-overlay";
 import { decodeLakes, drawLakeLabels, drawLakes, inLake } from "../shared/lakes";
 import { StreakLayer, drawBoil, fadeLayer } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
@@ -59,7 +60,10 @@ async function main() {
   const [data, lakesFile] = await Promise.all([loadData<StreamsFile>("streams.json"), loadData<LakesFile>("lakes.json"), fontsReady()]);
   const segs = decodeSegments(data);
   const lakes = decodeLakes(lakesFile);
-  const springs = data.springs.map(([lon, lat, name, mag]) => ({ xy: project(lon, lat), name, mag, phase: (((lon * 97.3 + lat * 41.1) % 1) + 1) % 1 }));
+  const springs = data.springs.map(([lon, lat, name, mag, id]) => ({ xy: project(lon, lat), name, mag, id, phase: (((lon * 97.3 + lat * 41.1) % 1) + 1) % 1 }));
+  /** The signed-in member's journal, drawn over the map; null for everyone else. */
+  let journal: JournalOverlay | null = null;
+  let showJournal = true;
   const swallets = data.swallets.map(([lon, lat, name]) => ({ xy: project(lon, lat), name }));
   const pct = fateShares(segs);
   const sinks = sinkLabels(segs);
@@ -160,6 +164,7 @@ async function main() {
       c.arc(X(selected.end[0]), Y(selected.end[1]), 6, 0, 7);
       c.stroke();
     }
+    if (journal && showJournal) drawJournal(c, journal, X, Y, springs, C.ink, glow);
     drawLakeLabels(c, lakes, X, Y, view.scale, C.muted);
     c.font = "500 12px 'Barlow Semi Condensed',sans-serif";
     const onScreen = (x: number, y: number) => x >= 0 && y >= 0 && x <= W && y <= H;
@@ -379,7 +384,8 @@ async function main() {
     const spring = springs.find((s) => near(s.xy, x, y, 10));
     if (spring) {
       select(null);
-      card.show({ title: spring.name, kind: "Spring", color: C.spring, body: `${MAG_TEXT[spring.mag] ?? ""}Groundwater rising back to the surface. Water that drops into sinks upstream can come out at springs like this one, sometimes days later.` });
+      const log = journal && spring.id ? ` ${journalCardHtml(journal, spring.id)}` : "";
+      card.show({ title: spring.name, kind: "Spring", color: C.spring, body: `${MAG_TEXT[spring.mag] ?? ""}Groundwater rising back to the surface. Water that drops into sinks upstream can come out at springs like this one, sometimes days later.${log}` });
       return;
     }
     const swallet = swallets.find((s) => near(s.xy, x, y, 10));
@@ -480,6 +486,21 @@ async function main() {
   });
   onColorSchemeChange(() => {
     readColors();
+    view.redraw();
+  });
+  void loadJournalOverlay().then((o) => {
+    if (!o) return;
+    journal = o;
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.textContent = "Journal";
+    chip.setAttribute("aria-pressed", "true");
+    chip.addEventListener("click", () => {
+      showJournal = !showJournal;
+      chip.setAttribute("aria-pressed", String(showJournal));
+      view.redraw();
+    });
+    bp.after(chip);
     view.redraw();
   });
 }

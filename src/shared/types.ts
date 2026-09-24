@@ -33,8 +33,20 @@ export type SegTuple = [
 ];
 
 export type NamedPoint = [lon: number, lat: number, name: string];
-/** magnitude: Meinzer class, 1 = over 100 cfs, 2 = 10–100, 3 = 1–10; 0 = unknown. */
-export type SpringSite = [lon: number, lat: number, name: string, magnitude: number];
+/**
+ * magnitude: Meinzer class, 1 = over 100 cfs, 2 = 10–100, 3 = 1–10; 0 = unknown.
+ * id: key into springs.json (the journal's list), or "" for NHD-only springs.
+ */
+export type SpringSite = [lon: number, lat: number, name: string, magnitude: number, id: string];
+
+// ---------- springs.json (the journal's statewide list) ----------
+
+export type StatewideSpring = [id: string, name: string, county: string, lon: number, lat: number, magnitude: number, onRainMap: 0 | 1];
+
+export interface SpringsFile {
+  meta: Provenance & { fields: string[] };
+  springs: StatewideSpring[];
+}
 
 export interface StreamsFile {
   /** areas: the [west, south, east, north] boxes whose union is the study area. */

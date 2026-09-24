@@ -44,6 +44,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 #card h2 { font: 600 1.08rem/1.2 var(--sans); margin: 0 0 .25em; padding-right: 2rem }
 #card .kind { font: 500 .8rem var(--sans); color: var(--muted); margin-bottom: .35em }
 #card p { margin: .25em 0 0 }
+#card .journal-line { display: block; margin-top: .5em; font: 600 .84rem var(--sans) }
+#card .journal-line a { color: var(--spring) }
 #card button { position: absolute; right: 8px; top: 6px; background: none; border: 0; color: var(--muted); font: 600 1.3rem/1 var(--sans); cursor: pointer; padding: 4px 8px }
 
 @media (max-width: 600px) { .lede { font-size: .88rem } h1 { font-size: 1.45rem } }

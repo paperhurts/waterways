@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spring journal</title>
+<meta name="description" content="A private, shared log of Florida spring visits: ratings, wildlife, photos, and where we saw things.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="/src/journal/main.ts"></script>
+</head>
+<body>
+<div class="shell">
+  <header class="bar">
+    <a class="back" href="./">Waterways</a>
+    <h1>Spring journal</h1>
+    <div id="who" class="who"></div>
+  </header>
+
+  <p id="boot" class="msg">Loading…</p>
+
+  <section id="gate" class="gate" hidden>
+    <p class="lede">Our log of Florida springs: where we've been, how it was, what we saw, and where we saw it. Only people on the list can see it.</p>
+    <form id="signin" class="signin">
+      <label for="email">Your email</label>
+      <div class="row">
+        <input id="email" type="email" autocomplete="email" inputmode="email" required>
+        <button type="submit" class="primary">Email me a sign-in link</button>
+      </div>
+    </form>
+    <p id="gateMsg" class="msg" role="status"></p>
+  </section>
+
+  <section id="app" hidden>
+    <nav class="tabs" role="tablist" aria-label="Journal">
+      <button type="button" role="tab" id="tab-springs" aria-controls="pane-springs" aria-selected="true">Springs</button>
+      <button type="button" role="tab" id="tab-map" aria-controls="pane-map" aria-selected="false">Map</button>
+      <button type="button" role="tab" id="tab-people" aria-controls="pane-people" aria-selected="false">People</button>
+    </nav>
+
+    <div id="pane-springs" role="tabpanel" aria-labelledby="tab-springs" class="pane">
+      <div class="finder">
+        <input id="q" type="search" placeholder="Find a spring or county" aria-label="Find a spring or county" autocomplete="off">
+        <button id="nearMe" type="button" class="chip" aria-pressed="false">Near me</button>
+      </div>
+      <div class="seg" role="group" aria-label="Which springs">
+        <button type="button" data-f="all" aria-pressed="true">All</button>
+        <button type="button" data-f="visited" aria-pressed="false">Visited <span id="nVisited"></span></button>
+        <button type="button" data-f="todo" aria-pressed="false">Not yet</button>
+      </div>
+      <p id="listMsg" class="msg" role="status"></p>
+      <ol id="list" class="list"></ol>
+    </div>
+
+    <div id="pane-map" role="tabpanel" aria-labelledby="tab-map" class="pane mappane" hidden>
+      <div id="jmap" class="jmap" role="region" aria-label="Map of visited springs and wildlife sightings"></div>
+      <fieldset id="layers" class="layers"><legend>Show on the map</legend></fieldset>
+    </div>
+
+    <div id="pane-people" role="tabpanel" aria-labelledby="tab-people" class="pane" hidden>
+      <ul id="people" class="people"></ul>
+      <form id="invite" class="invite">
+        <h2>Add someone</h2>
+        <label for="inviteEmail">Email</label>
+        <input id="inviteEmail" type="email" required autocomplete="off">
+        <label for="inviteName">Name to show on their entries</label>
+        <input id="inviteName" type="text" maxlength="60" autocomplete="off">
+        <button type="submit" class="primary">Add to the journal</button>
+        <p id="inviteMsg" class="msg" role="status"></p>
+        <p class="hint">They sign in on this page with that email. Anyone on the list can see and add to everything.</p>
+      </form>
+    </div>
+  </section>
+</div>
+
+<dialog id="springDlg" class="sheet" aria-labelledby="springTitle">
+  <div class="sheet-head">
+    <div>
+      <h2 id="springTitle"></h2>
+      <p id="springMeta" class="meta"></p>
+    </div>
+    <button type="button" class="x" data-close aria-label="Close">×</button>
+  </div>
+  <div class="sheet-body">
+    <div id="springActions" class="actions"></div>
+    <ol id="visits" class="visits"></ol>
+  </div>
+</dialog>
+
+<dialog id="visitDlg" class="sheet" aria-labelledby="visitTitle">
+  <form id="visitForm" novalidate>
+    <div class="sheet-head">
+      <div>
+        <h2 id="visitTitle">Log a visit</h2>
+        <p id="visitSpring" class="meta"></p>
+      </div>
+      <button type="button" class="x" data-close aria-label="Close">×</button>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <label for="vDate">Date</label>
+        <input id="vDate" type="date" required>
+      </div>
+      <fieldset class="field stars" id="vRating">
+        <legend>How was it?</legend>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>Wildlife</legend>
+        <label class="check"><input type="checkbox" id="useGps"> Pin each sighting where I am when I tap it (GPS)</label>
+        <p id="gpsMsg" class="hint" role="status"></p>
+        <div id="chips" class="chipgroups"></div>
+        <div class="row other">
+          <input id="otherName" type="text" placeholder="Something else…" aria-label="Other animal" maxlength="80">
+          <select id="otherGroup" aria-label="Kind of animal"></select>
+          <button type="button" id="otherAdd" class="chip">Add</button>
+        </div>
+        <ul id="sightings" class="sightings" aria-label="Seen on this visit"></ul>
+      </fieldset>
+
+      <div class="field">
+        <label for="vNotes">Notes</label>
+        <textarea id="vNotes" rows="3" maxlength="4000" placeholder="Water clarity, crowds, where to get in…"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="vPhotos">Photos</label>
+        <input id="vPhotos" type="file" accept="image/*" multiple>
+        <ul id="photoList" class="thumbs"></ul>
+        <p class="hint">Photos are resized, and their embedded location data is removed before upload.</p>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" id="vDelete" class="danger" hidden>Delete visit</button>
+      <p id="visitMsg" class="msg" role="status"></p>
+      <button type="button" data-close>Cancel</button>
+      <button type="submit" class="primary" id="vSave">Save visit</button>
+    </div>
+  </form>
+</dialog>
+</body>
+</html>

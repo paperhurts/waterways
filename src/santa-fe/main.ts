@@ -4,6 +4,7 @@ import gaugeConfig from "../../config/gauges.json";
 import { InfoCard } from "../shared/card";
 import { loadData, showLoadError } from "../shared/data";
 import { edgeRuns, locate, nearestDistance, pointAt, polyline, project, type Polyline, type XY } from "../shared/geo";
+import { drawJournal, journalCardHtml, loadJournalOverlay, type JournalOverlay } from "../shared/journal-overlay";
 import { decodeLakes, drawLakeLabels, drawLakes } from "../shared/lakes";
 import { StreakLayer, drawBoil, fadeLayer } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
@@ -40,6 +41,7 @@ interface Gauge extends GaugeConfig {
 interface Spring {
   name: string;
   lon: number;
+  lat: number;
   reach: Reach;
   xy: XY;
   r: River;
@@ -123,12 +125,16 @@ async function main() {
   });
   const G = (k: FlowKey) => gauges.find((g) => g.key === k)!;
 
+  /** The signed-in member's journal, drawn over the map; null for everyone else. */
+  let journal: JournalOverlay | null = null;
+  let showJournal = true;
+  let journalSprings: { xy: XY; id: string }[] = [];
   const springs: Spring[] = SPRINGS.map(([name, lon, lat, reach], k) => {
     const xy = project(lon, lat);
     const r = reach === "ich" ? ICH : reach === "fan" ? SUW : SF;
     const d = nearestDistance(r, ...xy);
     const j = pointAt(r, d);
-    return { name, lon, reach, xy, r, d, j, leg: Math.hypot(j[0] - xy[0], j[1] - xy[1]), cfs: 0, phase: (k * 0.618) % 1 };
+    return { name, lon, lat, reach, xy, r, d, j, leg: Math.hypot(j[0] - xy[0], j[1] - xy[1]), cfs: 0, phase: (k * 0.618) % 1 };
   });
   const springCounts: Partial<Record<Reach, number>> = {};
   for (const s of springs) springCounts[s.reach] = (springCounts[s.reach] ?? 0) + 1;
@@ -329,6 +335,7 @@ async function main() {
       c.fillStyle = col;
       c.fillText(t, X(p[0]), Y(p[1]));
     };
+    if (journal && showJournal) drawJournal(c, journal, X, Y, journalSprings, C.ink, glow);
     drawLakeLabels(c, lakes, X, Y, view.scale, C.muted);
     label("Santa Fe River", -82.5, 29.965, C.t);
     label("Ichetucknee", -82.86, 30.0, C.s);
@@ -502,15 +509,17 @@ async function main() {
   }
 
   function showSpring(s: Spring) {
+    const id = journal?.nearestSpring(s.lon, s.lat)?.[0];
+    const log = journal && id ? ` ${journalCardHtml(journal, id)}` : "";
     if (s.reach === "fan") {
-      card.show({ title: s.name, kind: "Gauged spring on the Suwannee", body: `${fmtCfs(G("Fn").cfs)} cfs, measured directly by USGS.` });
+      card.show({ title: s.name, kind: "Gauged spring on the Suwannee", body: `${fmtCfs(G("Fn").cfs)} cfs, measured directly by USGS.${log}` });
       return;
     }
     const ri = reaches[s.reach]!;
     card.show({
       title: s.name,
       kind: "Spring",
-      body: `The ${s.reach === "ich" ? "Ichetucknee" : "Santa Fe"} gained ${fmtCfs(ri.gain)} cfs between ${ri.a} and ${ri.b}${ri.note ? `, ${ri.note}` : ""}. Individual springs here aren't gauged, so the map spreads that gain evenly across the ${ri.n} mapped springs, about ${fmtCfs(ri.gain / ri.n)} cfs each.`,
+      body: `The ${s.reach === "ich" ? "Ichetucknee" : "Santa Fe"} gained ${fmtCfs(ri.gain)} cfs between ${ri.a} and ${ri.b}${ri.note ? `, ${ri.note}` : ""}. Individual springs here aren't gauged, so the map spreads that gain evenly across the ${ri.n} mapped springs, about ${fmtCfs(ri.gain / ri.n)} cfs each.${log}`,
     });
   }
 
@@ -815,6 +824,25 @@ async function main() {
     if (curZ) paintSurface(curZ);
     view.redraw();
     if (aqMode) renderPanel();
+  });
+  void loadJournalOverlay().then((o) => {
+    if (!o) return;
+    journal = o;
+    journalSprings = springs.flatMap((s) => {
+      const hit = o.nearestSpring(s.lon, s.lat);
+      return hit ? [{ xy: s.xy, id: hit[0] }] : [];
+    });
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.textContent = "Journal";
+    chip.setAttribute("aria-pressed", "true");
+    chip.addEventListener("click", () => {
+      showJournal = !showJournal;
+      chip.setAttribute("aria-pressed", String(showJournal));
+      drawBase();
+    });
+    bp.after(chip);
+    drawBase();
   });
   tryLive().catch((err) => {
     console.warn("Live USGS readings unavailable; using snapshot.", err);

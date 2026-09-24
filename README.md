@@ -5,6 +5,8 @@ Animated maps of the rivers, springs, and sinks between the Suwannee River and G
 - **Where does the rain go?** (`rain.html`) shows every mapped creek, colored by where its water ends up: the Gulf, the Atlantic via the St. Johns, a sink into the aquifer, or nowhere on the map. It also follows the Atlantic-bound water east past Orange Lake and Silver Springs, down the Ocklawaha, to the St. Johns at Lake George. Spring boils are sized by FDEP magnitude. Rain falls on every creek and flows downstream, faster on bigger rivers. Tap a creek to send a drop down its whole path. Tap a swallet to see where a creek goes underground and where it rises again.
 - **The Santa Fe breathes groundwater** (`santa-fe.html`) animates river and spring flow from live USGS gauges. It shows the river vanishing at River Sink and returning at River Rise, dye traces from Gainesville's sinks, and an aquifer time slider that runs from before development to the present.
 
+- **Spring journal** (`journal.html`) is a private, shared log of Florida spring visits. It covers all 889 springs in FDEP's statewide list. Each visit records a date, a 1–5 rating, notes, photos, and wildlife sightings. A sighting can be pinned by the phone's GPS when you tap it. The journal map shows visits and sightings over USGS satellite or topo imagery, with a layer per animal group that you can switch on and off. Signed-in members also see their visits and sightings on the two public maps.
+
 ## Layout
 
 ```
@@ -12,6 +14,8 @@ index.html, rain.html, santa-fe.html   page shells (Vite entry points)
 src/shared/     projection, pan/zoom viewport, streak renderer, lakes, theme tokens, data types
 src/rain/       the rain map and its creek-network logic
 src/santa-fe/   the Santa Fe map: flow model, aquifer grids, live gauges, authored content
+src/journal/    the spring journal: Supabase client, visit form, sightings map (Leaflet)
+supabase/       database migrations for the journal (tables, row-level security, photo bucket)
 public/data/    generated datasets the pages fetch at runtime
 config/         hand-maintained inputs: gauges.json, sinks.json
 pipeline/       Python (uv) pipeline that regenerates public/data from the sources
@@ -52,6 +56,16 @@ Then run `npm test` from the repo root to check the output before committing it.
 | `aquifer.json`, `contours.json` | FDEP/FGS Upper Floridan potentiometric surface layer; USGS daily discharge | Each surface is gridded at 0.01° by distance-weighting the two nearest contours of different elevation. Flows are monthly means. A gauge with no record that month is estimated from Fort White by its median same-month ratio (shown as "est."). |
 | `snapshot.json` | USGS Water Data API, latest values | Fallback readings for when a visitor's browser can't reach USGS. |
 
+## Spring journal
+
+The journal runs on a free Supabase project. `config/supabase.json` holds its URL and publishable key. Both are public by design: every table and the photo bucket use row-level security, and all access requires a signed-in email on the `members` list. Members can read everything. Each person can edit or delete only their own entries. Photos are resized and re-encoded in the browser before upload, which strips their EXIF GPS tags.
+
+- **Sign in:** members get an emailed link. In Supabase → Authentication → URL Configuration, set the Site URL to `https://paperhurts.github.io/waterways/journal.html` and add `http://localhost:5180/journal.html` as a redirect URL.
+- **Invite people:** add them under People in the journal. Supabase's built-in email only delivers to members of your Supabase organization's team, a few messages an hour. To reach anyone else, either invite them to the team or set a custom SMTP sender (Authentication → Emails → SMTP; Resend's free tier works).
+- **Schema:** SQL lives in `supabase/migrations/`. The first member is seeded by hand, so no personal email is committed.
+- **Staying awake:** Supabase pauses free projects after a week without activity. The six-hourly deploy calls a no-op `ping()` to prevent that. If the journal ever says it can't load, restore the project from the Supabase dashboard.
+- **Developing without an account:** `http://localhost:5180/journal.html?demo` shows sample data and saves nothing. It's dev-only and stripped from production builds.
+
 ## Deploy
 
 `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main` and every six hours. Each run fetches fresh gauge readings into the deployed snapshot, and nothing is committed. GitHub pauses scheduled workflows in public repos after 60 days without commits. If the snapshot goes stale, re-enable the workflow from the Actions tab.
@@ -60,6 +74,7 @@ Pages must be set to deploy from **GitHub Actions** (Settings → Pages → Sour
 
 ## Data sources
 - Streams, rivers, lakes, and sink/spring points: USGS NHDPlus High Resolution, [hydro.nationalmap.gov](https://hydro.nationalmap.gov/)
+- Journal basemaps: USGS The National Map (imagery, topo, hydrography)
 - River and spring discharge: [USGS Water Data API](https://api.waterdata.usgs.gov/) (instantaneous and daily values)
 - Springs: FDEP Florida Springs layer
 - Swallets: Florida Geological Survey swallet survey

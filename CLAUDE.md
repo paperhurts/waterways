@@ -6,7 +6,7 @@ Two canvas-animated maps of north Florida hydrology (Vite + TypeScript, no frame
 - `npm run dev`: dev server on **5180** (preview on 4180), pinned with `strictPort`. Don't move them to 5173/4173; other local projects use those.
 - `npm test`: Vitest, which covers unit tests in `src/**` plus data-integrity checks in `tests/data.test.ts`.
 - `npm run build`: runs `tsc`, then `vite build`.
-- `cd pipeline && uv run waterways <streams|rivers|lakes|aquifer|snapshot|all>` writes to `public/data/`. Tests: `uv run --group dev pytest`.
+- `cd pipeline && uv run waterways <springs|streams|rivers|lakes|aquifer|snapshot|all>` writes to `public/data/`. Tests: `uv run --group dev pytest`.
 
 ## Things that aren't obvious from the code
 - **Data contracts.** `src/shared/types.ts` defines every file in `public/data/`, and the pipeline writes to match it. If you change a shape, update both sides and `tests/data.test.ts`.
@@ -19,5 +19,12 @@ Two canvas-animated maps of north Florida hydrology (Vite + TypeScript, no frame
 - **Theme.** Colors are CSS custom properties in `src/shared/tokens.css`. The canvas reads them via `cssVar()` and re-reads them on color-scheme change. Keep them plain hex/rgba; `light-dark()` would break the canvas.
 - **Live gauges.** They use `api.waterdata.usgs.gov/ogcapi/v1` (the legacy `waterservices.usgs.gov` is retired in early 2027). That API's default page size is 10, so always pass `limit`.
 - **Deploy.** Pages builds via Actions; the six-hourly deploy refreshes `snapshot.json` in the build only, without committing.
+- **Spring journal.**
+  - It runs on Supabase project `pbswebsavanetmieodsf`; the schema is in `supabase/migrations/`. Apply new migrations with the Supabase MCP `apply_migration`, commit the SQL too, and run `get_advisors` afterward.
+  - Access is enforced by RLS through `private.is_member()`, which checks the JWT email against `public.members`. The helper deliberately lives outside the API schema.
+  - Spring ids come from `springs.py` (name + county slug) and are stored in visits, so never change the id scheme without migrating `visits.spring_id`.
+  - The maps load journal code only when `hasStoredSession()` is true (`src/journal/session.ts`), which keeps supabase-js out of public map bundles.
+  - Test UI changes with `journal.html?demo` on the dev server.
+  - Wildlife group ids must match the DB check constraint (`tests/journal.test.ts`). Their colors are the dataviz reference categorical palette in fixed slot order, so don't reorder them without re-running its validator.
 - **Python.** The pipeline targets Python 3.14 (`pipeline/.python-version`); numpy and shapely ship wheels for it.
 - **No PII in the repo.** Keep local paths, usernames, emails, and machine-specific setup out of committed files, including comments and CLAUDE.md. Data files hold only public geographic names from USGS/FDEP/FGS.

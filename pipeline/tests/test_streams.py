@@ -12,12 +12,8 @@ from waterways_pipeline.streams import (
     SinkPoint,
     accumulate,
     classify,
-    group_vents,
     link,
-    magnitude,
-    spring_base,
     terminals,
-    tidy_name,
 )
 
 
@@ -74,54 +70,6 @@ def test_water_leaving_toward_another_end_is_off_the_map():
     assert classify(net, link(net), [])[0] == [OFF]
 
 
-@pytest.mark.parametrize(
-    ("raw", "tidy"),
-    [
-        ("POE SPRING (ALACHUA) ", "Poe Spring (Alachua)"),
-        ("DEVILS EAR SPRING", "Devils Ear Spring"),
-        ("GIL1012973", "GIL1012973"),
-        ("  ", None),
-        ("HART SPRINGS #3", "Hart Springs #3"),
-    ],
-)
-def test_tidy_name(raw, tidy):
-    assert tidy_name(raw) == tidy
-
-
 def test_pack_quantizes_relative_to_origin_and_keeps_two_points():
     assert pack([(-82.5, 29.8), (-82.49999, 29.80001)]) == [5000, 3000, 5000, 3000]
     assert pack([(-83.0, 29.5), (-82.9, 29.6)]) == [0, 0, 1000, 1000]
-
-
-@pytest.mark.parametrize(
-    ("raw", "base"),
-    [
-        ("SILVER SPRING #7", "SILVER SPRING"),
-        ("SILVER SPRING MAMMOTH EAST VENT B", "SILVER SPRING"),
-        ("SILVER SPRING MAIN", "SILVER SPRING"),
-        ("SILVER GLEN SPRINGS NATURAL WELL", "SILVER GLEN SPRINGS"),
-        ("WATERMELON SPRING (ALACHUA) #2", "WATERMELON SPRING (ALACHUA)"),
-        ("POE SPRING (ALACHUA)", "POE SPRING (ALACHUA)"),
-    ],
-)
-def test_spring_base_strips_vent_labels(raw, base):
-    assert spring_base(raw) == base
-
-
-def test_magnitude_takes_the_best_known_rating():
-    assert magnitude({"MAGNITUDE": "3", "HIST_MAG": "2"}) == 2
-    # A group's rating says nothing about one small vent in it.
-    assert magnitude({"MAGNITUDE": "Unknown", "HIST_MAG": "Unknown", "GROUP_MAG": "1"}) == 0
-    assert magnitude({"MAGNITUDE": "Unknown", "HIST_MAG": " ", "GROUP_MAG": None}) == 0
-
-
-def test_vents_of_one_spring_merge_but_neighbors_stay_apart():
-    vents = [
-        (-82.0525, 29.2160, "SILVER SPRING #1", 0),
-        (-82.0530, 29.2155, "SILVER SPRING MAMMOTH WEST VENT A", 1),
-        (-82.0520, 29.2150, "SILVER SPRING #7", 0),
-        (-82.0510, 29.2152, "OTHER SPRING", 0),  # nearby, different spring
-        (-81.9000, 29.2150, "SILVER SPRING #9", 0),  # same base, far away
-    ]
-    groups = group_vents(vents)
-    assert [(g.base, len(g.pts), g.mag) for g in groups] == [("SILVER SPRING", 3, 1), ("OTHER SPRING", 1, 0), ("SILVER SPRING", 1, 0)]

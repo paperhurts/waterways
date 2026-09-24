@@ -13,6 +13,7 @@ import {
   type LakesFile,
   type RiversFile,
   type Snapshot,
+  type SpringsFile,
   type StreamsFile,
 } from "../src/shared/types";
 
@@ -23,6 +24,7 @@ const contours = read<ContoursFile>("public/data/contours.json");
 const aquifer = read<AquiferFile>("public/data/aquifer.json");
 const snapshot = read<Snapshot>("public/data/snapshot.json");
 const lakes = read<LakesFile>("public/data/lakes.json");
+const statewide = read<SpringsFile>("public/data/springs.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 
 // The rain map's study area (a union of boxes), padded for features that cross an edge.
@@ -113,6 +115,13 @@ describe("streams.json", () => {
     }
   });
 
+  it("links map springs to the journal's statewide list", () => {
+    const ids = new Set(statewide.springs.map((s) => s[0]));
+    const linked = streams.springs.filter((s) => s[4]);
+    expect(linked.length).toBeGreaterThan(150);
+    for (const s of linked) expect(ids.has(s[4]), s[2]).toBe(true);
+  });
+
   it("follows the Atlantic route to Silver Springs and Lake George", () => {
     const silver = streams.springs.find(([, , n]) => n === "Silver Springs");
     expect(silver?.[3]).toBe(1);
@@ -174,6 +183,30 @@ describe("aquifer.json", () => {
       expect(s.mean).toBeGreaterThan(20);
       expect(s.mean).toBeLessThan(70);
     }
+  });
+});
+
+describe("springs.json", () => {
+  const { springs } = statewide;
+
+  it("covers Florida's springs with unique, URL-safe ids", () => {
+    expect(springs.length).toBeGreaterThan(700);
+    expect(new Set(springs.map((s) => s[0])).size).toBe(springs.length);
+    for (const [id, name, , lon, lat, mag, onMap] of springs) {
+      expect(id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*--[a-z0-9-]+$/);
+      expect(name.length).toBeGreaterThan(0);
+      expect(lon).toBeGreaterThan(-88);
+      expect(lon).toBeLessThan(-79.8);
+      expect(lat).toBeGreaterThan(24.3);
+      expect(lat).toBeLessThan(31.1);
+      expect(mag >= 0 && mag <= 8).toBe(true);
+      expect([0, 1]).toContain(onMap);
+    }
+  });
+
+  it("has the springs people actually go to", () => {
+    const names = new Set(springs.map((s) => s[1]));
+    for (const n of ["Silver Springs", "Rainbow Springs", "Ginnie Spring", "Manatee Spring"]) expect(names).toContain(n);
   });
 });
 

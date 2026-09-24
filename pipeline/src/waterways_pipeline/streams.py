@@ -19,12 +19,12 @@ Method:
 
 from __future__ import annotations
 
-import re
 from collections import deque
 from dataclasses import dataclass
 from datetime import date
 
 from . import config as C
+from . import springs as springs_mod
 from .fetch import arcgis_query, log
 from .geo import ORIGIN, SCALE, LonLat, line_coords, meters, pack, simplify
 
@@ -169,88 +169,16 @@ def sink_points(refresh: bool) -> list[SinkPoint]:
     return pts
 
 
-#: Trailing vent labels in FDEP names: "SILVER SPRING #7", "... MAMMOTH EAST VENT B", "... NATURAL WELL".
-VENT_SUFFIX = re.compile(r"\s*(#\s*\d+|\bMAIN\b|\bMAMMOTH\b.*|\bNATURAL WELL\b|\bVENT\b.*)\s*$", re.I)
-#: Vents of the same spring sit in one pool or run; merge them within this distance.
-VENT_MERGE_M = 600
-
-
-def spring_base(name: str) -> str:
-    prev = None
-    while prev != name:
-        prev, name = name, VENT_SUFFIX.sub("", name)
-    return name.strip()
-
-
-def magnitude(props: dict) -> int:
-    """Best known Meinzer magnitude (1 = over 100 cfs) for this vent, or 0 if unknown.
-    GROUP_MAG is ignored: it rates a whole spring group, so it would make every
-    small vent along the Silver River look first-magnitude."""
-    known = [int(v) for k in ("MAGNITUDE", "HIST_MAG") if str(v := props.get(k) or "").strip().isdigit() and 1 <= int(v) <= 8]
-    return min(known, default=0)
-
-
-#: Where the common name differs from FDEP's per-vent naming.
-DISPLAY_NAMES = {"SILVER SPRING": "Silver Springs"}
-
-
-@dataclass
-class SpringGroup:
-    base: str
-    pts: list[LonLat]
-    mag: int
-    name: str | None = None
-
-    @property
-    def center(self) -> LonLat:
-        return (sum(p[0] for p in self.pts) / len(self.pts), sum(p[1] for p in self.pts) / len(self.pts))
-
-
-def group_vents(vents: list[tuple[float, float, str, int]]) -> list[SpringGroup]:
-    """Merge vents that share a base name and sit within VENT_MERGE_M of each other."""
-    groups: list[SpringGroup] = []
-    for lon, lat, name, mag in vents:
-        base = spring_base(name)
-        g = next((g for g in groups if g.base == base and meters(g.center, (lon, lat)) <= VENT_MERGE_M), None)
-        if g:
-            g.pts.append((lon, lat))
-            g.mag = min((m for m in (g.mag, mag) if m), default=0)
-        else:
-            groups.append(SpringGroup(base, [(lon, lat)], mag))
-    return groups
-
-
-def springs(refresh: bool) -> list[list]:
-    """[lon, lat, name, magnitude] per spring: FDEP springs with multi-vent springs merged,
-    named by GNIS where NHD has an official name for a merged group, plus any NHD
-    spring points FDEP doesn't have."""
-    vents = []
-    for f in area_query(C.FDEP_SPRINGS, refresh, fields="SPRING_NAME,MAGNITUDE,HIST_MAG,GROUP_MAG"):
-        lon, lat = f["geometry"]["coordinates"][:2]
-        vents.append((lon, lat, (f["properties"].get("SPRING_NAME") or "SPRING").strip() or "SPRING", magnitude(f["properties"])))
-    groups = group_vents(vents)
-    extra: list[list] = []
+def map_springs(refresh: bool) -> list[list]:
+    """[lon, lat, name, magnitude, id] for every FDEP spring in the study area (ids match
+    springs.json, so the journal can link them), plus NHD spring points FDEP lacks (no id)."""
+    inside = [s for s in springs_mod.fetch(refresh) if springs_mod.in_areas((s.lon, s.lat), C.STREAMS_AREAS)]
+    out: list[list] = [[round(s.lon, 4), round(s.lat, 4), s.name, s.mag, s.id] for s in inside]
     for f in area_query(C.NHD_POINTS, refresh, where=f"ftype={C.FTYPE_SPRING}", fields="nhdplusid,gnis_name"):
         p = tuple(f["geometry"]["coordinates"][:2])
-        gnis = f["properties"].get("gnis_name")
-        near = min(groups, key=lambda g: meters(g.center, p), default=None)
-        d = meters(near.center, p) if near else float("inf")
-        if near and gnis and len(near.pts) > 1 and d <= VENT_MERGE_M:
-            near.name = gnis
-        elif d > SPRING_DEDUPE_M:
-            extra.append([round(p[0], 4), round(p[1], 4), gnis or "Spring", 0])
-    out = [[round(g.center[0], 4), round(g.center[1], 4), g.name or DISPLAY_NAMES.get(g.base) or tidy_name(g.base) or "Spring", g.mag] for g in groups]
-    return out + extra
-
-
-def tidy_name(s: str | None) -> str | None:
-    """FDEP names are upper case with stray spaces: 'POE SPRING (ALACHUA) ' → 'Poe Spring (Alachua)'.
-    Station codes like GIL1012973 stay upper case."""
-    if not s or not s.strip():
-        return None
-    t = " ".join(s.split()).lower()
-    t = re.sub(r"(^|[\s(/-])([a-z])", lambda m: m[1] + m[2].upper(), t)
-    return re.sub(r"\b[a-z]+\d\w*", lambda m: m[0].upper(), t, flags=re.I)
+        if all(meters(p, (s.lon, s.lat)) > SPRING_DEDUPE_M for s in inside):
+            out.append([round(p[0], 4), round(p[1], 4), f["properties"].get("gnis_name") or "Spring", 0, ""])
+    return out
 
 
 def fetch_flowlines(refresh: bool) -> list[Flowline]:
@@ -315,11 +243,12 @@ def build(refresh: bool = False) -> dict:
             "coordOrigin": list(ORIGIN),
             "coordScale": SCALE,
             "segFields": ["coords", "fate", "next", "acc", "name", "sink", "underground", "artificial"],
+            "springFields": ["lon", "lat", "name", "magnitude", "id"],
             "fates": FATES,
             "areas": [list(a) for a in C.STREAMS_AREAS],
         },
         "names": names,
         "segs": segs,
-        "springs": springs(refresh),
+        "springs": map_springs(refresh),
         "swallets": swallets(lines, nxt, sinks),
     }

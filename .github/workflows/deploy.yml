@@ -48,6 +48,14 @@ jobs:
             git checkout -- ../public/data/snapshot.json
           fi
 
+      - name: Keep the journal database awake
+        # Free Supabase projects pause after a week without activity. This calls a
+        # no-op function with the public key; a failure shouldn't block a deploy.
+        run: |
+          URL=$(node -p "require('./config/supabase.json').url")
+          KEY=$(node -p "require('./config/supabase.json').publishableKey")
+          curl -fsS -X POST "$URL/rest/v1/rpc/ping" -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}'             || echo "::warning::Journal database ping failed; it may be paused. Restore it from the Supabase dashboard."
+
       - run: npm run typecheck
       - run: npm test
       - run: npx vite build

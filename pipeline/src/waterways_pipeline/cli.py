@@ -6,11 +6,11 @@ import argparse
 import json
 from pathlib import Path
 
-from . import aquifer, rivers, streams, usgs
+from . import aquifer, rivers, springs, streams, usgs
 from .config import OUT
 from .fetch import log
 
-DATASETS = ["streams", "rivers", "lakes", "aquifer", "snapshot"]
+DATASETS = ["springs", "streams", "rivers", "lakes", "aquifer", "snapshot"]
 
 
 def write(out: Path, name: str, data: dict) -> None:
@@ -21,7 +21,9 @@ def write(out: Path, name: str, data: dict) -> None:
 
 
 def run(dataset: str, out: Path, refresh: bool) -> None:
-    if dataset == "streams":
+    if dataset == "springs":
+        write(out, "springs.json", springs.build(refresh))
+    elif dataset == "streams":
         write(out, "streams.json", streams.build(refresh))
     elif dataset == "rivers":
         write(out, "rivers.json", rivers.build_rivers(refresh))
