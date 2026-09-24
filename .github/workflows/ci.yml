@@ -28,5 +28,5 @@ jobs:
         working-directory: pipeline
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0
       - run: uv run --group dev pytest -q
