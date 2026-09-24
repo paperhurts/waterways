@@ -1,0 +1,26 @@
+[project]
+name = "waterways-pipeline"
+version = "0.1.0"
+description = "Regenerates the datasets behind the waterways maps from USGS, FDEP, and FGS sources"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=2.1",
+  "requests>=2.32",
+  "shapely>=2.0",
+]
+
+[project.scripts]
+waterways = "waterways_pipeline.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.3"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/waterways_pipeline"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

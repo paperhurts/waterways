@@ -1,0 +1,13 @@
+@import "./shared/tokens.css";
+
+:root { box-sizing: border-box; padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--serif) }
+main { max-width: 38rem; padding: 48px 22px }
+h1 { font-weight: 400; font-size: clamp(1.8rem, 6vw, 2.6rem); line-height: 1.1; margin: 0 0 .5em }
+p { color: var(--muted); line-height: 1.5 }
+a.map { display: block; border-top: 1px solid var(--line); padding: 18px 0; color: var(--ink); text-decoration: none }
+a.map b { font: 600 1.2rem var(--sans); display: block }
+a.map:hover b, a.map:focus-visible b { color: var(--spring) }
+a:focus-visible { outline: 2px solid var(--spring); outline-offset: 4px }
+footer { border-top: 1px solid var(--line); padding-top: 18px; font: 500 .85rem var(--sans) }
+footer a { color: var(--muted) }

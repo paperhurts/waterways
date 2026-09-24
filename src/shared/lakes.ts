@@ -1,0 +1,110 @@
+// Lakes and wetlands under the streams: lakes as still water, swamps as the
+// cartographer's marsh stipple.
+
+import { project, type XY } from "./geo";
+import type { LakesFile } from "./types";
+
+export interface Lake {
+  name: string | null;
+  kind: "lake" | "swamp";
+  km2: number;
+  rings: XY[][];
+  /** Where to put the name: the middle of the outer ring's bounding box. */
+  label: XY;
+}
+
+export function decodeLakes(file: LakesFile): Lake[] {
+  const [ox, oy] = file.meta.coordOrigin;
+  const k = file.meta.coordScale;
+  return file.bodies.map((b) => {
+    const rings = b.rings.map((flat) => {
+      const pts: XY[] = [];
+      for (let i = 0; i < flat.length; i += 2) pts.push(project(flat[i] / k + ox, flat[i + 1] / k + oy));
+      return pts;
+    });
+    const xs = rings[0].map((p) => p[0]);
+    const ys = rings[0].map((p) => p[1]);
+    return { ...b, rings, label: [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2] };
+  });
+}
+
+export interface LakeColors {
+  lake: string;
+  shore: string;
+  marsh: string;
+  label: string;
+}
+
+const STIPPLE = 7;
+let pattern: { color: string; p: CanvasPattern } | null = null;
+
+function marshPattern(c: CanvasRenderingContext2D, color: string): CanvasPattern {
+  if (pattern?.color === color) return pattern.p;
+  const tile = document.createElement("canvas");
+  tile.width = tile.height = STIPPLE * 2;
+  const t = tile.getContext("2d")!;
+  t.fillStyle = color;
+  // Offset rows, like the tufts on a USGS topo swamp symbol.
+  t.fillRect(1, 2, 3, 1);
+  t.fillRect(STIPPLE + 1, STIPPLE + 2, 3, 1);
+  pattern = { color, p: c.createPattern(tile, "repeat")! };
+  return pattern.p;
+}
+
+export function drawLakes(
+  c: CanvasRenderingContext2D,
+  lakes: Lake[],
+  X: (x: number) => number,
+  Y: (y: number) => number,
+  cam: { s: number; tx: number; ty: number },
+  colors: LakeColors,
+): void {
+  const path = (rings: XY[][]) => {
+    const p = new Path2D();
+    for (const r of rings) r.forEach((q, i) => (i ? p.lineTo(X(q[0]), Y(q[1])) : p.moveTo(X(q[0]), Y(q[1]))));
+    p.closePath();
+    return p;
+  };
+  const marsh = marshPattern(c, colors.marsh);
+  // Pin the stipple to the map so it pans with the land instead of sliding over it.
+  marsh.setTransform(new DOMMatrix().translateSelf(cam.tx % (STIPPLE * 2), cam.ty % (STIPPLE * 2)));
+  c.save();
+  for (const l of lakes) {
+    if (l.kind !== "swamp") continue;
+    c.fillStyle = marsh;
+    c.fill(path(l.rings), "evenodd");
+  }
+  c.lineWidth = 0.8;
+  for (const l of lakes) {
+    if (l.kind !== "lake") continue;
+    const p = path(l.rings);
+    c.fillStyle = colors.lake;
+    c.fill(p, "evenodd");
+    c.strokeStyle = colors.shore;
+    c.stroke(p);
+  }
+  c.restore();
+}
+
+/** Names for the bigger lakes, and smaller ones once zoomed in. */
+export function drawLakeLabels(
+  c: CanvasRenderingContext2D,
+  lakes: Lake[],
+  X: (x: number) => number,
+  Y: (y: number) => number,
+  scale: number,
+  color: string,
+): void {
+  c.save();
+  c.font = "italic 12px 'Spectral',serif";
+  c.fillStyle = color;
+  c.textAlign = "center";
+  c.globalAlpha = 0.85;
+  for (const l of lakes) {
+    if (l.kind !== "lake" || !l.name) continue;
+    if (l.km2 < 8 && scale < 2400) continue;
+    if (l.km2 < 2 && scale < 6000) continue;
+    c.fillText(l.name, X(l.label[0]), Y(l.label[1]) + 4);
+  }
+  c.restore();
+}

@@ -1,0 +1,58 @@
+header { padding: 14px 18px 6px; max-width: 44rem; position: relative; z-index: 2; pointer-events: none }
+h1 { margin-bottom: .35em }
+h1 em { font-style: italic; color: var(--spring) }
+.lede { font-size: .98rem; max-width: 34rem }
+
+#legend { position: absolute; left: 12px; top: 8px; font: 500 .82rem/1.3 var(--sans); color: var(--muted); display: flex; flex-direction: column; gap: 3px; pointer-events: none }
+#legend span { display: flex; align-items: center; gap: 7px }
+#legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block }
+
+.tools { position: relative; z-index: 2; background: var(--bg) }
+.tools button, .tools a, .chip { font-size: .82rem }
+
+#profile { position: relative; z-index: 2; display: flex; overflow-x: auto; padding: 8px 12px 10px; border-top: 1px solid var(--line); background: var(--bg); scrollbar-width: none }
+#profile::-webkit-scrollbar { display: none }
+.gauge { flex: 0 0 auto; background: none; border: 0; color: var(--ink); text-align: left; padding: 4px 10px 2px; cursor: pointer; border-left: 1px solid var(--line); font-family: var(--sans) }
+.gauge:first-child { border-left: 0 }
+.gauge:focus-visible { outline: 2px solid var(--spring); outline-offset: 2px }
+.gauge .v { font: 500 1.35rem/1 var(--sans); font-variant-numeric: tabular-nums }
+.gauge .n { font: 400 .78rem/1.2 var(--sans); color: var(--muted); white-space: nowrap }
+.gauge .e { font: italic 400 .7rem var(--serif); color: var(--muted); margin-left: 3px }
+.gauge.under { color: var(--under) }
+.gauge.under .v { font-size: .95rem; font-style: italic; font-family: var(--serif); padding-top: .35rem }
+.gauge.stale .v { color: var(--muted) }
+
+#status { font-size: .78rem; background: var(--bg); position: relative; z-index: 2 }
+#card { left: 12px; right: 12px; bottom: 12px; padding: 14px 16px; font-size: .95rem }
+#card h2 { font-size: 1.05rem; margin-bottom: .3em }
+#card .kind { margin-bottom: .4em }
+#card p { margin-top: .3em }
+#card button { top: 8px }
+
+/* Aquifer-over-time panel */
+#aq { position: relative; z-index: 3; margin: 0 10px; max-width: 40rem; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 10px; display: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px) }
+#aq.on { display: block }
+#aqYear { font: 600 1.5rem/1 var(--sans); font-variant-numeric: tabular-nums }
+#aqRead { font-size: .92rem; line-height: 1.4; margin: .35em 0 .5em }
+#aqRead b { font-weight: 600 }
+#spark { width: 100%; height: 58px; display: block }
+#aqRow { display: flex; align-items: center; gap: 10px; margin-top: 4px }
+#aqSlider { flex: 1; accent-color: var(--spring); height: 28px }
+#aqNote { font: 400 .76rem/1.35 var(--sans); color: var(--muted); margin-top: 6px }
+#aqNote summary { cursor: pointer; color: var(--ink) }
+.key { font: 500 .76rem var(--sans); color: var(--muted); display: flex; gap: 12px; margin-top: 2px }
+.key i { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 5px }
+
+@media (max-width: 700px) {
+  body.aq .lede, body.aq #legend { display: none }
+  #aqRead { font-size: .86rem }
+  #aqYear { font-size: 1.25rem }
+  #spark { height: 44px }
+}
+@media (min-width: 900px) {
+  body.aq #wrap { display: grid; grid-template-columns: minmax(0, 1fr) 25rem; grid-template-rows: auto minmax(0, 1fr) auto auto auto }
+  body.aq header { grid-column: 1 / -1 }
+  body.aq #stage { grid-column: 1; grid-row: 2 }
+  body.aq #aq { grid-column: 2; grid-row: 2; margin: 0 16px 12px 0; align-self: end; max-width: none }
+  body.aq .tools, body.aq #profile, body.aq #status { grid-column: 1 / -1 }
+}

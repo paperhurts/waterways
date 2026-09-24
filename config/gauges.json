@@ -1,0 +1,13 @@
+[
+  {"id": "02321500", "short": "Worthington Spgs", "key": "W", "river": "Santa Fe River", "lon": -82.4262246, "lat": 29.9219073},
+  {"id": "02321898", "short": "O'Leno", "key": "O", "river": "Santa Fe River", "lon": -82.5596472, "lat": 29.92656389},
+  {"id": "02321958", "short": "River Rise", "key": "R", "river": "Santa Fe River", "lon": -82.59122849, "lat": 29.8735723},
+  {"id": "02321975", "short": "US 441", "key": "U", "river": "Santa Fe River", "lon": -82.608611, "lat": 29.8525},
+  {"id": "02322500", "short": "Fort White", "key": "F", "river": "Santa Fe River", "lon": -82.7151204, "lat": 29.84884769},
+  {"id": "02322700", "short": "Ichetucknee @ US 27", "key": "I", "river": "Ichetucknee River", "lon": -82.7859573, "lat": 29.95273288},
+  {"id": "02322800", "short": "Hildreth", "key": "H", "river": "Santa Fe River", "lon": -82.8604033, "lat": 29.91162076},
+  {"id": "02320500", "short": "Suwannee @ Branford", "key": "B", "river": "Suwannee River", "lon": -82.9276278, "lat": 29.955785},
+  {"id": "02323000", "short": "Suwannee nr Bell", "key": "Bl", "river": "Suwannee River", "lon": -82.924293, "lat": 29.79134359},
+  {"id": "02323500", "short": "Suwannee nr Wilcox", "key": "Wx", "river": "Suwannee River", "lon": -82.9365131, "lat": 29.58968017},
+  {"id": "02323502", "short": "Fanning Springs", "key": "Fn", "spring": true, "lon": -82.9331797, "lat": 29.5891247}
+]

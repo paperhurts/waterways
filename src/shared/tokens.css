@@ -1,0 +1,38 @@
+/* Color and type tokens for every page. Dark is the default; light applies
+   when the OS prefers it, unless the page is pinned with data-theme. The
+   canvases read these at runtime (src/shared/theme.ts), so keep them as plain
+   color values. */
+:root {
+  --bg: #18160f; --land: #1f1d15; --ink: #ece4cf; --muted: #a39a82; --line: #3a3526;
+  --card: rgba(28, 25, 17, .93); --hi: #fff6de;
+  /* water */
+  --tannin: #d19a4a; --spring: #5fd8cc; --under: #9b8cd6; --river: #4a4230; --contour: #3b3a2c;
+  /* where the rain goes */
+  --gulf: #d19a4a; --atl: #7fa9e6; --sink: #a794f0; --inland: #8c8577; --off: #5d584b;
+  /* still water and wetland */
+  --lake: #1b2224; --shore: #2d3837; --marsh: #34362a;
+
+  --serif: "Spectral", Georgia, "Times New Roman", serif;
+  --sans: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #dfe2d8; --land: #e7e9e0; --ink: #1f2419; --muted: #5b6152; --line: #c3c7b8;
+    --card: rgba(236, 238, 230, .95); --hi: #111;
+    --tannin: #9a5a12; --spring: #0a8f86; --under: #6b58b8; --river: #b9ae92; --contour: #c7cbbc;
+    --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
+    --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #dfe2d8; --land: #e7e9e0; --ink: #1f2419; --muted: #5b6152; --line: #c3c7b8;
+  --card: rgba(236, 238, 230, .95); --hi: #111;
+  --tannin: #9a5a12; --spring: #0a8f86; --under: #6b58b8; --river: #b9ae92; --contour: #c7cbbc;
+  --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
+  --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c;
+  color-scheme: light;
+}

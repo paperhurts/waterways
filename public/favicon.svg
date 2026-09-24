@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Deep aquifer background -->
+  <rect width="32" height="32" rx="7" fill="#07111E"/>
+  
+  <!-- Spring / Water drop motif -->
+  <path d="M16 6C16 6 8 16 8 20.5C8 24.6421 11.5817 28 16 28C20.4183 28 24 24.6421 24 20.5C24 16 16 6 16 6Z" fill="url(#waterGrad)"/>
+  
+  <!-- Groundwater rising bubble -->
+  <circle cx="16" cy="21" r="3.5" fill="#E0F2FE"/>
+  
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="waterGrad" x1="16" y1="6" x2="16" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#0284C7"/>
+    </linearGradient>
+  </defs>
+</svg>

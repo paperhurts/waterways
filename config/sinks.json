@@ -1,0 +1,8 @@
+{
+  "about": "Named sinks that aren't in the FGS swallet survey or NHD, placed where their largest creek ends. The pipeline names a creek's terminal sink from FGS swallets first, then these.",
+  "sinks": [
+    {"name": "Alachua Sink", "lon": -82.2997, "lat": 29.6068, "source": "USGS GNIS (Landforms, class Basin); Paynes Prairie's drain"},
+    {"name": "Haile Sink", "lon": -82.4113, "lat": 29.6285, "source": "Hand-placed at the end of Hogtown Creek; not in FGS, GNIS, or NHD"},
+    {"name": "Rose Sink", "lon": -82.6965, "lat": 30.0693, "source": "Hand-placed at the end of Rose Creek near Lake City; not in FGS, GNIS, or NHD"}
+  ]
+}

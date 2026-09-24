@@ -1,0 +1,67 @@
+name: Deploy
+
+# Builds the site and publishes it to GitHub Pages. Runs on every push to main
+# and every six hours, so the saved gauge snapshot (the fallback when a
+# visitor's browser can't reach USGS) is never more than a few hours old.
+# The fresh snapshot goes into the deployed site only; nothing is committed.
+#
+# Note: GitHub pauses scheduled workflows in public repos after 60 days with
+# no commits. Re-enable it from the Actions tab if the snapshot goes stale.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: astral-sh/setup-uv@v10
+      - run: npm ci
+
+      - name: Refresh gauge snapshot
+        working-directory: pipeline
+        # USGS being down shouldn't block a deploy: keep the checked-in snapshot
+        # if the fetch fails or the result doesn't pass the data checks.
+        run: |
+          if uv run waterways snapshot && (cd .. && npx vitest run tests/data.test.ts); then
+            echo "Snapshot refreshed: $(cat ../public/data/snapshot.json)"
+          else
+            echo "::warning::Couldn't refresh the gauge snapshot; deploying the checked-in one."
+            git checkout -- ../public/data/snapshot.json
+          fi
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx vite build
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
