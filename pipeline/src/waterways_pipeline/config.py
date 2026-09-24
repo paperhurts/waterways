@@ -15,6 +15,11 @@ Bbox = tuple[float, float, float, float]
 
 #: Every mapped creek between the Suwannee and Gainesville (rain map).
 STREAMS_BBOX: Bbox = (-82.99, 29.56, -82.01, 30.09)
+#: The Atlantic route out of it: Orange Lake, Silver Springs, the Ocklawaha,
+#: and the St. Johns through Lake George to Welaka.
+ATLANTIC_CORRIDOR: Bbox = (-82.30, 29.12, -81.50, 29.60)
+#: The rain map's study area is the union of these boxes (an L shape).
+STREAMS_AREAS: list[Bbox] = [STREAMS_BBOX, ATLANTIC_CORRIDOR]
 #: Main stems drawn on the Santa Fe map; wider so the Suwannee fits.
 RIVERS_BBOX: Bbox = (-83.08, 29.54, -82.14, 30.09)
 RIVERS = ["Santa Fe River", "Ichetucknee River", "Suwannee River", "New River", "Olustee Creek"]

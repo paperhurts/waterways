@@ -11,6 +11,23 @@ export interface Lake {
   rings: XY[][];
   /** Where to put the name: the middle of the outer ring's bounding box. */
   label: XY;
+  /** Outer ring bounds in map units: [x0, y0, x1, y1]. */
+  box: [number, number, number, number];
+}
+
+let probe: CanvasRenderingContext2D | null = null;
+
+/** True when a map point lies inside an open-water lake (not a wetland). */
+export function inLake(lakes: Lake[], xy: XY): boolean {
+  probe ??= document.createElement("canvas").getContext("2d")!;
+  for (const l of lakes) {
+    const [x0, y0, x1, y1] = l.box;
+    if (l.kind !== "lake" || xy[0] < x0 || xy[0] > x1 || xy[1] < y0 || xy[1] > y1) continue;
+    const p = new Path2D();
+    for (const r of l.rings) r.forEach((q, i) => (i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1])));
+    if (probe.isPointInPath(p, xy[0], xy[1], "evenodd")) return true;
+  }
+  return false;
 }
 
 export function decodeLakes(file: LakesFile): Lake[] {
@@ -24,7 +41,8 @@ export function decodeLakes(file: LakesFile): Lake[] {
     });
     const xs = rings[0].map((p) => p[0]);
     const ys = rings[0].map((p) => p[1]);
-    return { ...b, rings, label: [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2] };
+    const box: Lake["box"] = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    return { ...b, rings, box, label: [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2] };
   });
 }
 

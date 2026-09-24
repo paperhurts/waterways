@@ -32,15 +32,18 @@ export type SegTuple = [
   artificial: 0 | 1,
 ];
 
-export type SpringPoint = [lon: number, lat: number, name: string];
+export type NamedPoint = [lon: number, lat: number, name: string];
+/** magnitude: Meinzer class, 1 = over 100 cfs, 2 = 10–100, 3 = 1–10; 0 = unknown. */
+export type SpringSite = [lon: number, lat: number, name: string, magnitude: number];
 
 export interface StreamsFile {
-  meta: Provenance & { coordOrigin: [number, number]; coordScale: number; segFields: string[]; fates: string[] };
+  /** areas: the [west, south, east, north] boxes whose union is the study area. */
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number; segFields: string[]; fates: string[]; areas: [number, number, number, number][] };
   names: string[];
   segs: SegTuple[];
-  springs: SpringPoint[];
+  springs: SpringSite[];
   /** Named sinks where a creek drops into an underground conduit and keeps flowing. */
-  swallets: SpringPoint[];
+  swallets: NamedPoint[];
 }
 
 // ---------- lakes.json (both maps) ----------

@@ -25,9 +25,10 @@ const snapshot = read<Snapshot>("public/data/snapshot.json");
 const lakes = read<LakesFile>("public/data/lakes.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 
-// The rain map's study area, padded slightly for segments that cross the edge.
-const BBOX = { w: -83.1, s: 29.45, e: -81.9, n: 30.2 };
-const inBox = (lon: number, lat: number) => lon >= BBOX.w && lon <= BBOX.e && lat >= BBOX.s && lat <= BBOX.n;
+// The rain map's study area (a union of boxes), padded for features that cross an edge.
+const PAD = 0.12;
+const inBox = (lon: number, lat: number) =>
+  streams.meta.areas.some(([w, s, e, n]) => lon >= w - PAD && lon <= e + PAD && lat >= s - PAD && lat <= n + PAD);
 
 describe("streams.json", () => {
   const { segs, names } = streams;
@@ -103,12 +104,20 @@ describe("streams.json", () => {
     for (const f of Object.values(Fate)) expect(seen.has(f)).toBe(true);
   });
 
-  it("places springs inside the study area", () => {
+  it("places springs inside the study area, with a magnitude class", () => {
     expect(streams.springs.length).toBeGreaterThan(100);
-    for (const [lon, lat, name] of streams.springs) {
+    for (const [lon, lat, name, mag] of streams.springs) {
       expect(inBox(lon, lat)).toBe(true);
       expect(name.length).toBeGreaterThan(0);
+      expect(Number.isInteger(mag) && mag >= 0 && mag <= 8).toBe(true);
     }
+  });
+
+  it("follows the Atlantic route to Silver Springs and Lake George", () => {
+    const silver = streams.springs.find(([, , n]) => n === "Silver Springs");
+    expect(silver?.[3]).toBe(1);
+    expect(lakes.bodies.map((b) => b.name)).toContain("Lake George");
+    expect(streams.meta.areas.length).toBeGreaterThan(1);
   });
 });
 

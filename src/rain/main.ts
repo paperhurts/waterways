@@ -3,7 +3,7 @@ import "./rain.css";
 import { InfoCard } from "../shared/card";
 import { escapeHtml, loadData, showLoadError } from "../shared/data";
 import { KM_PER_UNIT, bounds, pointAt, project, type XY } from "../shared/geo";
-import { decodeLakes, drawLakeLabels, drawLakes } from "../shared/lakes";
+import { decodeLakes, drawLakeLabels, drawLakes, inLake } from "../shared/lakes";
 import { StreakLayer, drawBoil, fadeLayer } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
 import { Fate, type LakesFile, type StreamsFile } from "../shared/types";
@@ -12,14 +12,15 @@ import { decodeSegments, fateShares, sinkLabels, traceDownstream, type Trace } f
 
 const FATES = [
   { v: "--gulf", label: "Reaches the Gulf", via: "Flows to the Suwannee and on to the Gulf of Mexico." },
-  { v: "--atl", label: "Reaches the Atlantic", via: "Flows toward Orange Lake and the Ocklawaha, then the St. Johns River to the Atlantic. Some Orange Lake water leaves through sinks on the way." },
+  { v: "--atl", label: "Reaches the Atlantic", via: "Flows to the Ocklawaha River, then north along the St. Johns to the Atlantic. Water from Gainesville's east side passes through Orange Lake first, and some of it leaves through sinks on the way." },
   { v: "--sink", label: "Drops into a sink", via: "Ends at a mapped sink and goes straight into the Floridan aquifer." },
   { v: "--inland", label: "Ends inland", via: "Ends with no mapped outlet. That's usually a sink, a closed wetland, or a lake with no surface exit, but it can also be a gap in the map." },
   { v: "--off", label: "Leaves the map", via: "Flows off the edge of this map and ends somewhere beyond it." },
 ];
 
 const VIEWS = {
-  all: bounds(-82.99, 29.56, -82.01, 30.09),
+  all: bounds(-82.99, 29.12, -81.5, 30.09),
+  stj: bounds(-82.12, 29.14, -81.52, 29.56),
   gnv: bounds(-82.48, 29.57, -82.22, 29.72),
   ala: bounds(-82.62, 29.72, -82.36, 29.9),
   spr: bounds(-82.8, 29.8, -82.55, 29.95),
@@ -28,11 +29,21 @@ const VIEWS = {
 const PLACES: [string, number, number][] = [
   ["Gainesville", -82.325, 29.665], ["High Springs", -82.585, 29.815], ["Alachua", -82.47, 29.752],
   ["Fort White", -82.713, 29.905], ["Lake City", -82.64, 30.085], ["Newberry", -82.61, 29.646],
+  ["Ocala", -82.14, 29.187], ["Silver Springs", -82.03, 29.235], ["Welaka", -81.672, 29.48],
+];
+
+/** Boil size by spring magnitude (index), so first-magnitude springs read as the giants they are. */
+const MAG_SIZE = [1, 2, 1.45, 1.15, 1, 1, 1, 1, 1];
+const MAG_TEXT = [
+  "",
+  "A first-magnitude spring: more than 100 cubic feet of water a second, about 65 million gallons a day. ",
+  "A second-magnitude spring, flowing 10 to 100 cubic feet a second. ",
+  "A third-magnitude spring, flowing 1 to 10 cubic feet a second. ",
 ];
 
 /** Rain drops per second, and the cap on live particles. */
-const RATE = 160;
-const MAX_PARTICLES = 18000;
+const RATE = 225;
+const MAX_PARTICLES = 26000;
 /**
  * When a drop flows into a bigger size class of stream, only this share keeps
  * going (drawn heavier); the rest merge into it. Volume is conserved on
@@ -48,10 +59,14 @@ async function main() {
   const [data, lakesFile] = await Promise.all([loadData<StreamsFile>("streams.json"), loadData<LakesFile>("lakes.json"), fontsReady()]);
   const segs = decodeSegments(data);
   const lakes = decodeLakes(lakesFile);
-  const springs = data.springs.map(([lon, lat, name]) => ({ xy: project(lon, lat), name, phase: (((lon * 97.3 + lat * 41.1) % 1) + 1) % 1 }));
+  const springs = data.springs.map(([lon, lat, name, mag]) => ({ xy: project(lon, lat), name, mag, phase: (((lon * 97.3 + lat * 41.1) % 1) + 1) % 1 }));
   const swallets = data.swallets.map(([lon, lat, name]) => ({ xy: project(lon, lat), name }));
   const pct = fateShares(segs);
   const sinks = sinkLabels(segs);
+  // NHD draws virtual "artificial path" channels across lakes. The lake fill already
+  // shows that water, so those lines stay faint; drops still flow along them. (Wide
+  // rivers like the Suwannee are artificial paths too, so test against the lakes.)
+  const throughLake = new Set(segs.filter((s) => s.artificial && inLake(lakes, pointAt(s, s.len / 2))));
   // Draw small creeks first so rivers sit on top.
   const order = [...segs].sort((a, b) => a.acc - b.acc);
   const base = (VIEWS.all[2] - VIEWS.all[0]) / 40;
@@ -61,7 +76,7 @@ async function main() {
   const sizeClass = Uint8Array.from(segs, (s) => (s.acc < 15 ? 0 : s.acc < 150 ? 1 : 2));
 
   document.getElementById("lede")!.innerHTML =
-    `Every mapped creek between the Suwannee and Gainesville, colored by where its water ends up. ` +
+    `Every mapped creek between the Suwannee and Gainesville, and along the water's route east to the St. Johns, colored by where it ends up. ` +
     `<b>${Math.round(pct[Fate.Gulf])}%</b> of creek length drains to the Gulf and <b>${Math.round(pct[Fate.Atlantic])}%</b> to the Atlantic. ` +
     `The other <b>${Math.round(pct[Fate.Sink] + pct[Fate.Inland])}%</b> never reaches a river: it ends inland, in a sink, a closed wetland, ` +
     `or a lake with no outlet, and much of that water goes into the aquifer.`;
@@ -125,7 +140,7 @@ async function main() {
     for (const s of order) {
       c.lineWidth = (0.45 + Math.log10(s.acc + 1) * 0.75) * zs;
       c.strokeStyle = FC[s.fate];
-      c.globalAlpha = s.underground ? 0.4 : glow ? 0.3 : 0.26;
+      c.globalAlpha = s.underground ? 0.4 : throughLake.has(s) ? 0.1 : glow ? 0.3 : 0.26;
       if (s.underground) c.setLineDash([3, 4]);
       c.beginPath();
       strokePath(c, s.pts);
@@ -172,6 +187,8 @@ async function main() {
     label("Suwannee", -82.99, 29.7, FC[Fate.Gulf]);
     label("Santa Fe", -82.47, 29.93, FC[Fate.Gulf]);
     label("Paynes Prairie", -82.33, 29.585, FC[Fate.Sink]);
+    label("Ocklawaha", -81.99, 29.37, FC[Fate.Atlantic]);
+    label("St. Johns", -81.63, 29.54, FC[Fate.Atlantic]);
   }
 
   // ----- particles: rain falls on every creek, weighted by length -----
@@ -294,7 +311,7 @@ async function main() {
       const x = X(s.xy[0]);
       const y = Y(s.xy[1]);
       if (x < -10 || y < -10 || x > W + 10 || y > H + 10) continue;
-      drawBoil(c, x, y, size, s.phase, now, C.spring);
+      drawBoil(c, x, y, size * MAG_SIZE[s.mag], s.phase, now, C.spring);
     }
   }
 
@@ -362,7 +379,7 @@ async function main() {
     const spring = springs.find((s) => near(s.xy, x, y, 10));
     if (spring) {
       select(null);
-      card.show({ title: spring.name, kind: "Spring", color: C.spring, body: "Groundwater rising back to the surface. Water that drops into sinks upstream can come out at springs like this one, sometimes days later." });
+      card.show({ title: spring.name, kind: "Spring", color: C.spring, body: `${MAG_TEXT[spring.mag] ?? ""}Groundwater rising back to the surface. Water that drops into sinks upstream can come out at springs like this one, sometimes days later.` });
       return;
     }
     const swallet = swallets.find((s) => near(s.xy, x, y, 10));
@@ -428,7 +445,7 @@ async function main() {
     });
   }
 
-  for (const [id, b] of [["vAll", VIEWS.all], ["vGnv", VIEWS.gnv], ["vAla", VIEWS.ala], ["vSpr", VIEWS.spr]] as const) {
+  for (const [id, b] of [["vAll", VIEWS.all], ["vGnv", VIEWS.gnv], ["vAla", VIEWS.ala], ["vSpr", VIEWS.spr], ["vStj", VIEWS.stj]] as const) {
     document.getElementById(id)!.addEventListener("click", () => view.fit(b, true));
   }
   let paused = false;

@@ -17,8 +17,8 @@ LAKE_MIN_KM2 = 0.2
 #: Wetlands are numerous and ragged; keep the big ones, drawn coarser.
 SWAMP_MIN_KM2 = 1.5
 SWAMP_SIMPLIFY_DEG = 0.0006
-#: Covers both maps.
-WATER_BBOX: C.Bbox = (-83.08, 29.54, -82.01, 30.09)
+#: Covers both maps, including the rain map's Atlantic corridor.
+WATER_AREAS: list[C.Bbox] = [(-83.08, 29.54, -82.01, 30.09), C.ATLANTIC_CORRIDOR]
 LAKE_FTYPES = {390: "lake", 436: "lake", 466: "swamp"}
 
 
@@ -85,9 +85,13 @@ def build_rivers(refresh: bool = False) -> dict:
 
 def build_lakes(refresh: bool = False) -> dict:
     ftypes = ",".join(map(str, LAKE_FTYPES))
-    feats = arcgis_query(
-        C.NHD_WATERBODIES, WATER_BBOX, where=f"areasqkm >= {LAKE_MIN_KM2} AND ftype IN ({ftypes})", fields="nhdplusid,gnis_name,ftype,areasqkm", refresh=refresh
-    )
+    feats = [
+        f
+        for area in WATER_AREAS
+        for f in arcgis_query(
+            C.NHD_WATERBODIES, area, where=f"areasqkm >= {LAKE_MIN_KM2} AND ftype IN ({ftypes})", fields="nhdplusid,gnis_name,ftype,areasqkm", refresh=refresh
+        )
+    ]
     bodies, seen = [], set()
     for f in sorted(feats, key=lambda f: -float(f["properties"]["areasqkm"])):
         p = f["properties"]

@@ -6,7 +6,7 @@ import { decodeSegments, fateShares, sinkLabels, traceDownstream } from "./netwo
 const seg = (coords: number[], fate: number, next: number, acc: number, name = -1, sink = -1, art = 0): SegTuple =>
   [coords, fate as Fate, next, acc, name, sink, 0, art as 0 | 1];
 const file: StreamsFile = {
-  meta: { generator: "test", generatedAt: "", coordOrigin: [-83, 29.5], coordScale: 1e4, segFields: [], fates: [] },
+  meta: { generator: "test", generatedAt: "", coordOrigin: [-83, 29.5], coordScale: 1e4, segFields: [], fates: [], areas: [] },
   names: ["Mill Creek", "Santa Fe River", "Big Sink"],
   segs: [
     seg([0, 0, 100, 0], Fate.Gulf, 1, 1, 0),

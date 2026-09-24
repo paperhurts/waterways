@@ -2,7 +2,7 @@
 
 Animated maps of the rivers, springs, and sinks between the Suwannee River and Gainesville: **[paperhurts.github.io/waterways](https://paperhurts.github.io/waterways/)**
 
-- **Where does the rain go?** (`rain.html`) shows every mapped creek, colored by where its water ends up: the Gulf, the Atlantic via the St. Johns, a sink into the aquifer, or nowhere on the map. Rain falls on every creek and flows downstream, faster on bigger rivers. Tap a creek to send a drop down its whole path. Tap a swallet to see where a creek goes underground and where it rises again.
+- **Where does the rain go?** (`rain.html`) shows every mapped creek, colored by where its water ends up: the Gulf, the Atlantic via the St. Johns, a sink into the aquifer, or nowhere on the map. It also follows the Atlantic-bound water east past Orange Lake and Silver Springs, down the Ocklawaha, to the St. Johns at Lake George. Spring boils are sized by FDEP magnitude. Rain falls on every creek and flows downstream, faster on bigger rivers. Tap a creek to send a drop down its whole path. Tap a swallet to see where a creek goes underground and where it rises again.
 - **The Santa Fe breathes groundwater** (`santa-fe.html`) animates river and spring flow from live USGS gauges. It shows the river vanishing at River Sink and returning at River Rise, dye traces from Gainesville's sinks, and an aquifer time slider that runs from before development to the present.
 
 ## Layout
@@ -46,7 +46,7 @@ Then run `npm test` from the repo root to check the output before committing it.
 
 | Output | Built from | Method |
 |---|---|---|
-| `streams.json` | NHDPlus HR network flowlines, NHD points, FGS swallets, FDEP springs, `config/sinks.json` | Links flowlines by `hydroseq`. A creek's fate follows NHDPlus routing (terminal path = Suwannee → Gulf, St. Johns → Atlantic). A network end within 600 m of a mapped sink is a sink; any other end is "inland". `acc` is the km of creek upstream. |
+| `streams.json` | NHDPlus HR network flowlines, NHD points, FGS swallets, FDEP springs, `config/sinks.json` | The study area is two boxes: the Suwannee–Gainesville basin, plus a corridor along the Atlantic route to Lake George. Flowlines are linked by `hydroseq`. A creek's fate follows NHDPlus routing (terminal path = Suwannee → Gulf, St. Johns → Atlantic). A network end within 600 m of a mapped sink is a sink; any other end is "inland". `acc` is the km of creek upstream. Multi-vent springs (Silver Spring #1–#12) merge into one spring, named from GNIS where NHD has a name. Each spring's magnitude is its own FDEP rating, never the group's. |
 | `rivers.json` | NHDPlus HR | The main level path of each named river, trimmed to the map. Underground conduits (FType 420) are flagged per vertex. |
 | `lakes.json` | NHDPlus HR waterbodies | Lakes ≥ 0.2 km² and wetlands ≥ 1.5 km², simplified. |
 | `aquifer.json`, `contours.json` | FDEP/FGS Upper Floridan potentiometric surface layer; USGS daily discharge | Each surface is gridded at 0.01° by distance-weighting the two nearest contours of different elevation. Flows are monthly means. A gauge with no record that month is estimated from Fort White by its median same-month ratio (shown as "est."). |
