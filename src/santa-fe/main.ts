@@ -4,7 +4,7 @@ import gaugeConfig from "../../config/gauges.json";
 import { InfoCard } from "../shared/card";
 import { loadData, showLoadError } from "../shared/data";
 import { edgeRuns, locate, nearestDistance, pointAt, polyline, project, type Polyline, type XY } from "../shared/geo";
-import { drawJournal, journalCardHtml, loadJournalOverlay, type JournalOverlay } from "../shared/journal-overlay";
+import { drawJournal, hitSighting, journalCardHtml, loadJournalOverlay, sightingCard, type JournalOverlay } from "../shared/journal-overlay";
 import { decodeLakes, drawLakeLabels, drawLakes } from "../shared/lakes";
 import { STALE_MS, fetchLatest, fmtCfs } from "../shared/live";
 import { StreakLayer, drawBoil, fadeLayer } from "../shared/streaks";
@@ -481,6 +481,8 @@ async function main() {
 
   // ---------- cards ----------
   function tap(x: number, y: number) {
+    const seen = journal && showJournal ? hitSighting(journal, X, Y, x, y) : null;
+    if (seen) return card.show(sightingCard(seen));
     let best: (() => void) | null = null;
     let bd = 22 * 22;
     const test = (xy: XY, f: () => void) => {

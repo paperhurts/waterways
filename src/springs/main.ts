@@ -3,7 +3,7 @@ import "./springs.css";
 import { InfoCard } from "../shared/card";
 import { loadData, showLoadError } from "../shared/data";
 import { bounds, project, ringsPath, unpackRings, type XY } from "../shared/geo";
-import { drawJournal, journalCardHtml, loadJournalOverlay, type JournalOverlay } from "../shared/journal-overlay";
+import { drawJournal, hitSighting, journalCardHtml, loadJournalOverlay, sightingCard, type JournalOverlay } from "../shared/journal-overlay";
 import { MAG_TEXT } from "../shared/magnitude";
 import { drawBoil } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
@@ -166,6 +166,8 @@ async function main() {
 
   const probe = document.createElement("canvas").getContext("2d")!;
   function tap(x: number, y: number) {
+    const seen = journal ? hitSighting(journal, X, Y, x, y) : null;
+    if (seen) return card.show(sightingCard(seen));
     let best: Spring | null = null;
     let bd = 16 * 16;
     for (const s of shown()) {
