@@ -3,8 +3,9 @@ import { Fate, type SegTuple, type StreamsFile } from "../shared/types";
 import { decodeSegments, fateShares, sinkLabels, traceDownstream } from "./network";
 
 // A tiny network:  0 → 1 → 2 (Gulf), 3 → 1, and a separate creek 4 into "Big Sink".
-const seg = (coords: number[], fate: number, next: number, acc: number, name = -1, sink = -1, art = 0): SegTuple =>
-  [coords, fate as Fate, next, acc, name, sink, 0, art as 0 | 1];
+// Segment 5 is the river's route past the map; it ends at the sea (a mouth).
+const seg = (coords: number[], fate: number, next: number, acc: number, name = -1, sink = -1, art = 0, route = 0): SegTuple =>
+  [coords, fate as Fate, next, acc, name, sink, 0, art as 0 | 1, route as 0 | 1];
 const file: StreamsFile = {
   meta: { generator: "test", generatedAt: "", coordOrigin: [-83, 29.5], coordScale: 1e4, segFields: [], fates: [], areas: [] },
   names: ["Mill Creek", "Santa Fe River", "Big Sink"],
@@ -14,9 +15,11 @@ const file: StreamsFile = {
     seg([200, 0, 300, 0], Fate.Gulf, -1, 4, 1, -1, 1),
     seg([100, 100, 100, 0], Fate.Gulf, 1, 1),
     seg([0, 500, 0, 600], Fate.Sink, -1, 20, -1, 2),
+    seg([900, 0, 5000, 0], Fate.Gulf, -1, 9, 1, -1, 0, 1),
   ],
   springs: [],
   swallets: [],
+  mouths: [5],
 };
 const segs = decodeSegments(file);
 
@@ -26,6 +29,8 @@ describe("decodeSegments", () => {
     expect(segs[3].name).toBeNull();
     expect(segs[4].sink).toBe("Big Sink");
     expect(segs[2].artificial).toBe(true);
+    expect([segs[5].route, segs[5].mouth]).toEqual([true, true]);
+    expect([segs[2].route, segs[2].mouth]).toEqual([false, false]);
   });
 
   it("decodes packed coordinates through the origin and scale", () => {
@@ -43,6 +48,11 @@ describe("traceDownstream", () => {
     expect(t.end).toEqual(segs[2].pts[1]);
   });
 
+  it("knows whether the water reaches the sea or just the map's edge", () => {
+    expect(traceDownstream(segs, 5).toSea).toBe(true);
+    expect(traceDownstream(segs, 3).toSea).toBe(false);
+  });
+
   it("doesn't report the starting creek as one it joins", () => {
     expect(traceDownstream(segs, 1).joins).toBe("Santa Fe River");
     expect(traceDownstream(segs, 0).joins).toBe("Santa Fe River");
@@ -55,12 +65,15 @@ describe("traceDownstream", () => {
 });
 
 describe("fateShares", () => {
-  it("measures real creek length only, skipping artificial paths", () => {
+  it("measures real creek length only, skipping artificial paths and the route to the sea", () => {
     const pct = fateShares(segs);
     expect(pct.reduce((a, b) => a + b)).toBeCloseTo(100);
     // Three 0.01°-ish Gulf creeks (one artificial, excluded) vs one 0.01° sink creek.
     expect(pct[Fate.Gulf]).toBeGreaterThan(pct[Fate.Sink]);
     expect(pct[Fate.Atlantic]).toBe(0);
+    // The route segment is 0.41° long, far more than everything else; counted, it would swamp the Gulf share.
+    const withoutRoute = fateShares(segs.slice(0, 5));
+    expect(pct[Fate.Gulf]).toBeCloseTo(withoutRoute[Fate.Gulf]);
   });
 });
 

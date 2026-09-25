@@ -39,7 +39,7 @@ describe("streams.json", () => {
 
   it("has thousands of segments and valid field ranges", () => {
     expect(segs.length).toBeGreaterThan(5000);
-    for (const [coords, fate, next, acc, name, sink, ug, art] of segs) {
+    for (const [coords, fate, next, acc, name, sink, ug, art, route] of segs) {
       expect(coords.length % 2).toBe(0);
       expect(coords.length).toBeGreaterThanOrEqual(4);
       expect(fate).toBeGreaterThanOrEqual(Fate.Gulf);
@@ -51,12 +51,43 @@ describe("streams.json", () => {
       expect(sink).toBeLessThan(names.length);
       expect([0, 1]).toContain(ug);
       expect([0, 1]).toContain(art);
+      expect([0, 1]).toContain(route);
     }
   });
 
-  it("keeps every vertex inside the study area", () => {
-    for (const [coords] of segs) {
+  it("keeps every vertex inside the study area, except the route to the sea", () => {
+    for (const [coords, , , , , , , , route] of segs) {
+      if (route) continue;
       for (let i = 0; i < coords.length; i += 2) expect(inBox(coords[i] / k + ox, coords[i + 1] / k + oy)).toBe(true);
+    }
+  });
+
+  it("follows the Suwannee to the Gulf and the St. Johns to the Atlantic", () => {
+    const end = (i: number) => {
+      const c = segs[i][0];
+      return [c[c.length - 2] / k + ox, c[c.length - 1] / k + oy];
+    };
+    const mouths = new Map(streams.mouths.map((i) => [segs[i][1], { i, name: names[segs[i][4]], at: end(i) }]));
+    expect(mouths.get(Fate.Gulf)).toMatchObject({ name: "Suwannee River" });
+    expect(mouths.get(Fate.Atlantic)).toMatchObject({ name: "Saint Johns River" });
+    // Suwannee Sound and Mayport.
+    expect(mouths.get(Fate.Gulf)!.at[0]).toBeCloseTo(-83.16, 1);
+    expect(mouths.get(Fate.Gulf)!.at[1]).toBeCloseTo(29.29, 1);
+    expect(mouths.get(Fate.Atlantic)!.at[0]).toBeCloseTo(-81.4, 1);
+    expect(mouths.get(Fate.Atlantic)!.at[1]).toBeCloseTo(30.4, 1);
+    for (const { i } of mouths.values()) expect(segs[i][2]).toBe(-1);
+    // The route is a continuation of the map, not its own network: every route segment
+    // drains to a mouth, and the map's biggest Gulf and Atlantic rivers drain into the route.
+    for (let i = 0; i < segs.length; i++) {
+      if (!segs[i][8]) continue;
+      let j = i;
+      while (segs[j][2] >= 0) j = segs[j][2];
+      expect(streams.mouths).toContain(j);
+    }
+    for (const fate of [Fate.Gulf, Fate.Atlantic]) {
+      const biggest = segs.filter((s) => s[1] === fate && !s[8]).reduce((a, b) => (b[3] > a[3] ? b : a));
+      expect(biggest[2]).toBeGreaterThanOrEqual(0);
+      expect(segs[biggest[2]][8]).toBe(1);
     }
   });
 
@@ -215,12 +246,33 @@ describe("lakes.json", () => {
     const named = new Set(lakes.bodies.map((b) => b.name));
     for (const n of ["Newnans Lake", "Santa Fe Lake", "Lochloosa Lake"]) expect(named).toContain(n);
     for (const b of lakes.bodies) {
-      expect(["lake", "swamp"]).toContain(b.kind);
+      expect(["sea", "lake", "swamp"]).toContain(b.kind);
       for (const r of b.rings) {
         expect(r.length % 2).toBe(0);
         expect(r.length).toBeGreaterThanOrEqual(6);
       }
     }
+  });
+
+  it("has sea off both river mouths and none over land", () => {
+    const [ox, oy] = lakes.meta.coordOrigin;
+    const k = lakes.meta.coordScale;
+    const rings = lakes.bodies.filter((b) => b.kind === "sea").flatMap((b) => b.rings);
+    // Even-odd ray casting, the same rule the map fills with.
+    const inSea = (lon: number, lat: number) => {
+      const [x, y] = [(lon - ox) * k, (lat - oy) * k];
+      let inside = false;
+      for (const r of rings) {
+        for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
+          if (r[i + 1] > y !== r[j + 1] > y && x < ((r[j] - r[i]) * (y - r[i + 1])) / (r[j + 1] - r[i + 1]) + r[i]) inside = !inside;
+        }
+      }
+      return inside;
+    };
+    // Off Suwannee Sound, off Mayport, and near Cedar Key.
+    for (const [lon, lat] of [[-83.3, 29.25], [-81.3, 30.4], [-83.05, 29.12]]) expect(inSea(lon, lat)).toBe(true);
+    // Gainesville, Palatka, Lake George, and the St. Johns at downtown Jacksonville.
+    for (const [lon, lat] of [[-82.325, 29.652], [-81.637, 29.648], [-81.6, 29.28], [-81.656, 30.325]]) expect(inSea(lon, lat)).toBe(false);
   });
 });
 

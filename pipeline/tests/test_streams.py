@@ -13,6 +13,8 @@ from waterways_pipeline.streams import (
     accumulate,
     classify,
     link,
+    mouths,
+    route_to_sea,
     terminals,
 )
 
@@ -68,6 +70,20 @@ def test_an_in_map_end_far_from_sinks_is_inland():
 def test_water_leaving_toward_another_end_is_off_the_map():
     net = [fl(1, 99, 12345)]
     assert classify(net, link(net), [])[0] == [OFF]
+
+
+def test_the_route_to_the_sea_is_the_main_stem_below_the_map():
+    # A main stem from headwaters (50) to its mouth (10, which is also its terminal path id).
+    stem = [fl(seq, seq - 10, 10) for seq in (50, 40, 30, 20, 10)]
+    # The map covers 40 and 30; 50 is upstream of it, so only 20 and 10 carry its water out.
+    assert [f.hydroseq for f in route_to_sea(stem, {40, 30, 999})] == [20, 10]
+    assert route_to_sea(stem, {999}) == []
+
+
+def test_mouths_are_the_last_segment_of_an_ocean_terminal_path():
+    net = [fl(20, 10, C.TERMINAL_GULF), fl(C.TERMINAL_GULF, 0, C.TERMINAL_GULF), fl(7, 0, 7)]
+    fates, _ = classify(net, link(net), [])
+    assert mouths(net, fates) == [1]
 
 
 def test_pack_quantizes_relative_to_origin_and_keeps_two_points():

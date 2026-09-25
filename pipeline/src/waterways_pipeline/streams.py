@@ -15,6 +15,10 @@ Method:
 - Where NHD routes a creek into an underground conduit (FType 420), as at
   Rose Sink and Santa Fe River Sink, the water keeps its downstream fate and
   the named swallet is listed in `swallets` so the map can label it.
+- Below the study area, the Suwannee and the St. Johns are followed down
+  their main stems to the sea. Those flowlines are marked `route`: they carry
+  the map's water out, but rain doesn't fall on them and they don't count
+  toward fate shares. `mouths` lists the segments that end at the sea.
 """
 
 from __future__ import annotations
@@ -50,6 +54,8 @@ class Flowline:
     name: str | None
     ftype: int
     coords: list[LonLat]
+    #: Past the study area, on a main stem's way to the sea.
+    route: bool = False
 
 
 @dataclass
@@ -181,29 +187,58 @@ def map_springs(refresh: bool) -> list[list]:
     return out
 
 
+def to_flowline(f: dict) -> Flowline:
+    p = f["properties"]
+    return Flowline(
+        hydroseq=int(p["hydroseq"]),
+        dnhydroseq=int(p["dnhydroseq"] or 0),
+        terminalpa=int(p["terminalpa"]),
+        lengthkm=float(p["lengthkm"] or 0),
+        name=p.get("gnis_name") or None,
+        ftype=int(p["ftype"]),
+        coords=line_coords(f["geometry"]),
+    )
+
+
 def fetch_flowlines(refresh: bool) -> list[Flowline]:
-    lines: list[Flowline] = []
-    for f in area_query(C.NHD_FLOWLINES, refresh, fields=FIELDS):
-        p = f["properties"]
-        if not f.get("geometry"):
-            continue
-        lines.append(
-            Flowline(
-                hydroseq=int(p["hydroseq"]),
-                dnhydroseq=int(p["dnhydroseq"] or 0),
-                terminalpa=int(p["terminalpa"]),
-                lengthkm=float(p["lengthkm"] or 0),
-                name=p.get("gnis_name") or None,
-                ftype=int(p["ftype"]),
-                coords=line_coords(f["geometry"]),
-            )
-        )
-    return lines
+    return [to_flowline(f) for f in area_query(C.NHD_FLOWLINES, refresh, fields=FIELDS) if f.get("geometry")]
+
+
+def route_to_sea(mainstem: list[Flowline], mapped: set[int]) -> list[Flowline]:
+    """The part of a main stem below the study area: every flowline downstream of the
+    lowest one already on the map (hydroseq falls going downstream). Empty if the
+    map doesn't reach this river at all."""
+    on_map = [f.hydroseq for f in mainstem if f.hydroseq in mapped]
+    if not on_map:
+        return []
+    lowest = min(on_map)
+    return [f for f in mainstem if f.hydroseq < lowest]
+
+
+def fetch_routes(lines: list[Flowline], refresh: bool) -> list[Flowline]:
+    mapped = {f.hydroseq for f in lines}
+    out: list[Flowline] = []
+    for terminal in (C.TERMINAL_GULF, C.TERMINAL_ATLANTIC):
+        mainstem = [to_flowline(f) for f in arcgis_query(C.NHD_FLOWLINES, where=f"levelpathi={terminal}", fields=FIELDS, refresh=refresh) if f.get("geometry")]
+        route = route_to_sea(mainstem, mapped)
+        for f in route:
+            f.route = True
+        name = next((f.name for f in route if f.name), str(terminal))
+        log(f"streams: {len(route)} flowlines, {sum(f.lengthkm for f in route):.0f} km, from the map to the sea along the {name}")
+        out += route
+    return out
+
+
+def mouths(lines: list[Flowline], fates: list[int]) -> list[int]:
+    """Segments whose water enters the sea: the last flowline of the Gulf or Atlantic
+    terminal path (its hydroseq is the path's id)."""
+    return [i for i, f in enumerate(lines) if f.hydroseq == f.terminalpa and fates[i] in (GULF, ATLANTIC)]
 
 
 def build(refresh: bool = False) -> dict:
     lines = fetch_flowlines(refresh)
     log(f"streams: {len(lines)} flowlines")
+    lines += fetch_routes(lines, refresh)
     nxt = link(lines)
     acc = accumulate(lines, nxt)
     sinks = sink_points(refresh)
@@ -230,6 +265,7 @@ def build(refresh: bool = False) -> dict:
             name_id(sink_names[i]),
             int(f.ftype == C.FTYPE_UNDERGROUND),
             int(f.ftype == C.FTYPE_ARTIFICIAL),
+            int(f.route),
         ]
         for i, f in enumerate(lines)
     ]
@@ -242,7 +278,7 @@ def build(refresh: bool = False) -> dict:
             "sources": [C.NHD_FLOWLINES, C.NHD_POINTS, C.FGS_SWALLETS, C.FDEP_SPRINGS, "config/sinks.json"],
             "coordOrigin": list(ORIGIN),
             "coordScale": SCALE,
-            "segFields": ["coords", "fate", "next", "acc", "name", "sink", "underground", "artificial"],
+            "segFields": ["coords", "fate", "next", "acc", "name", "sink", "underground", "artificial", "route"],
             "springFields": ["lon", "lat", "name", "magnitude", "id"],
             "fates": FATES,
             "areas": [list(a) for a in C.STREAMS_AREAS],
@@ -251,4 +287,5 @@ def build(refresh: bool = False) -> dict:
         "segs": segs,
         "springs": map_springs(refresh),
         "swallets": swallets(lines, nxt, sinks),
+        "mouths": mouths(lines, fates),
     }
