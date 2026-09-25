@@ -133,20 +133,31 @@ describe("streams.json", () => {
     expect(fatesOf("Ocklawaha River")).toEqual(new Set([Fate.Atlantic]));
   });
 
-  it("follows the St. Johns up past the Wekiva to Lake Harney", () => {
+  it("follows the St. Johns up to its headwaters", () => {
     // East of -81.8: Levy County has a Wekiva River of its own, which runs to the Gulf.
     const east = (c: number[]) => c[0] / k + ox > -81.8;
     const fatesOf = (name: string) => new Set(segs.filter((s) => names[s[4]] === name && east(s[0])).map((s) => s[1]));
     for (const river of ["Wekiva River", "Econlockhatchee River"]) expect(fatesOf(river), river).toEqual(new Set([Fate.Atlantic]));
-    // The river's own channel reaches Lake Harney and the marshes above it.
+    // NHD names the river's channel up to Lake Hell 'n' Blazes, its traditional head, and
+    // Blue Cypress Creek carries on into the marshes around Blue Cypress Lake.
     const lat = (c: number[]) => Math.min(...c.filter((_, i) => i % 2).map((y) => y / k + oy));
-    const stj = segs.filter((s) => names[s[4]] === "Saint Johns River" && !s[8]);
-    expect(Math.min(...stj.map((s) => lat(s[0])))).toBeLessThan(28.7);
+    const south = (name: string) => Math.min(...segs.filter((s) => names[s[4]] === name && !s[8]).map((s) => lat(s[0])));
+    expect(south("Saint Johns River")).toBeLessThan(28.0);
+    expect(south("Blue Cypress Creek")).toBeLessThan(27.75);
+    expect(new Set(segs.filter((s) => names[s[4]] === "Blue Cypress Creek").map((s) => s[1]))).toEqual(new Set([Fate.Atlantic]));
     // Blue Spring, where the manatees winter, and the Wekiva's head spring.
     const near = (name: string, lon: number, lat: number) => streams.springs.find(([x, y, n]) => n === name && Math.abs(x - lon) < 0.05 && Math.abs(y - lat) < 0.05);
     expect(near("Volusia Blue Spring", -81.34, 28.95)?.[3]).toBe(1);
     expect(near("Wekiwa Spring (Orange)", -81.46, 28.71)).toBeDefined();
-    for (const n of ["Lake Monroe", "Lake Harney", "Lake Jesup"]) expect(lakes.bodies.map((b) => b.name), n).toContain(n);
+    for (const n of ["Lake Monroe", "Lake Harney", "Lake Jesup", "Lake Poinsett", "Lake Washington", "Blue Cypress Lake"]) expect(lakes.bodies.map((b) => b.name), n).toContain(n);
+  });
+
+  it("sends the Treasure Coast's rivers to the Atlantic", () => {
+    const fatesOf = (name: string) => new Set(segs.filter((s) => names[s[4]] === name).map((s) => s[1]));
+    for (const river of ["Saint Lucie Canal", "North Fork Saint Lucie River", "Saint Lucie River", "Loxahatchee River", "Saint Sebastian River"]) {
+      expect(fatesOf(river), river).toEqual(new Set([Fate.Atlantic]));
+    }
+    expect(lakes.bodies.map((b) => b.name)).toContain("Lake Okeechobee");
   });
 
   it("forms a network without cycles", () => {
@@ -327,10 +338,14 @@ describe("lakes.json", () => {
       }
       return inside;
     };
-    // Off Suwannee Sound, off Mayport, and near Cedar Key.
-    for (const [lon, lat] of [[-83.3, 29.25], [-81.3, 30.4], [-83.05, 29.12]]) expect(inSea(lon, lat)).toBe(true);
-    // Gainesville, Palatka, Lake George, and the St. Johns at downtown Jacksonville.
-    for (const [lon, lat] of [[-82.325, 29.652], [-81.637, 29.648], [-81.6, 29.28], [-81.656, 30.325]]) expect(inSea(lon, lat)).toBe(false);
+    // Off Suwannee Sound, off Mayport, near Cedar Key; the Indian River Lagoon at Vero Beach and
+    // Sebastian, which the Census outlines count as land; and the St. Lucie estuary at Stuart.
+    for (const [lon, lat] of [[-83.3, 29.25], [-81.3, 30.4], [-83.05, 29.12], [-80.368, 27.63], [-80.44, 27.8], [-80.207, 27.199]]) expect(inSea(lon, lat), `${lon},${lat}`).toBe(true);
+    // Gainesville, Palatka, Lake George, the St. Johns at downtown Jacksonville and in its
+    // headwater marshes, and downtown Stuart and Vero Beach.
+    for (const [lon, lat] of [[-82.325, 29.652], [-81.637, 29.648], [-81.6, 29.28], [-81.656, 30.325], [-80.75, 27.9], [-80.245, 27.19], [-80.4, 27.64]]) {
+      expect(inSea(lon, lat), `${lon},${lat}`).toBe(false);
+    }
   });
 });
 

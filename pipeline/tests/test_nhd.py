@@ -22,3 +22,9 @@ def test_other_layers_keep_everything_in_the_box():
     data = [np.array([7.0, 8.0], dtype=object), np.array([312, 312])]
     feats = nhd.to_features(names, data, [Point(0.5, 0.5), Point(2, 2)], (0, 0, 1, 1), "nhdplusid", None)
     assert [f["properties"] for f in feats] == [{"nhdplusid": 7}]
+
+
+def test_blank_network_attributes_are_none():
+    assert nhd.whole(float("nan")) is None
+    assert nhd.whole(None) is None
+    assert nhd.whole(15000300000195.0) == 15000300000195

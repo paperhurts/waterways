@@ -21,7 +21,7 @@ const FATES = [
 ];
 
 const VIEWS = {
-  all: bounds(-83.3, 28.55, -80.95, 30.5),
+  all: bounds(-83.3, 26.85, -80.05, 30.5),
   gnv: bounds(-82.48, 29.57, -82.22, 29.72),
   ala: bounds(-82.62, 29.72, -82.36, 29.9),
   spr: bounds(-82.8, 29.8, -82.55, 29.95),
@@ -32,6 +32,8 @@ const VIEWS = {
   ock: bounds(-82.1, 28.75, -81.5, 29.25),
   atl: bounds(-81.92, 29.44, -81.3, 30.46),
   mid: bounds(-81.62, 28.6, -81.0, 29.2),
+  upr: bounds(-81.15, 27.6, -80.45, 28.55),
+  stl: bounds(-80.75, 26.88, -80.08, 27.5),
 };
 
 /** Town names, and the zoom (pixels per map unit) below which smaller ones are hidden. */
@@ -45,6 +47,10 @@ const PLACES: [name: string, lon: number, lat: number, minScale?: number][] = [
   ["Williston", -82.447, 29.387, 1500], ["Crystal River", -82.593, 28.902, 1500], ["Inverness", -82.33, 28.836, 1500],
   ["Leesburg", -81.878, 28.811, 1500], ["DeLand", -81.303, 29.028], ["Sanford", -81.269, 28.8],
   ["Apopka", -81.511, 28.676, 1500], ["Oviedo", -81.208, 28.67, 1500], ["Astor", -81.525, 29.167, 1500],
+  ["Titusville", -80.808, 28.612], ["Melbourne", -80.608, 28.084], ["Vero Beach", -80.397, 27.638],
+  ["Fort Pierce", -80.326, 27.447], ["Stuart", -80.253, 27.198], ["Jupiter", -80.094, 26.934],
+  ["Cocoa", -80.742, 28.386, 1500], ["Palm Bay", -80.588, 28.034, 1500], ["Fellsmere", -80.601, 27.768, 1500],
+  ["Port St. Lucie", -80.358, 27.294, 1500], ["Indiantown", -80.486, 27.027, 1500],
 ];
 
 /** How a Gulf- or Atlantic-bound creek's water gets to the sea, by the rivers on its path. */
@@ -62,6 +68,13 @@ function seaway(s0: Segment, trace: Trace): string {
   }
   return outlet ? `Flows down the ${escapeHtml(outlet)} to the Gulf of Mexico.` : FATES[Fate.Gulf].via;
 }
+
+/** Story pages about a river, linked from the card of any creek whose water passes through it. */
+const STORIES: [river: RegExp, href: string, title: string][] = [
+  [/Saint Lucie/, "st-lucie.html", "the St. Lucie map"],
+  [/^Rainbow River$/, "rainbow.html", "the Rainbow River map"],
+  [/^Santa Fe River$/, "santa-fe.html", "the Santa Fe map"],
+];
 
 /** Boil size by spring magnitude (index), so first-magnitude springs read as the giants they are. */
 const MAG_SIZE = [1, 2, 1.45, 1.15, 1, 1, 1, 1, 1];
@@ -136,7 +149,7 @@ async function main() {
   const sizeClass = Uint8Array.from(segs, (s) => (s.acc < 15 ? 0 : s.acc < 150 ? 1 : 2));
 
   document.getElementById("lede")!.innerHTML =
-    `Every mapped creek in the springs belt, from the middle Suwannee to Rainbow River and the Ocklawaha, and up the St. Johns past Blue Spring and the Wekiva to Lake Harney, colored by where its water ends up, ` +
+    `Every mapped creek from the middle Suwannee to Rainbow River and the Ocklawaha, up the St. Johns to its headwaters, and down the Treasure Coast to the St. Lucie and the Loxahatchee, colored by where its water ends up, ` +
     `and followed down the rivers to the sea. ` +
     `<b>${Math.round(pct[Fate.Gulf])}%</b> of creek length drains to the Gulf and <b>${Math.round(pct[Fate.Atlantic])}%</b> to the Atlantic. ` +
     `The other <b>${Math.round(pct[Fate.Sink] + pct[Fate.Inland])}%</b> never reaches a river: it ends inland, in a sink, a closed wetland, ` +
@@ -274,7 +287,7 @@ async function main() {
       }
     };
     seaLabel("Gulf of Mexico", "Gulf", [[-83.8, 29.35], [-83.3, 28.95]]);
-    seaLabel("Atlantic Ocean", "Atlantic", [[-81.3, 30.06], [-80.75, 29.0]]);
+    seaLabel("Atlantic Ocean", "Atlantic", [[-81.3, 30.06], [-80.75, 29.0], [-80.3, 28.2], [-80.0, 27.4]]);
   }
 
   // ----- particles: rain falls on every creek, weighted by length -----
@@ -510,7 +523,9 @@ async function main() {
     const underground = trace.path.some((s) => s.underground) ? " Part of the way it runs underground, through the aquifer." : "";
     // Skip the river it joins when the card already names it ("Flows down the Withlacoochee River...").
     const joins = trace.joins && trace.joins !== s0.name && !body.includes(escapeHtml(trace.joins)) ? ` Along the way it joins ${escapeHtml(trace.joins)}.` : "";
-    card.show({ title: s0.name || "Unnamed creek", kind: F.label, color: FC[s0.fate], body: `${body} ${dist}${underground}${joins}` });
+    const story = STORIES.find(([river]) => trace.path.some((s) => s.name && river.test(s.name)));
+    const more = story ? ` <a href="${story[1]}">See ${story[2]}.</a>` : "";
+    card.show({ title: s0.name || "Unnamed creek", kind: F.label, color: FC[s0.fate], body: `${body} ${dist}${underground}${joins}${more}` });
   }
 
   /** A creek drops into the ground here but keeps going: say where it comes back up. */
