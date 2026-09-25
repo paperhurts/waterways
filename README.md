@@ -70,7 +70,7 @@ The journal runs on a free Supabase project. `config/supabase.json` holds its UR
 
 `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main` and every six hours. Each run fetches fresh gauge readings into the deployed snapshot, and nothing is committed. GitHub pauses scheduled workflows in public repos after 60 days without commits. If the snapshot goes stale, re-enable the workflow from the Actions tab.
 
-Pages must be set to deploy from **GitHub Actions** (Settings → Pages → Source). The custom domain `waterways.paperhurts.dev` is set in the Pages settings. DNS is a CNAME record, `waterways` → `paperhurts.github.io`, at the domain's registrar. The old `paperhurts.github.io/waterways` address redirects to it.
+Pages must be set to deploy from **GitHub Actions** (Settings → Pages → Source). The custom domain `waterways.paperhurts.dev` is set in the Pages settings. DNS is a CNAME record, `waterways` → `paperhurts.github.io`, at the domain's registrar. The old `paperhurts.github.io/waterways` address redirects to it. The repo carries the GitHub topic `paperhurts-dev`, which puts a card for it on the [paperhurts.dev](https://paperhurts.dev) homepage. The card copy lives in `projects.config.json` in `paperhurts/paperhurts.github.io`.
 
 ## Data sources
 - Streams, rivers, lakes, and sink/spring points: USGS NHDPlus High Resolution, [hydro.nationalmap.gov](https://hydro.nationalmap.gov/)
