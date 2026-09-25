@@ -139,3 +139,10 @@ input[type="file"]::file-selector-button { font: 600 .82rem var(--sans); backgro
 .count { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums }
 .step { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font: 600 1rem/1 var(--sans) }
 .step:disabled { opacity: .4; cursor: default }
+
+/* Snorkel spots: coral where springs are spring-blue. */
+.row-btn.spot.seen .name::before { background: var(--coral) }
+.row-btn.spot:hover .name { color: var(--coral) }
+/* Placing a new spot: one tap on the map. */
+.pickmsg { margin: 0 0 8px; padding: 8px 12px; border: 1px solid var(--coral); border-radius: 10px; font: 600 .9rem var(--sans) }
+.leaflet-container.picking { cursor: crosshair }

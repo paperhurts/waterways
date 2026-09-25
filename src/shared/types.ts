@@ -154,6 +154,8 @@ export interface StatewideFile {
 
 /** Where a snorkel spot is, in kind: its card's label comes from src/shared/snorkel.ts. */
 export type SnorkelKind = "reef" | "offshore" | "lagoon" | "inlet" | "park" | "island" | "beach" | "cave" | "sinkhole";
+/** A spot members add can also be a spring FDEP doesn't list, or anything else. Matches the spots table's check. */
+export type SpotKind = SnorkelKind | "spring" | "other";
 
 export interface SnorkelSpot {
   /** name--county, like the springs' ids, and never the same as one of them. */
@@ -166,6 +168,19 @@ export interface SnorkelSpot {
   /** The OpenStreetMap feature the location came from, e.g. "way/93618985". */
   osm: string;
   web?: string;
+}
+
+/** A spot a member added (the journal's spots table). Its id starts with "spot-". */
+export interface MemberSpot {
+  id: string;
+  name: string;
+  kind: SpotKind;
+  lat: number;
+  lon: number;
+  notes: string | null;
+  created_by: string;
+  created_by_email: string;
+  created_at: string;
 }
 
 export interface SnorkelFile {
