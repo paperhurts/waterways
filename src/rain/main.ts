@@ -3,7 +3,7 @@ import "./rain.css";
 import { InfoCard } from "../shared/card";
 import { escapeHtml, loadData, showLoadError } from "../shared/data";
 import { KM_PER_UNIT, bounds, pointAt, project, type XY } from "../shared/geo";
-import { drawJournal, journalCardHtml, loadJournalOverlay, type JournalOverlay } from "../shared/journal-overlay";
+import { drawJournal, hitSighting, journalCardHtml, loadJournalOverlay, sightingCard, type JournalOverlay } from "../shared/journal-overlay";
 import { decodeLakes, drawLakeLabels, drawLakes, inLake } from "../shared/lakes";
 import { MAG_TEXT } from "../shared/magnitude";
 import { StreakLayer, drawBoil, fadeLayer } from "../shared/streaks";
@@ -456,6 +456,12 @@ async function main() {
   const near = (xy: XY, x: number, y: number, r: number) => Math.hypot(X(xy[0]) - x, Y(xy[1]) - y) < r;
 
   function tap(x: number, y: number) {
+    const seen = journal && showJournal ? hitSighting(journal, X, Y, x, y) : null;
+    if (seen) {
+      select(null);
+      card.show(sightingCard(seen));
+      return;
+    }
     const spring = springs.find((s) => near(s.xy, x, y, 10));
     if (spring) {
       select(null);

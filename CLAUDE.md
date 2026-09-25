@@ -41,6 +41,7 @@ Four canvas-animated maps of Florida hydrology (Vite + TypeScript, no framework)
   - Spring ids come from `springs.py` (name + county slug) and are stored in visits, so never change the id scheme without migrating `visits.spring_id`.
   - The maps load journal code only when `hasStoredSession()` is true (`src/journal/session.ts`), which keeps supabase-js out of public map bundles.
   - Test UI changes with `journal.html?demo` on the dev server.
+  - On the public maps, tapping a journal sighting or a visited spring opens its entries (`journal-overlay.ts`). Popups name people by `display_name` only, never email, and escape all member-entered text. The layer only loads for signed-in members, so to preview a card on the dev server, import the module in the console and call `sightingCard` / `journalCardHtml` with sample data.
   - Wildlife group ids must match the DB check constraint (`tests/journal.test.ts`). Their colors are the dataviz reference categorical palette in fixed slot order, so don't reorder them without re-running its validator.
 - **Python.** The pipeline targets Python 3.14 (`pipeline/.python-version`); numpy and shapely ship wheels for it.
 - **No PII in the repo.** Keep local paths, usernames, emails, and machine-specific setup out of committed files, including comments and CLAUDE.md. Data files hold only public geographic names from USGS/FDEP/FGS.
