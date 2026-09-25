@@ -1,5 +1,6 @@
-// The journal's map: visited springs and wildlife sightings over USGS imagery
-// or topo, with a layer per animal group that can be switched on and off.
+// The journal's map: visited springs and snorkel spots and wildlife sightings over
+// USGS imagery or topo, with a layer per animal group that can be switched on and
+// off. It can also take one tap to place a new spot.
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -40,11 +41,14 @@ export class JournalMap {
   basemap: Basemap;
   private layers = new Map<LayerId, L.LayerGroup>();
   private counts = new Map<LayerId, number>();
+  private mark: L.CircleMarker | null = null;
   private dark: boolean;
 
   constructor(
     el: HTMLElement,
     private springs: Map<string, StatewideSpring>,
+    /** Snorkel spots draw coral; springs draw spring-blue. */
+    private isSpot: (id: string) => boolean,
     private onOpenSpring: (id: string) => void,
     dark: boolean,
     basemap: Basemap,
@@ -67,14 +71,18 @@ export class JournalMap {
     for (const l of this.layers.values()) l.clearLayers();
     this.counts.clear();
     const bump = (id: LayerId) => this.counts.set(id, (this.counts.get(id) ?? 0) + 1);
-    const spring = "#5fd8cc";
+    const spring = this.dark ? "#5fd8cc" : "#0a8f86";
+    const coral = this.dark ? "#f08a5d" : "#c4552b";
 
     for (const s of this.springs.values()) {
       const sum = summary.get(s[0]);
+      const spot = this.isSpot(s[0]);
       const layer: LayerId = sum ? "visited" : "unvisited";
       const m = L.circleMarker([s[4], s[3]], sum
-        ? { radius: 7, color: this.ring(), weight: 2, fillColor: this.dark ? spring : "#0a8f86", fillOpacity: 0.95 }
-        : { radius: 3.5, color: this.dark ? "#8c8577" : "#5b6152", weight: 1, fillOpacity: 0.5 });
+        ? { radius: 7, color: this.ring(), weight: 2, fillColor: spot ? coral : spring, fillOpacity: 0.95 }
+        : spot
+          ? { radius: 4.5, color: coral, weight: 1.5, fillColor: coral, fillOpacity: 0.55 }
+          : { radius: 3.5, color: this.dark ? "#8c8577" : "#5b6152", weight: 1, fillOpacity: 0.5 });
       m.bindTooltip(s[1] + (sum ? ` · ${sum.visits} visit${sum.visits > 1 ? "s" : ""}` : ""));
       m.on("click", () => this.onOpenSpring(s[0]));
       m.addTo(this.layers.get(layer)!);
@@ -96,7 +104,7 @@ export class JournalMap {
           lon = s[3] + (Math.cos(a) * RING_M) / (111_320 * Math.cos((s[4] * Math.PI) / 180));
         }
         const m = L.circleMarker([lat, lon], { radius: 6, color: this.ring(), weight: 1.5, fillColor: groupColor(x.animal_group, this.dark), fillOpacity: 0.95 });
-        m.bindPopup(() => sightingPopup(x.species, x.count, v.visited_on, s?.[1] ?? "", x.from_gps, () => this.onOpenSpring(v.spring_id)));
+        m.bindPopup(() => sightingPopup(x.species, x.count, v.visited_on, s?.[1] ?? "", x.from_gps, this.isSpot(v.spring_id), () => this.onOpenSpring(v.spring_id)));
         m.addTo(this.layers.get(x.animal_group)!);
         bump(x.animal_group);
       });
@@ -106,8 +114,8 @@ export class JournalMap {
   layerInfo(): LayerInfo[] {
     const info = (id: LayerId, label: string, color: string): LayerInfo => ({ id, label, color, count: this.counts.get(id) ?? 0, on: this.map.hasLayer(this.layers.get(id)!) });
     return [
-      info("visited", "Springs we've visited", this.dark ? "#5fd8cc" : "#0a8f86"),
-      info("unvisited", "Springs not yet visited", this.dark ? "#8c8577" : "#5b6152"),
+      info("visited", "Places we've visited", this.dark ? "#5fd8cc" : "#0a8f86"),
+      info("unvisited", "Places not yet visited", this.dark ? "#8c8577" : "#5b6152"),
       ...GROUPS.map((g) => info(g.id, g.label, groupColor(g.id, this.dark))),
     ];
   }
@@ -120,7 +128,15 @@ export class JournalMap {
 
   focus(springId: string): void {
     const s = this.springs.get(springId);
-    if (s) this.map.flyTo([s[4], s[3]], 15, { duration: 0.8 });
+    if (!s) return;
+    // Ring the place asked for: places not yet visited are hidden by default, so a
+    // new spot would otherwise have nothing to show.
+    this.mark?.remove();
+    this.mark = L.circleMarker([s[4], s[3]], { radius: 11, color: this.ring(), weight: 2, fill: true, fillOpacity: 0 })
+      .bindTooltip(s[1])
+      .on("click", () => this.onOpenSpring(s[0]))
+      .addTo(this.map);
+    this.map.flyTo([s[4], s[3]], 15, { duration: 0.8 });
   }
 
   /** Frame everything we've logged, or all of Florida if there's nothing yet. */
@@ -156,9 +172,35 @@ export class JournalMap {
   resize(): void {
     this.map.invalidateSize();
   }
+
+  private picking: ((at: [lat: number, lon: number] | null) => void) | null = null;
+
+  /** Wait for one tap on the map, for placing a new spot. Resolves null if cancelled. */
+  pick(): Promise<[lat: number, lon: number] | null> {
+    this.cancelPick();
+    this.map.getContainer().classList.add("picking");
+    return new Promise((resolve) => {
+      this.picking = resolve;
+      this.map.once("click", (e: L.LeafletMouseEvent) => {
+        if (this.picking !== resolve) return;
+        this.endPick([e.latlng.lat, e.latlng.lng]);
+      });
+    });
+  }
+
+  cancelPick(): void {
+    this.endPick(null);
+  }
+
+  private endPick(at: [number, number] | null): void {
+    const done = this.picking;
+    this.picking = null;
+    this.map.getContainer().classList.remove("picking");
+    done?.(at);
+  }
 }
 
-function sightingPopup(species: string, count: number | null, date: string, spring: string, gps: boolean, open: () => void): HTMLElement {
+function sightingPopup(species: string, count: number | null, date: string, spring: string, gps: boolean, spot: boolean, open: () => void): HTMLElement {
   const el = document.createElement("div");
   el.className = "pop";
   const b = document.createElement("b");
@@ -167,7 +209,7 @@ function sightingPopup(species: string, count: number | null, date: string, spri
   meta.textContent = `${formatDate(date)} · ${spring}`;
   const where = document.createElement("div");
   where.className = "muted";
-  where.textContent = gps ? "Pinned by GPS" : "Logged at the spring";
+  where.textContent = gps ? "Pinned by GPS" : spot ? "Logged at the spot" : "Logged at the spring";
   const link = document.createElement("button");
   link.type = "button";
   link.className = "linkish";

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Spring journal</title>
-<meta name="description" content="A private, shared log of Florida spring visits: ratings, wildlife, photos, and where we saw things.">
+<meta name="description" content="A private, shared log of Florida spring and snorkel visits: ratings, wildlife, photos, and where we saw things.">
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,18 +36,20 @@
 
   <section id="app" hidden>
     <nav class="tabs" role="tablist" aria-label="Journal">
-      <button type="button" role="tab" id="tab-springs" aria-controls="pane-springs" aria-selected="true">Springs</button>
+      <button type="button" role="tab" id="tab-springs" aria-controls="pane-springs" aria-selected="true">Places</button>
       <button type="button" role="tab" id="tab-map" aria-controls="pane-map" aria-selected="false">Map</button>
       <button type="button" role="tab" id="tab-people" aria-controls="pane-people" aria-selected="false">People</button>
     </nav>
 
     <div id="pane-springs" role="tabpanel" aria-labelledby="tab-springs" class="pane">
       <div class="finder">
-        <input id="q" type="search" placeholder="Find a spring or county" aria-label="Find a spring or county" autocomplete="off">
+        <input id="q" type="search" placeholder="Find a spring, spot, or county" aria-label="Find a spring, snorkel spot, or county" autocomplete="off">
         <button id="nearMe" type="button" class="chip" aria-pressed="false">Near me</button>
+        <button id="addSpot" type="button" class="chip">Add a spot</button>
       </div>
-      <div class="seg" role="group" aria-label="Which springs">
+      <div class="seg" role="group" aria-label="Which places">
         <button type="button" data-f="all" aria-pressed="true">All</button>
+        <button type="button" data-f="snorkel" aria-pressed="false">Snorkel spots</button>
         <button type="button" data-f="visited" aria-pressed="false">Visited <span id="nVisited"></span></button>
         <button type="button" data-f="todo" aria-pressed="false">Not yet</button>
       </div>
@@ -56,7 +58,8 @@
     </div>
 
     <div id="pane-map" role="tabpanel" aria-labelledby="tab-map" class="pane mappane" hidden>
-      <div id="jmap" class="jmap" role="region" aria-label="Map of visited springs and wildlife sightings"></div>
+      <p id="pickMsg" class="pickmsg" role="status" hidden>Tap the map where the spot is. <button type="button" id="pickCancel" class="linkish">Cancel</button></p>
+      <div id="jmap" class="jmap" role="region" aria-label="Map of visited springs, snorkel spots, and wildlife sightings"></div>
       <fieldset id="layers" class="layers"><legend>Show on the map</legend></fieldset>
     </div>
 
@@ -85,6 +88,7 @@
     <button type="button" class="x" data-close aria-label="Close">×</button>
   </div>
   <div class="sheet-body">
+    <p id="springNotes" class="notes" hidden></p>
     <div id="springActions" class="actions"></div>
     <ol id="visits" class="visits"></ol>
   </div>
@@ -138,6 +142,47 @@
       <p id="visitMsg" class="msg" role="status"></p>
       <button type="button" data-close>Cancel</button>
       <button type="submit" class="primary" id="vSave">Save visit</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="spotDlg" class="sheet" aria-labelledby="spotTitle">
+  <form id="spotForm" novalidate>
+    <div class="sheet-head">
+      <div>
+        <h2 id="spotTitle">Add a spot</h2>
+        <p class="meta">A place to snorkel or swim that isn't on the list. Everyone in the journal can see it.</p>
+      </div>
+      <button type="button" class="x" data-close aria-label="Close">×</button>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <label for="sName">Name</label>
+        <input id="sName" type="text" maxlength="120" required autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="sKind">What kind of place</label>
+        <select id="sKind"></select>
+      </div>
+      <div class="field">
+        <label for="sWhere">Where (latitude, longitude)</label>
+        <input id="sWhere" type="text" inputmode="decimal" placeholder="27.1859, -80.1607" autocomplete="off">
+        <div class="row">
+          <button type="button" id="sGps" class="chip">Use my location</button>
+          <button type="button" id="sPick" class="chip">Tap it on the map</button>
+        </div>
+        <p class="hint">You can also paste coordinates copied from a map app.</p>
+      </div>
+      <div class="field">
+        <label for="sNotes">Notes</label>
+        <textarea id="sNotes" rows="3" maxlength="2000" placeholder="Where to get in, best tide, parking…"></textarea>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" id="sDelete" class="danger" hidden>Delete spot</button>
+      <p id="spotMsg" class="msg" role="status"></p>
+      <button type="button" data-close>Cancel</button>
+      <button type="submit" class="primary" id="sSave">Save spot</button>
     </div>
   </form>
 </dialog>

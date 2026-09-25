@@ -60,4 +60,22 @@ export const SPECIES: { name: string; group: AnimalGroup }[] = [
   { name: "Cottonmouth", group: "snakes" },
 ];
 
-export const speciesGroup = (name: string): AnimalGroup => SPECIES.find((s) => s.name === name)?.group ?? "other";
+/** Offered instead at salt-water snorkel spots: reefs, lagoons, inlets, and beaches. */
+export const SEA_SPECIES: { name: string; group: AnimalGroup }[] = [
+  { name: "Manatee", group: "manatees" },
+  { name: "Sea turtle", group: "turtles" },
+  { name: "Parrotfish", group: "fish" },
+  { name: "Sergeant major", group: "fish" },
+  { name: "Barracuda", group: "fish" },
+  { name: "Snook", group: "fish" },
+  { name: "Stingray", group: "fish" },
+  { name: "Nurse shark", group: "fish" },
+  { name: "Lionfish", group: "fish" },
+  { name: "Brown pelican", group: "birds" },
+  { name: "Osprey", group: "birds" },
+  { name: "Dolphin", group: "mammals" },
+  { name: "Octopus", group: "other" },
+  { name: "Spiny lobster", group: "other" },
+];
+
+export const speciesGroup = (name: string): AnimalGroup => [...SPECIES, ...SEA_SPECIES].find((s) => s.name === name)?.group ?? "other";

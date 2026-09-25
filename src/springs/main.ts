@@ -188,7 +188,7 @@ async function main() {
       c.fill();
       c.stroke();
     }
-    if (journal) drawJournal(c, journal, X, Y, springs, C.ink, glow);
+    if (journal) drawJournal(c, journal, X, Y, [...springs, ...spots], C.ink, glow);
   }
 
   function draw() {

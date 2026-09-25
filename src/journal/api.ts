@@ -1,6 +1,7 @@
 // Reading and writing the shared journal. Row-level security does the gating:
 // a signed-in non-member simply gets empty results.
 
+import type { MemberSpot, SpotKind } from "../shared/types";
 import { supabase } from "./client";
 import { preparePhoto } from "./photos";
 import type { AnimalGroup } from "./wildlife";
@@ -53,6 +54,8 @@ export interface Visit {
 export interface Journal {
   members: Member[];
   visits: Visit[];
+  /** Spots members added, besides the springs and the curated snorkel spots. */
+  spots: MemberSpot[];
 }
 
 function check<T>(res: { data: T; error: { message: string } | null }): T {
@@ -62,11 +65,12 @@ function check<T>(res: { data: T; error: { message: string } | null }): T {
 
 export async function loadJournal(): Promise<Journal> {
   const sb = supabase();
-  const [members, visits] = await Promise.all([
+  const [members, visits, spots] = await Promise.all([
     sb.from("members").select("email, display_name, added_at").order("added_at"),
     sb.from("visits").select("*, sightings(*), photos(*)").order("visited_on", { ascending: false }).order("created_at", { ascending: false }),
+    sb.from("spots").select("*").order("name"),
   ]);
-  return { members: check(members) ?? [], visits: (check(visits) as Visit[]) ?? [] };
+  return { members: check(members) ?? [], visits: (check(visits) as Visit[]) ?? [], spots: (check(spots) as MemberSpot[]) ?? [] };
 }
 
 // ---------- summaries (pure) ----------
@@ -177,6 +181,26 @@ export async function photoUrls(paths: string[]): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   for (const d of res.data) if (d.path && d.signedUrl) out.set(d.path, d.signedUrl);
   return out;
+}
+
+export interface SpotDraft {
+  name: string;
+  kind: SpotKind;
+  lat: number;
+  lon: number;
+  notes: string;
+}
+
+/** Add a spot, or change one of your own. Returns its id. */
+export async function saveSpot(draft: SpotDraft, existing: MemberSpot | null): Promise<string> {
+  const sb = supabase();
+  const row = { name: draft.name.trim(), kind: draft.kind, lat: draft.lat, lon: draft.lon, notes: draft.notes.trim() || null };
+  const res = existing ? await sb.from("spots").update(row).eq("id", existing.id).select("id").single() : await sb.from("spots").insert(row).select("id").single();
+  return (check(res) as { id: string }).id;
+}
+
+export async function deleteSpot(id: string): Promise<void> {
+  check(await supabase().from("spots").delete().eq("id", id));
 }
 
 export async function inviteMember(email: string, displayName: string): Promise<void> {

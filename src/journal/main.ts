@@ -2,12 +2,15 @@ import "./journal.css";
 import type { Session } from "@supabase/supabase-js";
 import { loadData } from "../shared/data";
 import { isDark, onColorSchemeChange } from "../shared/theme";
-import type { SpringsFile, StatewideSpring } from "../shared/types";
-import { deleteVisit, inviteMember, loadJournal, photoUrls, removeMember, saveVisit, summarize, type Journal, type Photo, type SightingDraft, type SpringSummary, type Visit } from "./api";
+import { allPlaces, placeInfo } from "../shared/places";
+import { KIND_LABEL } from "../shared/snorkel";
+import type { MemberSpot, SpotKind, SpringsFile, StatewideSpring } from "../shared/types";
+import { deleteSpot, deleteVisit, inviteMember, loadJournal, photoUrls, removeMember, saveSpot, saveVisit, summarize, type Journal, type Photo, type SightingDraft, type SpringSummary, type Visit } from "./api";
 import { supabase } from "./client";
 import { $, h } from "./dom";
 import type { JournalMap, LayerId } from "./sightings-map";
-import { GROUPS, SPECIES, groupColor, groupDef, speciesGroup, type AnimalGroup } from "./wildlife";
+import { parseWhere } from "./where";
+import { GROUPS, SEA_SPECIES, SPECIES, groupColor, groupDef, speciesGroup, type AnimalGroup } from "./wildlife";
 
 const MAG_LABEL = ["", "First magnitude", "Second magnitude", "Third magnitude", "Fourth magnitude", "Fifth magnitude", "Sixth magnitude", "Seventh magnitude", "Eighth magnitude"];
 const PENDING_KEY = "waterways.journal.pending";
@@ -46,12 +49,16 @@ const km = (a: [number, number], b: [number, number]) => {
 };
 
 // ---------- state ----------
+/** FDEP's springs, from springs.json. */
+let fdep: StatewideSpring[] = [];
+/** Every place visits can be logged at: the springs, the curated snorkel spots, and members' spots. */
 let springs: StatewideSpring[] = [];
-let byId = new Map<string, StatewideSpring>();
+/** Refilled in place, never replaced: the map holds on to it. */
+const byId = new Map<string, StatewideSpring>();
 let session: Session | null = null;
-let journal: Journal = { members: [], visits: [] };
+let journal: Journal = { members: [], visits: [], spots: [] };
 let summary = new Map<string, SpringSummary>();
-let filter: "all" | "visited" | "todo" = "all";
+let filter: "all" | "snorkel" | "visited" | "todo" = "all";
 let here: [number, number] | null = null;
 let map: JournalMap | null = null;
 
@@ -60,18 +67,27 @@ const demo = import.meta.env.DEV && new URLSearchParams(location.search).has("de
 
 const nameOf = (email: string) => journal.members.find((m) => m.email === email)?.display_name || email.split("@")[0];
 const myId = () => session?.user.id;
+const info = (id: string) => placeInfo(id, journal.spots);
 
-// ---------- boot & auth ----------
-async function main() {
-  const file = await loadData<SpringsFile>("springs.json");
-  springs = file.springs;
-  byId = new Map(springs.map((s) => [s[0], s]));
+/** Rebuild the place list: members' spots come and go with the journal. */
+function setPlaces() {
+  springs = allPlaces(fdep, journal.spots);
+  byId.clear();
+  for (const s of springs) byId.set(s[0], s);
+  dupes = new Set();
   const seen = new Set<string>();
   for (const s of springs) {
     const k = `${s[1]}|${s[2]}`;
     if (seen.has(k)) dupes.add(k);
     seen.add(k);
   }
+}
+
+// ---------- boot & auth ----------
+async function main() {
+  const file = await loadData<SpringsFile>("springs.json");
+  fdep = file.springs;
+  setPlaces();
   if (demo) {
     const { DEMO_JOURNAL, DEMO_EMAIL } = await import("./demo");
     journal = structuredClone(DEMO_JOURNAL);
@@ -150,6 +166,7 @@ async function reload() {
 }
 
 function refresh() {
+  setPlaces();
   summary = summarize(journal.visits);
   $("nVisited").textContent = String(summary.size);
   renderList();
@@ -173,7 +190,7 @@ async function showTab(tab: string) {
     if (!map) {
       const { JournalMap } = await import("./sightings-map");
       const saved = store.get(BASEMAP_KEY);
-      map = new JournalMap($("jmap"), byId, openSpring, isDark(), saved === "imagery" || saved === "topo" ? saved : isDark() ? "imagery" : "topo");
+      map = new JournalMap($("jmap"), byId, (id) => !info(id).spring, openSpring, isDark(), saved === "imagery" || saved === "topo" ? saved : isDark() ? "imagery" : "topo");
       map.setData(journal.visits, summary);
       map.fitData();
       renderLayers();
@@ -216,6 +233,7 @@ function renderList() {
   const q = fold(($("q") as HTMLInputElement).value.trim());
   let rows = springs.filter((s) => {
     const seen = summary.has(s[0]);
+    if (filter === "snorkel" && !info(s[0]).snorkel) return false;
     if (filter === "visited" && !seen) return false;
     if (filter === "todo" && seen) return false;
     return !q || fold(s[1]).includes(q) || fold(s[2]).includes(q);
@@ -224,7 +242,7 @@ function renderList() {
   else if (q) rows.sort((a, b) => Number(!fold(a[1]).startsWith(q)) - Number(!fold(b[1]).startsWith(q)) || a[1].localeCompare(b[1]));
   else rows.sort((a, b) => (summary.get(b[0])?.last ?? "").localeCompare(summary.get(a[0])?.last ?? "") || a[1].localeCompare(b[1]));
   const shown = rows.slice(0, 150);
-  $("listMsg").textContent = !rows.length ? (filter === "visited" ? "No visits logged yet. Find a spring and log one." : "No springs match that.") : rows.length > shown.length ? `Showing ${shown.length} of ${rows.length}. Search to narrow it down.` : "";
+  $("listMsg").textContent = !rows.length ? (filter === "visited" ? "No visits logged yet. Find a place and log one." : "Nothing matches that.") : rows.length > shown.length ? `Showing ${shown.length} of ${rows.length}. Search to narrow it down.` : "";
   $("list").replaceChildren(...shown.map(springRow));
 }
 
@@ -232,9 +250,18 @@ function renderList() {
 let dupes = new Set<string>();
 const coords = (s: StatewideSpring) => `${s[4].toFixed(3)}° N, ${Math.abs(s[3]).toFixed(3)}° W`;
 
+/** What kind of place, for its list row and sheet: a spring's magnitude, or a spot's kind and who added it. */
+function kindBits(s: StatewideSpring): string[] {
+  const p = info(s[0]);
+  if (p.member) return [p.label ?? "", `added by ${memberName(p.member)}`];
+  if (!p.spring) return ["Snorkel spot", (p.label ?? "").toLowerCase()];
+  return [MAG_LABEL[s[5]], p.snorkel ? "good snorkeling" : ""];
+}
+const memberName = (m: MemberSpot) => (m.created_by === myId() ? "you" : nameOf(m.created_by_email));
+
 function springRow(s: StatewideSpring) {
   const sum = summary.get(s[0]);
-  const bits = [s[2] ? `${s[2]} County` : "", dupes.has(`${s[1]}|${s[2]}`) ? coords(s) : "", MAG_LABEL[s[5]]];
+  const bits = [s[2] ? `${s[2]} County` : "", dupes.has(`${s[1]}|${s[2]}`) ? coords(s) : "", ...kindBits(s)];
   if (here) {
     const d = km(here, [s[3], s[4]]) * 0.621;
     bits.unshift(`${d < 10 ? d.toFixed(1) : Math.round(d)} mi`);
@@ -244,7 +271,7 @@ function springRow(s: StatewideSpring) {
     {},
     h(
       "button",
-      { type: "button", class: `row-btn${sum ? " seen" : ""}`, onclick: () => openSpring(s[0]) },
+      { type: "button", class: `row-btn${sum ? " seen" : ""}${info(s[0]).spring ? "" : " spot"}`, onclick: () => openSpring(s[0]) },
       h("span", { class: "name" }, s[1]),
       h("span", { class: "meta" }, bits.filter(Boolean).join(" · ")),
       sum
@@ -266,12 +293,16 @@ function openSpring(id: string) {
   if (!s) return;
   const sum = summary.get(id);
   $("springTitle").textContent = s[1];
-  $("springMeta").textContent = [s[2] ? `${s[2]} County` : "", dupes.has(`${s[1]}|${s[2]}`) ? coords(s) : "", MAG_LABEL[s[5]], sum ? `${sum.visits} visit${sum.visits > 1 ? "s" : ""}` : "Not visited yet", sum?.rating ? `${sum.rating.toFixed(1)} ★` : ""].filter(Boolean).join(" · ");
+  $("springMeta").textContent = [s[2] ? `${s[2]} County` : "", dupes.has(`${s[1]}|${s[2]}`) ? coords(s) : "", ...kindBits(s), sum ? `${sum.visits} visit${sum.visits > 1 ? "s" : ""}` : "Not visited yet", sum?.rating ? `${sum.rating.toFixed(1)} ★` : ""].filter(Boolean).join(" · ");
+  const spot = info(id).member;
+  $("springNotes").textContent = spot?.notes ?? "";
+  $("springNotes").hidden = !spot?.notes;
   const actions: HTMLElement[] = [
     h("button", { type: "button", class: "primary", onclick: () => openVisitForm(id, null) }, "Log a visit"),
     h("button", { type: "button", class: "chip", onclick: () => { closeDlg("springDlg"); void showTab("map").then(() => map?.focus(id)); } }, "Show on map"),
   ];
   if (s[6]) actions.push(h("a", { class: "chip", href: "rain.html" }, "Rain map"));
+  if (spot && spot.created_by === myId()) actions.push(h("button", { type: "button", class: "chip", onclick: () => openSpotForm(spot) }, "Edit spot"));
   $("springActions").replaceChildren(...actions);
   const mine = journal.visits.filter((v) => v.spring_id === id);
   $("visits").replaceChildren(...mine.map(visitItem));
@@ -340,7 +371,7 @@ function openVisitForm(springId: string, existing: Visit | null) {
   $("vDelete").hidden = !existing;
   $("visitMsg").textContent = draft ? "Picked up your unsaved draft." : "";
   $("gpsMsg").textContent = "";
-  renderChips();
+  renderChips(info(springId).salt);
   renderSightings();
   renderPhotos();
   openDlg("visitDlg");
@@ -358,11 +389,12 @@ function renderStars(value: number | null) {
   fs.addEventListener("change", saveDraft, { once: true });
 }
 
-function renderChips() {
+/** Quick-tap animals: the springs' list, or the ocean's at a salt-water spot. */
+function renderChips(salt: boolean) {
   const wrap = $("chips");
   wrap.replaceChildren();
   for (const g of GROUPS) {
-    const species = SPECIES.filter((s) => s.group === g.id);
+    const species = (salt ? SEA_SPECIES : SPECIES).filter((s) => s.group === g.id);
     if (!species.length) continue;
     wrap.append(
       h(
@@ -416,7 +448,7 @@ function addSighting(species: string, group: AnimalGroup) {
       renderSightings();
       saveDraft();
     },
-    (err) => ($("gpsMsg").textContent = `No GPS fix (${err.message}), so it's logged at the spring.`),
+    (err) => ($("gpsMsg").textContent = `No GPS fix (${err.message}), so it's logged at the ${info(form!.springId).spring ? "spring" : "spot"}.`),
     { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
   );
 }
@@ -437,7 +469,7 @@ function renderSightings() {
           h("span", { "aria-live": "polite" }, x.count ?? 1),
           h("button", { type: "button", class: "step", "aria-label": `One more ${x.species}`, onclick: () => { x.count = (x.count ?? 1) + 1; renderSightings(); saveDraft(); } }, "+"),
         ),
-        h("span", { class: "muted where" }, x.from_gps ? "📍 GPS" : "at the spring"),
+        h("span", { class: "muted where" }, x.from_gps ? "📍 GPS" : info(form!.springId).spring ? "at the spring" : "at the spot"),
         h("button", { type: "button", class: "x small", "aria-label": `Remove ${x.species}`, onclick: () => { form!.sightings.splice(i, 1); renderSightings(); saveDraft(); } }, "×"),
       ),
     ),
@@ -532,6 +564,93 @@ $("vDelete").addEventListener("click", async () => {
     openSpring(id);
   } catch (err) {
     $("visitMsg").textContent = `Couldn't delete: ${(err as Error).message}`;
+  }
+});
+
+// ---------- adding a spot ----------
+let spotEditing: MemberSpot | null = null;
+$("sKind").replaceChildren(...(Object.keys(KIND_LABEL) as SpotKind[]).map((k) => h("option", { value: k }, KIND_LABEL[k])));
+$("addSpot").addEventListener("click", () => openSpotForm(null));
+
+function openSpotForm(existing: MemberSpot | null, at?: [number, number]) {
+  spotEditing = existing;
+  closeDlg("springDlg");
+  $("spotTitle").textContent = existing ? "Edit spot" : "Add a spot";
+  ($("sName") as HTMLInputElement).value = existing?.name ?? "";
+  ($("sKind") as HTMLSelectElement).value = existing?.kind ?? "reef";
+  ($("sNotes") as HTMLTextAreaElement).value = existing?.notes ?? "";
+  const where = at ?? (existing ? [existing.lat, existing.lon] : null);
+  ($("sWhere") as HTMLInputElement).value = where ? `${where[0].toFixed(5)}, ${where[1].toFixed(5)}` : "";
+  // A spot someone has logged visits at stays, so their visits keep a place.
+  $("sDelete").hidden = !existing || journal.visits.some((v) => v.spring_id === existing.id);
+  $("spotMsg").textContent = "";
+  openDlg("spotDlg");
+}
+
+$("sGps").addEventListener("click", () => {
+  $("spotMsg").textContent = "Finding you…";
+  navigator.geolocation.getCurrentPosition(
+    (p) => {
+      ($("sWhere") as HTMLInputElement).value = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
+      $("spotMsg").textContent = `Within about ${Math.round(p.coords.accuracy)} m.`;
+    },
+    (err) => ($("spotMsg").textContent = `Couldn't get your location: ${err.message}`),
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+  );
+});
+
+$("sPick").addEventListener("click", async () => {
+  // Close the form, take one tap on the map, then come back with it filled in.
+  const draft = { name: ($("sName") as HTMLInputElement).value, kind: ($("sKind") as HTMLSelectElement).value, notes: ($("sNotes") as HTMLTextAreaElement).value };
+  const editing = spotEditing;
+  closeDlg("spotDlg");
+  await showTab("map");
+  $("pickMsg").hidden = false;
+  const at = await map!.pick();
+  $("pickMsg").hidden = true;
+  openSpotForm(editing, at ?? undefined);
+  ($("sName") as HTMLInputElement).value = draft.name;
+  ($("sKind") as HTMLSelectElement).value = draft.kind;
+  ($("sNotes") as HTMLTextAreaElement).value = draft.notes;
+});
+$("pickCancel").addEventListener("click", () => map?.cancelPick());
+
+$("spotForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = ($("sName") as HTMLInputElement).value.trim();
+  const where = parseWhere(($("sWhere") as HTMLInputElement).value);
+  if (!name) return void ($("spotMsg").textContent = "Give the spot a name.");
+  if (!where) return void ($("spotMsg").textContent = "Add where it is: latitude, longitude in Florida, your location, or a tap on the map.");
+  const draft = { name, kind: ($("sKind") as HTMLSelectElement).value as SpotKind, lat: where[0], lon: where[1], notes: ($("sNotes") as HTMLTextAreaElement).value };
+  const save = $("sSave") as HTMLButtonElement;
+  save.disabled = true;
+  try {
+    let id: string;
+    if (demo) {
+      id = spotEditing?.id ?? `spot-demo${Date.now()}`;
+      journal.spots = [...journal.spots.filter((x) => x.id !== id), { id, ...draft, notes: draft.notes || null, created_by: myId()!, created_by_email: session!.user.email!, created_at: "" }];
+    } else {
+      id = await saveSpot(draft, spotEditing);
+    }
+    closeDlg("spotDlg");
+    await reload();
+    openSpring(id);
+  } catch (err) {
+    $("spotMsg").textContent = `Not saved: ${(err as Error).message}`;
+  } finally {
+    save.disabled = false;
+  }
+});
+
+$("sDelete").addEventListener("click", async () => {
+  if (!spotEditing || !confirm(`Delete ${spotEditing.name}? This can't be undone.`)) return;
+  try {
+    if (demo) journal.spots = journal.spots.filter((x) => x.id !== spotEditing!.id);
+    else await deleteSpot(spotEditing.id);
+    closeDlg("spotDlg");
+    await reload();
+  } catch (err) {
+    $("spotMsg").textContent = `Couldn't delete: ${(err as Error).message}`;
   }
 });
 

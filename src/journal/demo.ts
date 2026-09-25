@@ -34,6 +34,16 @@ const visits: Visit[] = [
     created_by: "demo-a", created_by_email: "river@example.com", created_at: "",
     sightings: [s("s6", "River otter", "otters", 1, [-82.6995, 29.8358])], photos: [],
   },
+  {
+    id: "v4", spring_id: "bathtub-reef-beach--martin", visited_on: "2026-06-14", rating: 5, notes: "Calm at low tide, clear right up to the reef.",
+    created_by: "demo-b", created_by_email: "spring@example.com", created_at: "",
+    sightings: [s("s7", "Sergeant major", "fish", 12), s("s8", "Sea turtle", "turtles")], photos: [],
+  },
+  {
+    id: "v5", spring_id: "spot-demo1", visited_on: "2026-06-15", rating: 4, notes: null,
+    created_by: "demo-a", created_by_email: "river@example.com", created_at: "",
+    sightings: [s("s9", "Stingray", "fish", 2)], photos: [],
+  },
 ];
 
 export const DEMO_EMAIL = "river@example.com";
@@ -44,4 +54,5 @@ export const DEMO_JOURNAL: Journal = {
     { email: "spring@example.com", display_name: "Spring", added_at: "" },
   ],
   visits,
+  spots: [{ id: "spot-demo1", name: "Sailfish Point flats", kind: "lagoon", lat: 27.176, lon: -80.172, notes: "Wade in from the sandbar.", created_by: "demo-a", created_by_email: "river@example.com", created_at: "" }],
 };

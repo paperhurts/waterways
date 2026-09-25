@@ -5,6 +5,7 @@ import { hasStoredSession, journalUrl } from "../journal/session";
 import type { CardContent } from "./card";
 import { escapeHtml, loadData } from "./data";
 import { project, type XY } from "./geo";
+import { allPlaces } from "./places";
 import type { SpringsFile, StatewideSpring } from "./types";
 
 /** One journal visit, as its popup shows it. Notes, names, and species are member-entered: escape them. */
@@ -48,9 +49,10 @@ export async function loadJournalOverlay(): Promise<JournalOverlay | null> {
       import("../journal/wildlife"),
       loadData<SpringsFile>("springs.json"),
     ]);
-    const { members, visits } = await loadJournal();
+    const { members, visits, spots } = await loadJournal();
     if (!members.length) return null;
-    const byId = new Map(springs.springs.map((s) => [s[0], s]));
+    // Visits can be at springs, the curated snorkel spots, or spots members added.
+    const byId = new Map(allPlaces(springs.springs, spots).map((s) => [s[0], s]));
     const summary = summarize(visits);
     // Popups name people by their display name only, never their email.
     const names = new Map(members.map((m) => [m.email.toLowerCase(), m.display_name]));
@@ -69,7 +71,7 @@ export async function loadJournalOverlay(): Promise<JournalOverlay | null> {
         if (lon == null || lat == null) continue;
         sightings.push({
           xy: project(lon, lat), group: x.animal_group, species: x.species, count: x.count, notes: x.notes,
-          date: v.visited_on, who: who(v.created_by_email), springId: v.spring_id, springName: s?.[1] ?? "a spring",
+          date: v.visited_on, who: who(v.created_by_email), springId: v.spring_id, springName: s?.[1] ?? "a spot",
         });
       }
     }
