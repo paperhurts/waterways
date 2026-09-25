@@ -1,6 +1,6 @@
 # Where north Florida's water goes
 
-Animated maps of the rivers, springs, and sinks between the Suwannee River and Gainesville: **[paperhurts.github.io/waterways](https://paperhurts.github.io/waterways/)**
+Animated maps of the rivers, springs, and sinks between the Suwannee River and Gainesville: **[waterways.paperhurts.dev](https://waterways.paperhurts.dev/)**
 
 - **Where does the rain go?** (`rain.html`) shows every mapped creek, colored by where its water ends up: the Gulf, the Atlantic via the St. Johns, a sink into the aquifer, or nowhere on the map. It also follows the Atlantic-bound water east past Orange Lake and Silver Springs, down the Ocklawaha, to the St. Johns at Lake George. Spring boils are sized by FDEP magnitude. Rain falls on every creek and flows downstream, faster on bigger rivers. Tap a creek to send a drop down its whole path. Tap a swallet to see where a creek goes underground and where it rises again.
 - **The Santa Fe breathes groundwater** (`santa-fe.html`) animates river and spring flow from live USGS gauges. It shows the river vanishing at River Sink and returning at River Rise, dye traces from Gainesville's sinks, and an aquifer time slider that runs from before development to the present.
@@ -60,7 +60,7 @@ Then run `npm test` from the repo root to check the output before committing it.
 
 The journal runs on a free Supabase project. `config/supabase.json` holds its URL and publishable key. Both are public by design: every table and the photo bucket use row-level security, and all access requires a signed-in email on the `members` list. Members can read everything. Each person can edit or delete only their own entries. Photos are resized and re-encoded in the browser before upload, which strips their EXIF GPS tags.
 
-- **Sign in:** members get an emailed link. In Supabase → Authentication → URL Configuration, set the Site URL to `https://paperhurts.github.io/waterways/journal.html` and add `http://localhost:5180/journal.html` as a redirect URL.
+- **Sign in:** members get an emailed link. In Supabase → Authentication → URL Configuration, set the Site URL to `https://waterways.paperhurts.dev/journal.html` and add `http://localhost:5180/journal.html` as a redirect URL.
 - **Invite people:** add them under People in the journal. Supabase's built-in email only delivers to members of your Supabase organization's team, a few messages an hour. To reach anyone else, either invite them to the team or set a custom SMTP sender (Authentication → Emails → SMTP; Resend's free tier works).
 - **Schema:** SQL lives in `supabase/migrations/`. The first member is seeded by hand, so no personal email is committed.
 - **Staying awake:** Supabase pauses free projects after a week without activity. The six-hourly deploy calls a no-op `ping()` to prevent that. If the journal ever says it can't load, restore the project from the Supabase dashboard.
@@ -70,7 +70,7 @@ The journal runs on a free Supabase project. `config/supabase.json` holds its UR
 
 `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main` and every six hours. Each run fetches fresh gauge readings into the deployed snapshot, and nothing is committed. GitHub pauses scheduled workflows in public repos after 60 days without commits. If the snapshot goes stale, re-enable the workflow from the Actions tab.
 
-Pages must be set to deploy from **GitHub Actions** (Settings → Pages → Source).
+Pages must be set to deploy from **GitHub Actions** (Settings → Pages → Source). The custom domain `waterways.paperhurts.dev` is set in the Pages settings. DNS is a CNAME record, `waterways` → `paperhurts.github.io`, at the domain's registrar. The old `paperhurts.github.io/waterways` address redirects to it.
 
 ## Data sources
 - Streams, rivers, lakes, and sink/spring points: USGS NHDPlus High Resolution, [hydro.nationalmap.gov](https://hydro.nationalmap.gov/)

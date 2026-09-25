@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
 
 // Multi-page static site. `base: "./"` keeps every URL relative, so the same
-// build works at paperhurts.github.io/waterways/, under `vite preview`, or
+// build works at waterways.paperhurts.dev, under `vite preview`, or
 // from any other static host without reconfiguring.
 export default defineConfig({
   base: "./",
