@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Where does the rain go?</title>
-<meta name="description" content="Every mapped creek in north Florida's springs belt, from the Suwannee to Rainbow River and the Ocklawaha, colored by where its water ends up, followed down the rivers to the sea.">
+<meta name="description" content="Every mapped creek in north Florida's springs belt, from the Suwannee to Rainbow River and the Ocklawaha, and up the St. Johns to Lake Harney, colored by where its water ends up, followed down the rivers to the sea.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Where does the rain go?">
-<meta property="og:description" content="Every mapped creek in north Florida's springs belt, from the Suwannee to Rainbow River and the Ocklawaha, colored by where its water ends up, followed down the rivers to the sea.">
+<meta property="og:description" content="Every mapped creek in north Florida's springs belt, from the Suwannee to Rainbow River and the Ocklawaha, and up the St. Johns to Lake Harney, colored by where its water ends up, followed down the rivers to the sea.">
 <meta property="og:url" content="https://waterways.paperhurts.dev/rain.html">
 <meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
 <meta property="og:image:width" content="1280">
@@ -26,7 +26,7 @@
   <p class="lede" id="lede">Loading creeks…</p>
 </header>
 <div id="legend"></div>
-<div id="stage" role="img" aria-label="Animated map of every mapped creek in north Florida's springs belt, from the Suwannee River to Rainbow River and the Ocklawaha, colored by where its water ends up and followed down the rivers to the sea">
+<div id="stage" role="img" aria-label="Animated map of every mapped creek in north Florida's springs belt, from the Suwannee River to Rainbow River and the Ocklawaha, and up the St. Johns River to Lake Harney, colored by where its water ends up and followed down the rivers to the sea">
   <canvas id="base"></canvas><canvas id="fx"></canvas>
   <div id="hint">Tap any creek to follow its water</div>
   <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
@@ -44,10 +44,12 @@
     <option value="stj">Silver Springs &amp; Lake George</option>
     <option value="ock">Ocklawaha &amp; Harris Chain</option>
     <option value="atl">St. Johns to the Atlantic</option>
+    <option value="mid">Blue Spring, Wekiva &amp; Lake Monroe</option>
   </select>
   <button type="button" id="bPause" aria-pressed="false">Pause</button>
   <a href="santa-fe.html">Santa Fe flow map</a>
   <a href="rainbow.html">Rainbow River</a>
+  <a href="st-lucie.html">St. Lucie</a>
   <a href="springs.html">All Florida springs</a>
 </div>
 <div id="status">Streams: USGS National Hydrography Dataset (high resolution). Sinks: NHD sink points and FGS swallet survey. Springs: FDEP and NHD. Each dot is rain landing on a creek; its color is where that creek's water ends up.</div>

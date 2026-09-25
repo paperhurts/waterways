@@ -33,8 +33,6 @@ from .geo import ORIGIN, SCALE
 from .rainbow import water_years
 from .rivers import KM2_PER_DEG2, SEA_SIMPLIFY_DEG, SEA_SPECK_KM2, drop_specks, main_stems, polygon_rings, waterbodies
 
-#: NHDArea's bays (San Carlos Bay, the lagoons), which the Census outlines count as land.
-BAY_INLET = 312
 #: S-77's earlier gauge at Moore Haven; config/gauges.json has the current one.
 S77_OLD = "02292000"
 SOUTH = ("S351H", "S351N", "S354")
@@ -87,8 +85,9 @@ def cut_at_shore(rivers: dict[str, dict], lake, inflows: tuple[str, ...] = INFLO
 
 def water(refresh: bool = False) -> list[dict]:
     """The sea and NHD's bays, then lakes and marshes largest first, like lakes.json."""
-    bays = arcgis_query(C.NHD_AREAS, C.LAKEO_WATER, where=f"ftype = {BAY_INLET}", fields="nhdplusid", refresh=refresh, generalize=GENERALIZE_DEG)
-    sea = unary_union([coast.sea(refresh, C.LAKEO_SEA), *(make_valid(shape(f["geometry"])).intersection(box(*C.LAKEO_WATER)) for f in bays if f.get("geometry"))])
+    # NHD's bays (San Carlos Bay, the lagoons) join the sea: the Census outlines count them as land.
+    bays = arcgis_query(C.NHD_AREAS, C.LAKEO_WATER, where=f"ftype = {C.FTYPE_BAY_INLET}", fields="nhdplusid", refresh=refresh, generalize=GENERALIZE_DEG)
+    sea = unary_union([coast.sea(refresh, C.LAKEO_SEA, lagoons=[]), *(make_valid(shape(f["geometry"])).intersection(box(*C.LAKEO_WATER)) for f in bays if f.get("geometry"))])
     sea = drop_specks(sea, SEA_SPECK_KM2).simplify(SEA_SIMPLIFY_DEG, preserve_topology=True)
     bodies = waterbodies([C.LAKEO_WATER], refresh, clip=C.LAKEO_WATER, generalize=GENERALIZE_DEG, min_km2=MIN_KM2)
     log(f"lake-o: sea in {len(polygon_rings(sea))} rings, {len(bodies)} lakes and marshes")

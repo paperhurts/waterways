@@ -35,6 +35,7 @@ from datetime import date
 
 from . import coast as coast_mod
 from . import config as C
+from . import nhd
 from . import springs as springs_mod
 from .fetch import arcgis_query, log
 from .geo import ORIGIN, SCALE, LonLat, line_coords, meters, pack, simplify
@@ -189,7 +190,7 @@ def area_query(layer: str, refresh: bool, **kw) -> list[dict]:
     seen: set = set()
     out: list[dict] = []
     for area in C.STREAMS_AREAS:
-        for f in arcgis_query(layer, area, refresh=refresh, **kw):
+        for f in nhd.query(layer, area, refresh=refresh, **kw):
             key = f["properties"].get("nhdplusid") or tuple(f["geometry"]["coordinates"][:2])
             if key not in seen:
                 seen.add(key)

@@ -133,6 +133,22 @@ describe("streams.json", () => {
     expect(fatesOf("Ocklawaha River")).toEqual(new Set([Fate.Atlantic]));
   });
 
+  it("follows the St. Johns up past the Wekiva to Lake Harney", () => {
+    // East of -81.8: Levy County has a Wekiva River of its own, which runs to the Gulf.
+    const east = (c: number[]) => c[0] / k + ox > -81.8;
+    const fatesOf = (name: string) => new Set(segs.filter((s) => names[s[4]] === name && east(s[0])).map((s) => s[1]));
+    for (const river of ["Wekiva River", "Econlockhatchee River"]) expect(fatesOf(river), river).toEqual(new Set([Fate.Atlantic]));
+    // The river's own channel reaches Lake Harney and the marshes above it.
+    const lat = (c: number[]) => Math.min(...c.filter((_, i) => i % 2).map((y) => y / k + oy));
+    const stj = segs.filter((s) => names[s[4]] === "Saint Johns River" && !s[8]);
+    expect(Math.min(...stj.map((s) => lat(s[0])))).toBeLessThan(28.7);
+    // Blue Spring, where the manatees winter, and the Wekiva's head spring.
+    const near = (name: string, lon: number, lat: number) => streams.springs.find(([x, y, n]) => n === name && Math.abs(x - lon) < 0.05 && Math.abs(y - lat) < 0.05);
+    expect(near("Volusia Blue Spring", -81.34, 28.95)?.[3]).toBe(1);
+    expect(near("Wekiwa Spring (Orange)", -81.46, 28.71)).toBeDefined();
+    for (const n of ["Lake Monroe", "Lake Harney", "Lake Jesup"]) expect(lakes.bodies.map((b) => b.name), n).toContain(n);
+  });
+
   it("forms a network without cycles", () => {
     // Every walk downstream must end within segs.length steps.
     const depth = new Int32Array(segs.length).fill(-1);
