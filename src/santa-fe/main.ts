@@ -195,7 +195,7 @@ async function main() {
   let C: Record<string, string> = {};
   let glow = true;
   const readColors = () => {
-    C = Object.fromEntries(["bg", "ink", "muted", "tannin", "spring", "under", "river", "contour", "lake", "shore", "marsh"].map((n) => [n, cssVar(`--${n}`)]));
+    C = Object.fromEntries(["bg", "ink", "muted", "tannin", "spring", "under", "river", "contour", "sea", "lake", "shore", "marsh"].map((n) => [n, cssVar(`--${n}`)]));
     C.t = C.tannin;
     C.s = C.spring;
     C.u = C.under;
@@ -244,7 +244,7 @@ async function main() {
       }
       c.setLineDash([]);
     }
-    drawLakes(c, lakes, X, Y, view.cam, { lake: C.lake, shore: C.shore, marsh: C.marsh, label: C.muted });
+    drawLakes(c, lakes, X, Y, view.cam, { sea: C.sea, lake: C.lake, shore: C.shore, marsh: C.marsh, label: C.muted });
     c.lineCap = "round";
     c.lineJoin = "round";
     for (const r of Object.values(rivers)) {

@@ -20,6 +20,7 @@ export type Fate = (typeof Fate)[keyof typeof Fate];
  * - acc: upstream accumulation used for line width (larger = bigger stream)
  * - name / sink: index into `names`, or -1
  * - underground: NHD underground conduit; artificial: NHD artificial path through a waterbody
+ * - route: past the study area, on the Suwannee's or St. Johns' way to the sea (no rain falls on it)
  */
 export type SegTuple = [
   coords: number[],
@@ -30,6 +31,7 @@ export type SegTuple = [
   sink: number,
   underground: 0 | 1,
   artificial: 0 | 1,
+  route: 0 | 1,
 ];
 
 export type NamedPoint = [lon: number, lat: number, name: string];
@@ -56,14 +58,16 @@ export interface StreamsFile {
   springs: SpringSite[];
   /** Named sinks where a creek drops into an underground conduit and keeps flowing. */
   swallets: NamedPoint[];
+  /** Indices of the segments whose water enters the sea at their downstream end. */
+  mouths: number[];
 }
 
 // ---------- lakes.json (both maps) ----------
 
 export interface LakesFile {
   meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
-  /** Largest first. Rings are packed like stream coords; holes are extra rings (draw with evenodd). */
-  bodies: { name: string | null; kind: "lake" | "swamp"; km2: number; rings: number[][] }[];
+  /** Seas first, then lakes and wetlands largest first. Rings are packed like stream coords; holes are extra rings (draw with evenodd). */
+  bodies: { name: string | null; kind: "sea" | "lake" | "swamp"; km2: number; rings: number[][] }[];
 }
 
 // ---------- rivers.json / contours.json (Santa Fe map) ----------

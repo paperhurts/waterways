@@ -20,7 +20,9 @@ const FATES = [
 ];
 
 const VIEWS = {
-  all: bounds(-82.99, 29.12, -81.5, 30.09),
+  all: bounds(-83.25, 29.12, -81.33, 30.43),
+  gulf: bounds(-83.3, 29.24, -82.82, 29.64),
+  atl: bounds(-81.92, 29.44, -81.3, 30.46),
   stj: bounds(-82.12, 29.14, -81.52, 29.56),
   gnv: bounds(-82.48, 29.57, -82.22, 29.72),
   ala: bounds(-82.62, 29.72, -82.36, 29.9),
@@ -31,6 +33,7 @@ const PLACES: [string, number, number][] = [
   ["Gainesville", -82.325, 29.665], ["High Springs", -82.585, 29.815], ["Alachua", -82.47, 29.752],
   ["Fort White", -82.713, 29.905], ["Lake City", -82.64, 30.085], ["Newberry", -82.61, 29.646],
   ["Ocala", -82.14, 29.187], ["Silver Springs", -82.03, 29.235], ["Welaka", -81.672, 29.48],
+  ["Palatka", -81.637, 29.648], ["Jacksonville", -81.656, 30.332],
 ];
 
 /** Boil size by spring magnitude (index), so first-magnitude springs read as the giants they are. */
@@ -45,6 +48,10 @@ const MAG_TEXT = [
 /** Rain drops per second, and the cap on live particles. */
 const RATE = 225;
 const MAX_PARTICLES = 26000;
+/** Speed of a drop on a headwater creek, in map units (about 111 km) a second. Rivers run faster. */
+const BASE_SPEED = 0.0323;
+/** Share of drops reaching a river mouth that ripple out into the sea. */
+const SEA_RIPPLE_CHANCE = 0.08;
 /**
  * When a drop flows into a bigger size class of stream, only this share keeps
  * going (drawn heavier); the rest merge into it. Volume is conserved on
@@ -73,14 +80,14 @@ async function main() {
   const throughLake = new Set(segs.filter((s) => s.artificial && inLake(lakes, pointAt(s, s.len / 2))));
   // Draw small creeks first so rivers sit on top.
   const order = [...segs].sort((a, b) => a.acc - b.acc);
-  const base = (VIEWS.all[2] - VIEWS.all[0]) / 40;
   // Big rivers run faster than headwater creeks: speed grows with the log of upstream length.
-  const vel = Float32Array.from(segs, (s) => base * (0.45 + 0.32 * Math.log10(s.acc + 1)));
+  const vel = Float32Array.from(segs, (s) => BASE_SPEED * (0.45 + 0.32 * Math.log10(s.acc + 1)));
   /** 0 creek, 1 stream, 2 river, by km of creek upstream. */
   const sizeClass = Uint8Array.from(segs, (s) => (s.acc < 15 ? 0 : s.acc < 150 ? 1 : 2));
 
   document.getElementById("lede")!.innerHTML =
-    `Every mapped creek between the Suwannee and Gainesville, and along the water's route east to the St. Johns, colored by where it ends up. ` +
+    `Every mapped creek between the Suwannee and Gainesville, and along the water's route east to the St. Johns, colored by where it ends up, ` +
+    `then the two rivers that carry it to the sea. ` +
     `<b>${Math.round(pct[Fate.Gulf])}%</b> of creek length drains to the Gulf and <b>${Math.round(pct[Fate.Atlantic])}%</b> to the Atlantic. ` +
     `The other <b>${Math.round(pct[Fate.Sink] + pct[Fate.Inland])}%</b> never reaches a river: it ends inland, in a sink, a closed wetland, ` +
     `or a lake with no outlet, and much of that water goes into the aquifer.`;
@@ -92,7 +99,7 @@ async function main() {
   let FC: string[] = [];
   let glow = true;
   const readColors = () => {
-    C = Object.fromEntries(["bg", "ink", "muted", "spring", "hi", "line", "lake", "shore", "marsh"].map((n) => [n, cssVar(`--${n}`)]));
+    C = Object.fromEntries(["bg", "ink", "muted", "spring", "hi", "line", "sea", "lake", "shore", "marsh"].map((n) => [n, cssVar(`--${n}`)]));
     FC = FATES.map((f) => cssVar(f.v));
     glow = isDark();
   };
@@ -137,7 +144,7 @@ async function main() {
     c.setTransform(view.DPR, 0, 0, view.DPR, 0, 0);
     c.fillStyle = C.bg;
     c.fillRect(0, 0, W, H);
-    drawLakes(c, lakes, X, Y, view.cam, { lake: C.lake, shore: C.shore, marsh: C.marsh, label: C.muted });
+    drawLakes(c, lakes, X, Y, view.cam, { sea: C.sea, lake: C.lake, shore: C.shore, marsh: C.marsh, label: C.muted });
     c.lineCap = "round";
     c.lineJoin = "round";
     const zs = Math.max(0.6, Math.min(2.2, view.scale / 1500));
@@ -194,13 +201,28 @@ async function main() {
     label("Paynes Prairie", -82.33, 29.585, FC[Fate.Sink]);
     label("Ocklawaha", -81.99, 29.37, FC[Fate.Atlantic]);
     label("St. Johns", -81.63, 29.54, FC[Fate.Atlantic]);
+    label("St. Johns", -81.62, 30.1, FC[Fate.Atlantic]);
+    // Sea names start just offshore and run out to sea. On a phone there's little sea
+    // on screen, so use the short name, and skip a name that would run off the edge.
+    const seaLabel = (full: string, short: string, lon: number, lat: number) => {
+      const p = project(lon, lat);
+      const x = X(p[0]);
+      const y = Y(p[1]);
+      const t = W < 600 ? short : full;
+      if (x < 0 || y < 0 || y > H || x + c.measureText(t).width > W) return;
+      c.fillStyle = C.muted;
+      c.fillText(t, x, y);
+    };
+    seaLabel("Gulf of Mexico", "Gulf", -83.24, 29.17);
+    seaLabel("Atlantic Ocean", "Atlantic", -81.3, 30.06);
   }
 
   // ----- particles: rain falls on every creek, weighted by length -----
   // Rain on a big river starts as an already-merged drop, so it's spawned less often.
+  // None falls on the route to the sea: those rivers only carry the map's water out.
   const cumLen: number[] = [];
   let totalLen = 0;
-  segs.forEach((s, i) => cumLen.push((totalLen += s.len * MERGE_KEEP ** sizeClass[i])));
+  segs.forEach((s, i) => cumLen.push((totalLen += s.route ? 0 : s.len * MERGE_KEEP ** sizeClass[i])));
   const pickSeg = () => {
     const r = Math.random() * totalLen;
     let lo = 0;
@@ -242,9 +264,8 @@ async function main() {
           p.s = s.next;
           s = segs[p.s];
         } else {
-          if ((s.fate === Fate.Sink || s.fate === Fate.Inland) && Math.random() < 0.15) {
-            flashes.push({ xy: s.pts[s.pts.length - 1], t: 0, col: FC[s.fate], big: false });
-          }
+          const flash = s.mouth ? SEA_RIPPLE_CHANCE : s.fate === Fate.Sink || s.fate === Fate.Inland ? 0.15 : 0;
+          if (Math.random() < flash) flashes.push({ xy: s.pts[s.pts.length - 1], t: 0, col: FC[s.fate], big: false });
           parts.splice(i, 1);
           break;
         }
@@ -410,10 +431,14 @@ async function main() {
     select(trace);
     const F = FATES[s0.fate];
     const mi = trace.km * 0.621;
-    const body = s0.fate === Fate.Sink && s0.sink ? `Ends at <b>${escapeHtml(s0.sink)}</b> and goes straight into the Floridan aquifer.` : F.via;
-    const dist = s0.fate <= Fate.Atlantic
-      ? `Its water travels at least ${Math.round(mi)} miles before leaving this map.`
-      : `Its water travels about ${mi < 1 ? mi.toFixed(1) : Math.round(mi)} miles along the surface before it disappears.`;
+    const miles = mi < 1 ? mi.toFixed(1) : String(Math.round(mi));
+    const sea = s0.fate === Fate.Gulf ? "Gulf" : "Atlantic";
+    const body = s0.route
+      ? `Past the mapped creeks, the ${escapeHtml(s0.name ?? "river")} carries their water the rest of the way to the sea.`
+      : s0.fate === Fate.Sink && s0.sink ? `Ends at <b>${escapeHtml(s0.sink)}</b> and goes straight into the Floridan aquifer.` : F.via;
+    const dist = s0.fate > Fate.Atlantic
+      ? `Its water travels about ${miles} miles along the surface before it disappears.`
+      : trace.toSea ? `Its water travels about ${miles} miles to reach the ${sea}.` : `Its water travels at least ${miles} miles before leaving this map.`;
     const underground = trace.path.some((s) => s.underground) ? " Part of the way it runs underground, through the aquifer." : "";
     const joins = trace.joins && trace.joins !== s0.name ? ` Along the way it joins ${escapeHtml(trace.joins)}.` : "";
     card.show({ title: s0.name || "Unnamed creek", kind: F.label, color: FC[s0.fate], body: `${body} ${dist}${underground}${joins}` });
@@ -451,7 +476,7 @@ async function main() {
     });
   }
 
-  for (const [id, b] of [["vAll", VIEWS.all], ["vGnv", VIEWS.gnv], ["vAla", VIEWS.ala], ["vSpr", VIEWS.spr], ["vStj", VIEWS.stj]] as const) {
+  for (const [id, b] of [["vAll", VIEWS.all], ["vGnv", VIEWS.gnv], ["vAla", VIEWS.ala], ["vSpr", VIEWS.spr], ["vStj", VIEWS.stj], ["vGulf", VIEWS.gulf], ["vAtl", VIEWS.atl]] as const) {
     document.getElementById(id)!.addEventListener("click", () => view.fit(b, true));
   }
   let paused = false;

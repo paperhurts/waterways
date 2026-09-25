@@ -10,7 +10,7 @@
   /* where the rain goes */
   --gulf: #d19a4a; --atl: #7fa9e6; --sink: #a794f0; --inland: #8c8577; --off: #5d584b;
   /* still water and wetland */
-  --lake: #1b2224; --shore: #2d3837; --marsh: #34362a;
+  --lake: #1b2224; --shore: #2d3837; --marsh: #34362a; --sea: #1f2c30;
 
   --serif: "Spectral", Georgia, "Times New Roman", serif;
   --sans: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
@@ -23,7 +23,7 @@
     --card: rgba(236, 238, 230, .95); --hi: #111;
     --tannin: #9a5a12; --spring: #0a8f86; --under: #6b58b8; --river: #b9ae92; --contour: #c7cbbc;
     --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
-    --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c;
+    --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c; --sea: #c2d0d1;
     color-scheme: light;
   }
 }
@@ -33,6 +33,6 @@
   --card: rgba(236, 238, 230, .95); --hi: #111;
   --tannin: #9a5a12; --spring: #0a8f86; --under: #6b58b8; --river: #b9ae92; --contour: #c7cbbc;
   --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
-  --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c;
+  --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c; --sea: #c2d0d1;
   color-scheme: light;
 }

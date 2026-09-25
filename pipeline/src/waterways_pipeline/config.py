@@ -20,6 +20,10 @@ STREAMS_BBOX: Bbox = (-82.99, 29.56, -82.01, 30.09)
 ATLANTIC_CORRIDOR: Bbox = (-82.30, 29.12, -81.50, 29.60)
 #: The rain map's study area is the union of these boxes (an L shape).
 STREAMS_AREAS: list[Bbox] = [STREAMS_BBOX, ATLANTIC_CORRIDOR]
+#: The sea under the rain map, where the Suwannee and St. Johns reach the coast, is
+#: everything in this box that isn't land. It reaches past the whole-map view on even a
+#: very wide screen, so the sea's edge only shows when zoomed far out.
+SEA_CLIP: Bbox = (-85.2, 27.9, -79.6, 31.6)
 #: Main stems drawn on the Santa Fe map; wider so the Suwannee fits.
 RIVERS_BBOX: Bbox = (-83.08, 29.54, -82.14, 30.09)
 RIVERS = ["Santa Fe River", "Ichetucknee River", "Suwannee River", "New River", "Olustee Creek"]
@@ -34,12 +38,15 @@ NHDPLUS_HR = "https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapS
 NHD_POINTS = f"{NHDPLUS_HR}/2"
 NHD_FLOWLINES = f"{NHDPLUS_HR}/3"
 NHD_WATERBODIES = f"{NHDPLUS_HR}/9"
+#: Census cartographic (1:500,000) state outlines, which are clipped to the shoreline.
+CENSUS_STATES = "https://tigerweb.geo.census.gov/arcgis/rest/services/Generalized_ACS2024/State_County/MapServer/7"
 FDEP_SPRINGS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/SPRINGS/MapServer/1"
 FGS_SWALLETS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/FGS_PUBLIC/MapServer/2"
 FGS_POTENTIOMETRIC = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/FGS_PUBLIC/MapServer/8"
 USGS_API = "https://api.waterdata.usgs.gov/ogcapi/v1/collections"
 
-# NHDPlus HR terminal paths (terminalpa) for the two ocean outlets.
+# NHDPlus HR terminal paths (terminalpa) for the two ocean outlets. Each is also the
+# level path (levelpathi) of that river's main stem, from its headwaters to its mouth.
 TERMINAL_GULF = 15000900002435  # Suwannee River → Gulf of Mexico
 TERMINAL_ATLANTIC = 15000300000195  # St. Johns River → Atlantic
 

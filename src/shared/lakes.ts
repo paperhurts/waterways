@@ -1,12 +1,12 @@
-// Lakes and wetlands under the streams: lakes as still water, swamps as the
-// cartographer's marsh stipple.
+// Seas, lakes, and wetlands under the streams: seas and lakes as still water,
+// swamps as the cartographer's marsh stipple.
 
 import { project, type XY } from "./geo";
 import type { LakesFile } from "./types";
 
 export interface Lake {
   name: string | null;
-  kind: "lake" | "swamp";
+  kind: "sea" | "lake" | "swamp";
   km2: number;
   rings: XY[][];
   /** Where to put the name: the middle of the outer ring's bounding box. */
@@ -47,6 +47,7 @@ export function decodeLakes(file: LakesFile): Lake[] {
 }
 
 export interface LakeColors {
+  sea: string;
   lake: string;
   shore: string;
   marsh: string;
@@ -87,6 +88,12 @@ export function drawLakes(
   // Pin the stipple to the map so it pans with the land instead of sliding over it.
   marsh.setTransform(new DOMMatrix().translateSelf(cam.tx % (STIPPLE * 2), cam.ty % (STIPPLE * 2)));
   c.save();
+  // The sea sits under everything, filled as one shape with no outline: NHD tiles it
+  // into polygons with straight seams offshore, and stroking those would draw fake coasts.
+  const sea = new Path2D();
+  for (const l of lakes) if (l.kind === "sea") sea.addPath(path(l.rings));
+  c.fillStyle = colors.sea;
+  c.fill(sea, "evenodd");
   for (const l of lakes) {
     if (l.kind !== "swamp") continue;
     c.fillStyle = marsh;

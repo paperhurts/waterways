@@ -12,12 +12,17 @@ export interface Segment extends Polyline {
   sink: string | null;
   underground: boolean;
   artificial: boolean;
+  /** Past the study area, carrying its water to the sea. */
+  route: boolean;
+  /** Its water enters the sea at its downstream end. */
+  mouth: boolean;
 }
 
 export function decodeSegments(data: StreamsFile): Segment[] {
   const [ox, oy] = data.meta.coordOrigin;
   const k = data.meta.coordScale;
-  return data.segs.map(([flat, fate, next, acc, name, sink, ug, art]) => {
+  const mouths = new Set(data.mouths);
+  return data.segs.map(([flat, fate, next, acc, name, sink, ug, art, route], i) => {
     const pts: XY[] = [];
     for (let i = 0; i < flat.length; i += 2) pts.push(project(flat[i] / k + ox, flat[i + 1] / k + oy));
     return {
@@ -29,14 +34,16 @@ export function decodeSegments(data: StreamsFile): Segment[] {
       sink: sink >= 0 ? data.names[sink] : null,
       underground: !!ug,
       artificial: !!art,
+      route: !!route,
+      mouth: mouths.has(i),
     };
   });
 }
 
-/** Percent of real creek length (artificial paths through lakes excluded) per fate. */
+/** Percent of the study area's real creek length (no artificial paths, no route to the sea) per fate. */
 export function fateShares(segs: Segment[]): number[] {
   const t = [0, 0, 0, 0, 0];
-  for (const s of segs) if (!s.artificial) t[s.fate] += s.len;
+  for (const s of segs) if (!s.artificial && !s.route) t[s.fate] += s.len;
   const total = t.reduce((a, b) => a + b, 0);
   return t.map((v) => (v / total) * 100);
 }
@@ -47,6 +54,8 @@ export interface Trace {
   /** First named stream the water joins below the starting segment. */
   joins: string | null;
   end: XY;
+  /** The path ends where the water enters the sea, not at the map's edge or a sink. */
+  toSea: boolean;
 }
 
 /** Follow a segment's water downstream until it leaves the network. */
@@ -63,7 +72,7 @@ export function traceDownstream(segs: Segment[], start: number): Trace {
     if (!joins && s.name && i !== start) joins = s.name;
   }
   const last = path[path.length - 1];
-  return { path, km, joins, end: last.pts[last.pts.length - 1] };
+  return { path, km, joins, end: last.pts[last.pts.length - 1], toSea: last.mouth };
 }
 
 export interface SinkLabel {
