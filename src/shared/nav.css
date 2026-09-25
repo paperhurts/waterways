@@ -1,0 +1,43 @@
+/* The site nav: a line of plain links above each page's title, so it never looks
+   like a map's own pill buttons, which only change the view. On phones it folds
+   into an "All maps" menu. */
+.site {
+  position: relative; z-index: 6; pointer-events: auto;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 18px;
+  margin: 0 0 10px; font: 500 .8rem/1.3 var(--sans);
+}
+.site [hidden] { display: none !important }
+.site a { color: var(--muted); text-decoration: none }
+.site a:hover { color: var(--ink) }
+.site .home { color: var(--ink); font-weight: 600; letter-spacing: .02em }
+.site ul { display: flex; flex-wrap: wrap; gap: 2px 14px; list-style: none; margin: 0; padding: 0 }
+.site ul a { display: inline-block; padding: 3px 0 }
+.site a[aria-current="page"] { color: var(--ink); text-decoration: underline 2px var(--spring); text-underline-offset: 5px }
+.site .journal { border-left: 1px solid var(--line); padding-left: 14px }
+.site small, .site .menu { display: none }
+.site a:focus-visible, .site button:focus-visible { outline: 2px solid var(--spring); outline-offset: 2px; border-radius: 2px }
+
+@media (max-width: 640px) {
+  .site .menu {
+    display: inline-flex; align-items: center; gap: 7px; padding: 3px 0; cursor: pointer;
+    font: inherit; color: var(--muted); background: none; border: 0;
+  }
+  /* A chevron, from two borders so it follows the theme. */
+  .site .menu::after {
+    content: ""; width: 6px; height: 6px; margin-top: -3px;
+    border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+  }
+  .site.open .menu { color: var(--ink) }
+  .site.open .menu::after { margin-top: 3px; transform: rotate(-135deg) }
+  .site ul {
+    display: none; position: absolute; top: calc(100% + 6px); left: -8px; right: -8px; max-width: 22rem;
+    flex-direction: column; gap: 0; padding: 6px 0;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .3); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .site.open ul { display: flex }
+  .site ul a { display: block; padding: 9px 14px; font: 600 .95rem/1.2 var(--sans); color: var(--ink) }
+  .site small { display: block; margin-top: 2px; font: 400 .8rem/1.3 var(--sans); color: var(--muted) }
+  .site ul a[aria-current="page"] { text-decoration: none; box-shadow: inset 3px 0 var(--spring) }
+  .site .journal { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); margin-top: 6px; padding-top: 6px }
+}

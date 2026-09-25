@@ -17,7 +17,7 @@ Animated maps of Florida's rivers, springs, and sinks, from the north Florida sp
 
 ```
 index.html, rain.html, santa-fe.html, rainbow.html, st-lucie.html, lake-o.html, springs.html   page shells (Vite entry points)
-src/shared/     projection, pan/zoom viewport, streak renderer, lakes, flow-history chart, theme tokens, data types
+src/shared/     projection, pan/zoom viewport, streak renderer, lakes, flow-history chart, site nav, theme tokens, data types
 src/rain/       the rain map and its creek-network logic
 src/santa-fe/   the Santa Fe map: flow model, aquifer grids, authored content
 src/rainbow/    the Rainbow River map: flow model, authored content
