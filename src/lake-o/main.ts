@@ -1,4 +1,5 @@
 import "../shared/map.css";
+import "../shared/nav";
 import "../shared/story.css";
 import "./lake-o.css";
 import gaugeConfig from "../../config/gauges.json";
@@ -552,7 +553,7 @@ async function main() {
     journal = o;
     const chip = document.createElement("button");
     chip.type = "button";
-    chip.textContent = "Journal";
+    chip.textContent = "Journal marks";
     chip.setAttribute("aria-pressed", "true");
     chip.addEventListener("click", () => {
       showJournal = !showJournal;

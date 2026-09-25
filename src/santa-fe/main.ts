@@ -1,4 +1,5 @@
 import "../shared/map.css";
+import "../shared/nav";
 import "./santa-fe.css";
 import gaugeConfig from "../../config/gauges.json";
 import { InfoCard } from "../shared/card";
@@ -838,7 +839,7 @@ async function main() {
     });
     const chip = document.createElement("button");
     chip.type = "button";
-    chip.textContent = "Journal";
+    chip.textContent = "Journal marks";
     chip.setAttribute("aria-pressed", "true");
     chip.addEventListener("click", () => {
       showJournal = !showJournal;

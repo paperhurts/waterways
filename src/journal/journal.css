@@ -10,8 +10,7 @@ button, input, select, textarea { font: inherit; color: inherit }
 .shell { max-width: 46rem; margin: 0 auto; padding: 0 16px 48px }
 .bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 18px 0 10px; border-bottom: 1px solid var(--line) }
 .bar h1 { font-weight: 400; font-size: clamp(1.6rem, 6vw, 2.2rem); line-height: 1.1; margin: 0; flex: 1 }
-.back { font: 600 .82rem var(--sans); color: var(--muted); text-decoration: none; order: -1; flex-basis: 100% }
-.back:hover { color: var(--spring) }
+.bar .site { order: -1; flex-basis: 100%; margin-bottom: 4px }
 .who { display: flex; gap: 10px; align-items: baseline; font: 500 .82rem var(--sans) }
 .muted { color: var(--muted) }
 .msg { font: 500 .88rem/1.4 var(--sans); color: var(--muted); margin: 8px 0; min-height: 1em }
@@ -98,6 +97,7 @@ input[type="file"]::file-selector-button { font: 600 .82rem var(--sans); backgro
 .x { background: none; border: 0; color: var(--muted); font: 600 1.5rem/1 var(--sans); padding: 2px 6px }
 .x.small { font-size: 1.1rem }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px }
+.actions .go { align-self: center; font: 600 .84rem var(--sans); color: var(--spring); text-underline-offset: 3px }
 @media (max-width: 600px) {
   .sheet { width: 100vw; max-width: 100vw; max-height: 100dvh; height: 100dvh; margin: 0; border-radius: 0; border: 0 }
 }

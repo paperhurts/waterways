@@ -1,4 +1,5 @@
 import "../shared/map.css";
+import "../shared/nav";
 import "./rain.css";
 import { InfoCard } from "../shared/card";
 import { escapeHtml, loadData, showLoadError } from "../shared/data";
@@ -607,7 +608,7 @@ async function main() {
     journal = o;
     const chip = document.createElement("button");
     chip.type = "button";
-    chip.textContent = "Journal";
+    chip.textContent = "Journal marks";
     chip.setAttribute("aria-pressed", "true");
     chip.addEventListener("click", () => {
       showJournal = !showJournal;

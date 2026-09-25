@@ -1,4 +1,5 @@
 import "../shared/map.css";
+import "../shared/nav";
 import "./springs.css";
 import { InfoCard } from "../shared/card";
 import { escapeHtml, loadData, showLoadError } from "../shared/data";
