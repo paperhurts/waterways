@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Where does the rain go?</title>
-<meta name="description" content="Every mapped creek from the Suwannee to Rainbow River and the Ocklawaha, up the St. Johns to its headwaters, and down the Treasure Coast to the St. Lucie and the Loxahatchee, colored by where its water ends up, followed down the rivers to the sea.">
+<meta name="description" content="Every mapped creek in Florida, from the Perdido to the Keys, colored by where its water ends up: the Gulf, the Atlantic, a sink, or nowhere at all. Tap any creek to follow its water to the sea.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Where does the rain go?">
-<meta property="og:description" content="Every mapped creek from the Suwannee to Rainbow River and the Ocklawaha, up the St. Johns to its headwaters, and down the Treasure Coast to the St. Lucie and the Loxahatchee, colored by where its water ends up, followed down the rivers to the sea.">
+<meta property="og:description" content="Every mapped creek in Florida, from the Perdido to the Keys, colored by where its water ends up: the Gulf, the Atlantic, a sink, or nowhere at all. Tap any creek to follow its water to the sea.">
 <meta property="og:url" content="https://waterways.paperhurts.dev/rain.html">
 <meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
 <meta property="og:image:width" content="1280">
@@ -27,7 +27,7 @@
   <p class="lede" id="lede">Loading creeks…</p>
 </header>
 <div id="legend"></div>
-<div id="stage" role="img" aria-label="Animated map of every mapped creek from the Suwannee River to Rainbow River and the Ocklawaha, up the St. Johns River to its headwaters, and down the Treasure Coast through the St. Lucie to the Loxahatchee, colored by where its water ends up and followed down the rivers to the sea">
+<div id="stage" role="img" aria-label="Animated map of every mapped creek in Florida, from the Perdido River to the Keys, colored by where its water ends up and followed down the rivers to the sea">
   <canvas id="base"></canvas><canvas id="fx"></canvas>
   <div id="hint">Tap any creek to follow its water</div>
   <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
@@ -36,10 +36,14 @@
   <button type="button" id="vAll">Whole map</button>
   <select id="view" aria-label="Zoom to part of the map">
     <option value="">Zoom to…</option>
-    <option value="gnv">Gainesville</option>
-    <option value="ala">Alachua &amp; Mill Creek</option>
-    <option value="spr">Santa Fe spring run</option>
+    <option value="pens">Pensacola &amp; the western Panhandle</option>
+    <option value="apa">Apalachicola</option>
+    <option value="tlh">Tallahassee, Wakulla &amp; the St. Marks</option>
+    <option value="belt">The springs belt</option>
     <option value="msw">Middle Suwannee springs</option>
+    <option value="spr">Santa Fe spring run</option>
+    <option value="ala">Alachua &amp; Mill Creek</option>
+    <option value="gnv">Gainesville</option>
     <option value="gulf">Lower Suwannee &amp; Manatee</option>
     <option value="rbw">Rainbow &amp; Crystal River</option>
     <option value="stj">Silver Springs &amp; Lake George</option>
@@ -47,11 +51,16 @@
     <option value="atl">St. Johns to the Atlantic</option>
     <option value="mid">Blue Spring, Wekiva &amp; Lake Monroe</option>
     <option value="upr">Upper St. Johns &amp; the lagoon</option>
+    <option value="tpa">Tampa Bay</option>
+    <option value="peace">Peace River &amp; Charlotte Harbor</option>
+    <option value="kis">Kissimmee &amp; Lake Okeechobee</option>
     <option value="stl">St. Lucie &amp; the Treasure Coast</option>
+    <option value="glades">The Everglades</option>
+    <option value="keys">The Keys</option>
   </select>
   <button type="button" id="bPause" aria-pressed="false">Pause</button>
 </div>
-<div id="status">Streams: USGS National Hydrography Dataset (high resolution). Sinks: NHD sink points and FGS swallet survey. Springs: FDEP and NHD. Each dot is rain landing on a creek; its color is where that creek's water ends up.</div>
+<div id="status">Streams, lakes, and bays: USGS National Hydrography Dataset (NHDPlus high resolution). Coastline: US Census Bureau. Sinks: NHD sink points and FGS swallet survey. Springs: FDEP and NHD. Each dot is rain landing on a creek; its color is where that creek's water ends up.</div>
 </div>
 </body>
 </html>

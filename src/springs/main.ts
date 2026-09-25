@@ -210,7 +210,7 @@ async function main() {
   // ---------- cards ----------
   function showSpring(s: Spring) {
     const links: string[] = [];
-    if (s.onRainMap) links.push('<a href="rain.html">Where its creek\'s rain goes</a>');
+    if (s.onRainMap) links.push(`<a href="rain.html#${s.lon},${s.lat}">Where its creek's rain goes</a>`);
     if (s.county === "Marion" && /^Rainbow/.test(s.name)) links.push('<a href="rainbow.html">The Rainbow River map</a>');
     const log = journal ? ` ${journalCardHtml(journal, s.id)}` : "";
     card.show({

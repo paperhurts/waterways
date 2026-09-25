@@ -303,7 +303,7 @@ function openSpring(id: string) {
     h("button", { type: "button", class: "chip", onclick: () => { closeDlg("springDlg"); void showTab("map").then(() => map?.focus(id)); } }, "Show on map"),
   ];
   // A plain link, not a chip: chips act here, links go to another page.
-  if (s[6]) actions.push(h("a", { class: "go", href: "rain.html" }, "See it on the Rain map"));
+  if (s[6]) actions.push(h("a", { class: "go", href: `rain.html#${s[3]},${s[4]}` }, "See it on the Rain map"));
   if (spot && spot.created_by === myId()) actions.push(h("button", { type: "button", class: "chip", onclick: () => openSpotForm(spot) }, "Edit spot"));
   $("springActions").replaceChildren(...actions);
   const mine = journal.visits.filter((v) => v.spring_id === id);

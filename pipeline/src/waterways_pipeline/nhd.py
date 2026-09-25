@@ -73,6 +73,16 @@ def network(hu4: str) -> dict[int, tuple[int | None, ...]]:
     return {int(i): tuple(whole(cols[k][n]) for k in VAA) for n, i in enumerate(cols["nhdplusid"])}
 
 
+def table(hu4: str, layer: str, columns: list[str], *, where: str | None = None, bbox: C.Bbox | None = None, geometry: bool = False):
+    """A bulk file layer's columns (keyed lowercase) and, with `geometry`, its 2D shapes.
+    `where` can only use fields that are in `columns`."""
+    import pyogrio.raw
+
+    meta, _, geoms, data = pyogrio.raw.read(gdb(hu4), layer=layer, columns=columns, where=where, bbox=bbox, read_geometry=geometry)
+    cols = {k.lower(): v for k, v in zip(meta["fields"], data)}
+    return cols, (shapely.force_2d(shapely.from_wkb(geoms)) if geometry else None)
+
+
 def named(layer: str, hu4: str, name: str, refresh: bool = False) -> list:
     """The 2D geometry of every feature in a bulk file's layer with this GNIS name."""
     import pyogrio.raw

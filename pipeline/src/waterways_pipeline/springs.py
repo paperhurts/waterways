@@ -158,5 +158,5 @@ def build(refresh: bool = False) -> dict:
             "sources": [C.FDEP_SPRINGS],
             "fields": ["id", "name", "county", "lon", "lat", "magnitude", "onRainMap"],
         },
-        "springs": [[s.id, s.name, s.county, round(s.lon, 5), round(s.lat, 5), s.mag, int(in_areas((s.lon, s.lat), C.STREAMS_AREAS))] for s in springs],
+        "springs": [[s.id, s.name, s.county, round(s.lon, 5), round(s.lat, 5), s.mag, int(in_areas((s.lon, s.lat), [C.FLORIDA_BBOX]))] for s in springs],
     }

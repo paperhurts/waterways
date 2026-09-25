@@ -13,8 +13,12 @@ CACHE = REPO / "pipeline" / "cache"
 # (west, south, east, north) in WGS84 degrees.
 Bbox = tuple[float, float, float, float]
 
-#: Every mapped creek between the Suwannee and Gainesville (rain map).
-STREAMS_BBOX: Bbox = (-82.99, 29.56, -82.01, 30.09)
+# ---- lakes.json ----
+# The Santa Fe and Rainbow maps draw their lakes and sea from lakes.json, which covers
+# the union of these boxes: the springs belt and the St. Johns, the rain map's study area
+# before it went statewide.
+#: Between the Suwannee and Gainesville.
+SANTA_FE_BASIN: Bbox = (-82.99, 29.56, -82.01, 30.09)
 #: The Atlantic route out of it: Orange Lake, Silver Springs, the Ocklawaha,
 #: and the St. Johns through Lake George to Welaka.
 ATLANTIC_CORRIDOR: Bbox = (-82.30, 29.12, -81.50, 29.60)
@@ -38,9 +42,8 @@ ST_JOHNS_MARSH: Bbox = (-81.00, 27.60, -80.30, 28.20)
 #: The Treasure Coast: the lagoon from Vero Beach south, the St. Lucie basin from Lake
 #: Okeechobee's east shore to the St. Lucie Inlet, and the Loxahatchee at Jupiter.
 TREASURE_COAST: Bbox = (-80.75, 26.85, -80.05, 27.60)
-#: The rain map's study area is the union of these boxes.
-STREAMS_AREAS: list[Bbox] = [
-    STREAMS_BBOX, ATLANTIC_CORRIDOR, SUWANNEE_WEST, SUWANNEE_NORTH, SOUTH_BELT, UPPER_OCKLAWAHA,
+LAKES_AREAS: list[Bbox] = [
+    SANTA_FE_BASIN, ATLANTIC_CORRIDOR, SUWANNEE_WEST, SUWANNEE_NORTH, SOUTH_BELT, UPPER_OCKLAWAHA,
     MIDDLE_ST_JOHNS, UPPER_ST_JOHNS, ST_JOHNS_MARSH, TREASURE_COAST,
 ]
 #: NHD for these boxes comes from USGS's bulk NHDPlus HR files, one per 4-digit HUC (the
@@ -53,13 +56,22 @@ BULK_AREAS: dict[Bbox, list[str]] = {
     ST_JOHNS_MARSH: ["0308", "0309"],
     TREASURE_COAST: ["0309", "0308"],
 }
-#: The sea under the rain map, where the Suwannee and St. Johns reach the coast, is
-#: everything in this box that isn't land. It reaches past the whole-map view on even a
-#: very wide screen, so the sea's edge only shows when zoomed far out.
+#: The sea in lakes.json is everything in this box that isn't land.
 SEA_CLIP: Bbox = (-85.2, 26.4, -79.6, 31.6)
 #: Boxes where the Census outlines count the Indian River Lagoon as land. NHD's bays
 #: (BayInlet areas) there join the sea.
 LAGOON_AREAS: list[Bbox] = [UPPER_ST_JOHNS, ST_JOHNS_MARSH, TREASURE_COAST]
+# ---- statewide rain map ----
+#: The 4-digit HUCs that drain Florida: the St. Marys, St. Johns, south Florida, Peace-Tampa
+#: Bay, Suwannee, Ochlockonee, Apalachicola, and Choctawhatchee-Escambia.
+FLORIDA_HU4S = ["0307", "0308", "0309", "0310", "0311", "0312", "0313", "0314"]
+#: Florida, from Perdido Key to Key West and the St. Marys. Tiles are counted from its corner.
+FLORIDA_BBOX: Bbox = (-87.70, 24.30, -79.80, 31.05)
+#: The sea under the statewide map, from Texas to North Carolina: far enough out that its
+#: edge stays off even a wide screen showing the whole state. The Census outlines are the
+#: US's alone, so it stops north of Cuba and the Yucatan, which would read as sea.
+RAIN_SEA_CLIP: Bbox = (-96.5, 22.0, -72.0, 36.5)
+
 #: Main stems drawn on the Santa Fe map; wider so the Suwannee fits.
 RIVERS_BBOX: Bbox = (-83.08, 29.54, -82.14, 30.09)
 RIVERS = ["Santa Fe River", "Ichetucknee River", "Suwannee River", "New River", "Olustee Creek"]
@@ -125,11 +137,6 @@ FDEP_PRIORITY_FOCUS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/
 USGS_API = "https://api.waterdata.usgs.gov/ogcapi/v1/collections"
 #: USGS's bulk NHDPlus HR release, one zipped file geodatabase per 4-digit HUC.
 NHD_BULK = "https://prd-tnm.s3.amazonaws.com/StagedProducts/Hydrography/NHDPlusHR/Beta/GDB/NHDPLUS_H_{hu4}_HU4_GDB.zip"
-
-# NHDPlus HR terminal paths (terminalpa) for the two ocean outlets. Each is also the
-# level path (levelpathi) of that river's main stem, from its headwaters to its mouth.
-TERMINAL_GULF = 15000900002435  # Suwannee River → Gulf of Mexico
-TERMINAL_ATLANTIC = 15000300000195  # St. Johns River → Atlantic
 
 # NHD feature types.
 FTYPE_UNDERGROUND = 420

@@ -1,87 +1,83 @@
 import { describe, expect, it } from "vitest";
-import { Fate, type SegTuple, type StreamsFile } from "../shared/types";
-import { decodeSegments, fateShares, sinkLabels, traceDownstream } from "./network";
+import { Fate, SegFlag, type RainSeg } from "../shared/types";
+import { decodeSegments, traceDownstream, traceLoading, unpackDelta, type Segment } from "./network";
 
-// A tiny network:  0 → 1 → 2 (Gulf), 3 → 1, and a separate creek 4 into "Big Sink".
-// Segment 5 is the river's route past the map; it ends at the sea (a mouth).
-const seg = (coords: number[], fate: number, next: number, acc: number, name = -1, sink = -1, art = 0, route = 0): SegTuple =>
-  [coords, fate as Fate, next, acc, name, sink, 0, art as 0 | 1, route as 0 | 1];
-const file: StreamsFile = {
-  meta: { generator: "test", generatedAt: "", coordOrigin: [-83, 29.5], coordScale: 1e4, segFields: [], fates: [], areas: [] },
-  names: ["Mill Creek", "Santa Fe River", "Big Sink"],
-  segs: [
-    seg([0, 0, 100, 0], Fate.Gulf, 1, 1, 0),
-    seg([100, 0, 200, 0], Fate.Gulf, 2, 3, 1),
-    seg([200, 0, 300, 0], Fate.Gulf, -1, 4, 1, -1, 1),
-    seg([100, 100, 100, 0], Fate.Gulf, 1, 1),
-    seg([0, 500, 0, 600], Fate.Sink, -1, 20, -1, 2),
-    seg([900, 0, 5000, 0], Fate.Gulf, -1, 9, 1, -1, 0, 1),
-  ],
-  springs: [],
-  swallets: [],
-  mouths: [5],
-};
-const segs = decodeSegments(file);
+const packing = { coordOrigin: [-83, 29.5] as [number, number], coordScale: 1e4 };
+const seg = (coords: number[], fate: number, next: number, acc: number, name = -1, sink = -1, flags = 0): RainSeg => [coords, fate as Fate, next, acc, name, sink, flags];
+const names = ["Mill Creek", "Santa Fe River", "Big Sink"];
+
+// A tiny network split like the real one: the base holds ids 0-2 (0 → 1 → 2, a mouth on
+// the Gulf), and a tile holds ids 10-11 (10 → 1, and 11 into "Big Sink").
+const base = decodeSegments(
+  [seg([0, 0, 100, 0], Fate.Gulf, 1, 10, 0), seg([100, 0, 100, 0], Fate.Gulf, 2, 30, 1), seg([200, 0, 100, 0], Fate.Gulf, -1, 40, 1, -1, SegFlag.Mouth | SegFlag.Lake)],
+  names,
+  0,
+  packing,
+);
+const tile = decodeSegments([seg([100, 100, 0, -100], Fate.Gulf, 1, 1), seg([0, 500, 0, 100], Fate.Sink, -1, 2, -1, 2, SegFlag.Underground)], names, 10, packing);
+const byId = new Map<number, Segment>([...base, ...tile].map((s) => [s.id, s]));
+const get = (id: number) => byId.get(id);
 
 describe("decodeSegments", () => {
-  it("resolves names, sinks, and flags", () => {
-    expect(segs[0].name).toBe("Mill Creek");
-    expect(segs[3].name).toBeNull();
-    expect(segs[4].sink).toBe("Big Sink");
-    expect(segs[2].artificial).toBe(true);
-    expect([segs[5].route, segs[5].mouth]).toEqual([true, true]);
-    expect([segs[2].route, segs[2].mouth]).toEqual([false, false]);
+  it("numbers segments from the file's first id and resolves names, sinks, and flags", () => {
+    expect(tile.map((s) => s.id)).toEqual([10, 11]);
+    expect(base[0].name).toBe("Mill Creek");
+    expect(tile[0].name).toBeNull();
+    expect(tile[1].sink).toBe("Big Sink");
+    expect([base[2].mouth, base[2].lake, base[2].underground, base[2].lakeo]).toEqual([true, true, false, false]);
+    expect(tile[1].underground).toBe(true);
   });
 
-  it("decodes packed coordinates through the origin and scale", () => {
-    // 100 units at scale 1e4 is 0.01° of longitude.
-    const dx = segs[0].pts[1][0] - segs[0].pts[0][0];
-    expect(dx).toBeCloseTo(0.01 * Math.cos((29.8 * Math.PI) / 180), 10);
+  it("decodes delta-packed coordinates through the origin and scale", () => {
+    // Each step of 100 at scale 1e4 is 0.01° of longitude.
+    const pts = unpackDelta([0, 0, 100, 0, 100, 0], packing);
+    expect(pts[2][0] - pts[1][0]).toBeCloseTo(0.01 * Math.cos((29.8 * Math.PI) / 180), 10);
+    expect(pts[1][0] - pts[0][0]).toBeCloseTo(pts[2][0] - pts[1][0], 10);
+    // Each segment's first point is absolute: the tile's creek starts 0.01° north and ends where the base's first creek does.
+    expect(tile[0].pts[1]).toEqual(base[0].pts[1]);
   });
 });
 
 describe("traceDownstream", () => {
-  it("follows next pointers to the terminus", () => {
-    const t = traceDownstream(segs, 3);
-    expect(t.path).toEqual([segs[3], segs[1], segs[2]]);
+  it("follows ids from a tile into the base, to the terminus", () => {
+    const t = traceDownstream(get, 10);
+    expect(t.path.map((s) => s.id)).toEqual([10, 1, 2]);
     expect(t.joins).toBe("Santa Fe River");
-    expect(t.end).toEqual(segs[2].pts[1]);
+    expect(t.end).toEqual(base[2].pts[1]);
+    expect(t.toSea).toBe(true);
   });
 
-  it("knows whether the water reaches the sea or just the map's edge", () => {
-    expect(traceDownstream(segs, 5).toSea).toBe(true);
-    expect(traceDownstream(segs, 3).toSea).toBe(false);
+  it("stops where the water leaves what's loaded", () => {
+    const t = traceDownstream((id) => (id === 1 ? undefined : get(id)), 10);
+    expect(t.path.map((s) => s.id)).toEqual([10]);
+    expect(t.toSea).toBe(false);
   });
 
   it("doesn't report the starting creek as one it joins", () => {
-    expect(traceDownstream(segs, 1).joins).toBe("Santa Fe River");
-    expect(traceDownstream(segs, 0).joins).toBe("Santa Fe River");
+    expect(traceDownstream(get, 1).joins).toBe("Santa Fe River");
+    expect(traceDownstream(get, 0).joins).toBe("Santa Fe River");
   });
 
   it("stops on a cycle instead of looping forever", () => {
-    const loop = decodeSegments({ ...file, segs: [seg([0, 0, 1, 0], 0, 1, 1), seg([1, 0, 2, 0], 0, 0, 1)] });
-    expect(traceDownstream(loop, 0).path).toHaveLength(2);
+    const loop = decodeSegments([seg([0, 0, 1, 0], 0, 1, 1), seg([1, 0, 1, 0], 0, 0, 1)], names, 0, packing);
+    expect(traceDownstream((id) => loop[id], 0).path).toHaveLength(2);
   });
 });
 
-describe("fateShares", () => {
-  it("measures real creek length only, skipping artificial paths and the route to the sea", () => {
-    const pct = fateShares(segs);
-    expect(pct.reduce((a, b) => a + b)).toBeCloseTo(100);
-    // Three 0.01°-ish Gulf creeks (one artificial, excluded) vs one 0.01° sink creek.
-    expect(pct[Fate.Gulf]).toBeGreaterThan(pct[Fate.Sink]);
-    expect(pct[Fate.Atlantic]).toBe(0);
-    // The route segment is 0.41° long, far more than everything else; counted, it would swamp the Gulf share.
-    const withoutRoute = fateShares(segs.slice(0, 5));
-    expect(pct[Fate.Gulf]).toBeCloseTo(withoutRoute[Fate.Gulf]);
-  });
-});
-
-describe("sinkLabels", () => {
-  it("labels each named sink at its largest inflow", () => {
-    const more = decodeSegments({ ...file, segs: [...file.segs, seg([10, 10, 20, 20], Fate.Sink, -1, 50, -1, 2)] });
-    const labels = sinkLabels(more);
-    expect(labels).toHaveLength(1);
-    expect(labels[0]).toMatchObject({ name: "Big Sink", acc: 50 });
+describe("traceLoading", () => {
+  it("loads the tiles along the path before tracing it", async () => {
+    const loaded = new Map<number, Segment>(tile.map((s) => [s.id, s]));
+    const asked: number[] = [];
+    const t = await traceLoading(
+      (id) => loaded.get(id),
+      async (id) => {
+        asked.push(id);
+        for (const s of base) loaded.set(s.id, s);
+        return true;
+      },
+      10,
+    );
+    expect(asked).toEqual([1]);
+    expect(t.path.map((s) => s.id)).toEqual([10, 1, 2]);
   });
 });

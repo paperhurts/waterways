@@ -9,30 +9,9 @@ export interface Provenance {
 
 // ---------- streams.json (rain map) ----------
 
-/** Where a creek's water ends up, as an index into StreamsFile.meta.fates. */
+/** Where a creek's water ends up, as an index into RainBase.meta.fates. */
 export const Fate = { Gulf: 0, Atlantic: 1, Sink: 2, Inland: 3, OffMap: 4 } as const;
 export type Fate = (typeof Fate)[keyof typeof Fate];
-
-/**
- * One NHD flowline segment:
- * - coords: flat [x0, y0, x1, y1, ...] integers; lon = x / coordScale + coordOrigin[0]
- * - next: index of the downstream segment, or -1 at a terminus
- * - acc: upstream accumulation used for line width (larger = bigger stream)
- * - name / sink: index into `names`, or -1
- * - underground: NHD underground conduit; artificial: NHD artificial path through a waterbody
- * - route: past the study area, on the Suwannee's or St. Johns' way to the sea (no rain falls on it)
- */
-export type SegTuple = [
-  coords: number[],
-  fate: Fate,
-  next: number,
-  acc: number,
-  name: number,
-  sink: number,
-  underground: 0 | 1,
-  artificial: 0 | 1,
-  route: 0 | 1,
-];
 
 export type NamedPoint = [lon: number, lat: number, name: string];
 /**
@@ -50,16 +29,80 @@ export interface SpringsFile {
   springs: StatewideSpring[];
 }
 
-export interface StreamsFile {
-  /** areas: the [west, south, east, north] boxes whose union is the study area. */
-  meta: Provenance & { coordOrigin: [number, number]; coordScale: number; segFields: string[]; fates: string[]; areas: [number, number, number, number][] };
+// ---------- rain/base.json and rain/<level>/<col>-<row>.json (the statewide rain map) ----------
+
+/** Bits in a RainSeg's flags. */
+export const SegFlag = {
+  /** An NHD underground conduit, through the aquifer. */
+  Underground: 1,
+  /** An NHD artificial path across a lake: the lake fill already shows that water. */
+  Lake: 2,
+  /** Its water enters the sea at its downstream end. */
+  Mouth: 4,
+  /** Its water passes through Lake Okeechobee. */
+  LakeO: 8,
+} as const;
+
+/**
+ * One NHD flowline:
+ * - coords: delta-packed ints [x0, y0, dx1, dy1, ...]; lon = x / coordScale + coordOrigin[0]
+ * - next: id of the downstream segment, in the base or any tile, or -1 where the
+ *   network ends or leaves Florida
+ * - acc: NHD's arbolate sum, the km of creek upstream including this one
+ * - name / sink: index into the same file's `names`, or -1
+ */
+export type RainSeg = [coords: number[], fate: Fate, next: number, acc: number, name: number, sink: number, flags: number];
+
+/** Rings are delta-packed like RainSeg coords; holes are extra rings (draw with evenodd). */
+export interface RainWater {
+  name: string | null;
+  kind: "sea" | "lake" | "swamp";
+  km2: number;
+  rings: number[][];
+}
+
+/** Level 0 is the base. Each later level holds smaller creeks, cut into tiles of tileDeg degrees. */
+export interface RainLevel {
+  minAcc: number;
+  tileDeg: number;
+  /** first: the id of the tile's first segment; ids then run consecutively for `count`. */
+  tiles: [col: number, row: number, first: number, count: number][];
+}
+
+export interface RainBase {
+  meta: Provenance & {
+    coordOrigin: [number, number];
+    coordScale: number;
+    /** Where tile (0, 0) starts: [west, south]. */
+    gridOrigin: [number, number];
+    bounds: [number, number, number, number];
+    segFields: string[];
+    fates: string[];
+    /** Percent of Florida's creek length (no artificial paths) by fate. */
+    shares: number[];
+    /** Segment ids across the base and every tile. */
+    segCount: number;
+    levels: RainLevel[];
+  };
   names: string[];
-  segs: SegTuple[];
+  /** Ids 0 to segs.length - 1. */
+  segs: RainSeg[];
+  /** The sea, then the biggest lakes and wetlands. */
+  water: RainWater[];
   springs: SpringSite[];
-  /** Named sinks where a creek drops into an underground conduit and keeps flowing. */
   swallets: NamedPoint[];
-  /** Indices of the segments whose water enters the sea at their downstream end. */
-  mouths: number[];
+  /** One label per named sink, where its biggest creek ends: acc is that creek's. */
+  sinks: [lon: number, lat: number, name: string, acc: number][];
+  /** Big rivers' names, at the middle of each main stem in Florida, longest (km in Florida) first. */
+  rivers: [lon: number, lat: number, name: string, fate: Fate, km: number][];
+}
+
+export interface RainTile {
+  first: number;
+  names: string[];
+  segs: RainSeg[];
+  /** Smaller lakes and wetlands, in the first level's tiles only. */
+  water: RainWater[];
 }
 
 // ---------- lakes.json (both maps) ----------
