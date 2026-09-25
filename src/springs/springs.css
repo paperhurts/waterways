@@ -8,6 +8,7 @@ h1 em { font-style: italic; color: var(--spring) }
 #legend .dot.mid { width: 7px; height: 7px; margin: 0 1px }
 #legend .dot.big { width: 9px; height: 9px; margin: 0 }
 #legend .area { width: 12px; height: 9px; border: 1px dashed var(--under); background: color-mix(in srgb, var(--under) 12%, transparent); display: inline-block; margin-left: -1px }
+#legend .snorkel { width: 8px; height: 8px; background: var(--coral); transform: rotate(45deg); display: inline-block; margin: 0 2px }
 #legend .area.focus { border-style: solid; border-color: transparent; background: color-mix(in srgb, var(--under) 30%, transparent) }
 
 .tools { position: relative; z-index: 2; background: var(--bg); align-items: center }
