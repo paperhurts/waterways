@@ -48,6 +48,12 @@ function lonLat(seg: RainSeg): [number, number][] {
   }
   return out;
 }
+/** Ids of the segments failing a check. Expecting on every one of 250,000 segments is too slow for CI. */
+const failing = (bad: (r: Row, id: number) => boolean) => {
+  const out: number[] = [];
+  for (let i = 0; i < meta.segCount; i++) if (!rows[i] || bad(rows[i], i)) out.push(i);
+  return out;
+};
 const named = (name: string) => rows.filter((r) => r.name === name);
 const fatesOf = (name: string, where: (r: Row) => boolean = () => true) => new Set(named(name).filter(where).map((r) => r.seg[1]));
 
@@ -55,7 +61,7 @@ describe("rain/base.json and its tiles", () => {
   it("fills every id exactly once, the base first", () => {
     expect(meta.segCount).toBeGreaterThan(200_000);
     expect(base.segs.length).toBeGreaterThan(30_000);
-    for (let i = 0; i < meta.segCount; i++) expect(rows[i], `id ${i}`).toBeDefined();
+    expect(failing(() => false)).toEqual([]);
     for (const { path, tile } of tileFiles) {
       const [col, row] = path.slice(path.lastIndexOf("/") + 1, -5).split("-").map(Number);
       const lv = meta.levels[Number(path.split("/")[1])];
@@ -64,25 +70,18 @@ describe("rain/base.json and its tiles", () => {
   });
 
   it("has valid field ranges", () => {
-    for (let i = 0; i < meta.segCount; i++) {
-      const [coords, fate, next, acc, , , flags] = rows[i].seg;
-      expect(coords.length % 2).toBe(0);
-      expect(coords.length).toBeGreaterThanOrEqual(4);
-      expect(fate >= Fate.Gulf && fate <= Fate.OffMap).toBe(true);
-      expect(next >= -1 && next < meta.segCount).toBe(true);
-      expect(acc).toBeGreaterThanOrEqual(0);
-      expect(flags >= 0 && flags < 16).toBe(true);
-    }
+    const bad = failing(({ seg: [coords, fate, next, acc, , , flags] }) =>
+      coords.length % 2 !== 0 || coords.length < 4 || fate < Fate.Gulf || fate > Fate.OffMap || next < -1 || next >= meta.segCount || acc < 0 || flags < 0 || flags >= 16,
+    );
+    expect(bad.slice(0, 10)).toEqual([]);
   });
 
   it("files each creek at its level of detail", () => {
     const [b, one, two] = meta.levels.map((l) => l.minAcc);
-    for (const r of rows) {
-      const acc = r.seg[3];
-      if (r.level === 0) expect(acc).toBeGreaterThanOrEqual(b - 0.05);
-      if (r.level === 1) expect(acc >= one - 0.05 && acc < b + 0.05).toBe(true);
-      if (r.level === 2) expect(acc >= two && acc < one + 0.05).toBe(true);
-    }
+    const bad = failing(({ level, seg: [, , , acc] }) =>
+      level === 0 ? acc < b - 0.05 : level === 1 ? acc < one - 0.05 || acc >= b + 0.05 : acc < two || acc >= one + 0.05,
+    );
+    expect(bad.slice(0, 10)).toEqual([]);
   });
 
   it("keeps files small enough for a phone", () => {
@@ -92,7 +91,8 @@ describe("rain/base.json and its tiles", () => {
 
   it("keeps every vertex in Florida's box, give or take a border river", () => {
     const [w, s, e, n] = meta.bounds;
-    for (const r of rows) for (const [lon, lat] of lonLat(r.seg)) expect(lon >= w - 0.3 && lon <= e + 0.3 && lat >= s - 0.3 && lat <= n + 0.3).toBe(true);
+    const bad = failing((r) => lonLat(r.seg).some(([lon, lat]) => lon < w - 0.3 || lon > e + 0.3 || lat < s - 0.3 || lat > n + 0.3));
+    expect(bad.slice(0, 10)).toEqual([]);
   });
 
   it("forms a network without cycles, each segment sharing its downstream neighbor's fate", () => {
@@ -108,14 +108,12 @@ describe("rain/base.json and its tiles", () => {
       let d = i < 0 ? 0 : depth[i];
       for (let p = path.length - 1; p >= 0; p--) depth[path[p]] = ++d;
     }
-    const bad = rows.filter((r) => r.seg[2] >= 0 && rows[r.seg[2]].seg[1] !== r.seg[1]);
-    expect(bad).toHaveLength(0);
+    expect(failing((r) => r.seg[2] >= 0 && rows[r.seg[2]].seg[1] !== r.seg[1]).slice(0, 10)).toEqual([]);
   });
 
   it("accumulates upstream length: acc never shrinks going downstream", () => {
     // acc is rounded to 0.1 km, so allow a rounding step.
-    const shrinking = rows.filter((r) => r.seg[2] >= 0 && rows[r.seg[2]].seg[3] + 0.11 < r.seg[3]);
-    expect(shrinking).toHaveLength(0);
+    expect(failing((r) => r.seg[2] >= 0 && rows[r.seg[2]].seg[3] + 0.11 < r.seg[3]).slice(0, 10)).toEqual([]);
   });
 
   it("marks mouths only where the network ends at the sea", () => {
