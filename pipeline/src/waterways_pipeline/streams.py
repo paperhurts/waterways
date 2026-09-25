@@ -1,17 +1,22 @@
 """The creek network for the rain map, from NHDPlus HR.
 
 Method:
-- Take every NHDPlus HR network flowline touching the study area: the
-  Suwannee–Gainesville box plus the Atlantic corridor to Lake George.
+- Take every NHDPlus HR network flowline touching the study area: boxes
+  covering the springs belt from the middle Suwannee to Rainbow River, the
+  Ocklawaha, and the Atlantic corridor to Lake George (C.STREAMS_AREAS).
+  NHD's coastline flowlines are part of its network but aren't creeks; they
+  only mark where coastal rivers empty into the sea.
 - Link each to its downstream neighbor with hydroseq → dnhydroseq.
 - `acc` is the total creek length (km) upstream of and including each
   segment, counted inside the map. It sets line width.
 - Fate follows NHDPlus routing: a creek reaches the Gulf or the Atlantic if
   its terminal path is the Suwannee's or the St. Johns'. Otherwise it ends
   where NHDPlus ends it. That end is a sink when a mapped sink point (FGS
-  swallet, NHD sink/rise, or config/sinks.json) is within SINK_RADIUS_M, and
-  "inland" otherwise. Water whose path leaves the map toward some other end
-  is "off".
+  swallet, NHD sink/rise, or config/sinks.json) is within SINK_RADIUS_M; the
+  sea when it drains into NHD's coastline (the Withlacoochee, Crystal River,
+  and Waccasassa reach the Gulf on their own) or ends right at the Census
+  coast; and "inland" otherwise. Water whose path leaves the map takes the
+  fate of that path's end if it's on the coast, and is "off" otherwise.
 - Where NHD routes a creek into an underground conduit (FType 420), as at
   Rose Sink and Santa Fe River Sink, the water keeps its downstream fate and
   the named swallet is listed in `swallets` so the map can label it.
@@ -24,9 +29,11 @@ Method:
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 
+from . import coast as coast_mod
 from . import config as C
 from . import springs as springs_mod
 from .fetch import arcgis_query, log
@@ -110,8 +117,28 @@ def terminals(nxt: list[int]) -> list[int]:
     return out
 
 
-def classify(lines: list[Flowline], nxt: list[int], sinks: list[SinkPoint]) -> tuple[list[int], list[str | None]]:
-    """Fate of every segment, and the name of the sink it ends in (if any)."""
+def no_sea(p: LonLat) -> int | None:
+    return None
+
+
+def sea_side(p: LonLat) -> int:
+    return GULF if p[0] < coast_mod.PENINSULA_SPINE else ATLANTIC
+
+
+def classify(
+    lines: list[Flowline],
+    nxt: list[int],
+    sinks: list[SinkPoint],
+    sea_at: Callable[[LonLat], int | None] = no_sea,
+    leaves_to_sea: dict[int, int] | None = None,
+    shore: set[int] | None = None,
+) -> tuple[list[int], list[str | None]]:
+    """Fate of every segment, and the name of the sink it ends in (if any).
+
+    `shore` holds the hydroseqs of NHD's coastline flowlines: a creek draining into one
+    empties into the sea. `sea_at(p)` is the fallback for a creek NHD leaves unlinked:
+    GULF or ATLANTIC if it ends on that coast at p, else None. `leaves_to_sea` gives the
+    fate of terminal paths that run off the map to the sea."""
     ends = terminals(nxt)
     fate_of_end: dict[int, tuple[int, str | None]] = {}
     for t in set(ends):
@@ -120,10 +147,16 @@ def classify(lines: list[Flowline], nxt: list[int], sinks: list[SinkPoint]) -> t
             fate_of_end[t] = (GULF, None)
         elif f.terminalpa == C.TERMINAL_ATLANTIC:
             fate_of_end[t] = (ATLANTIC, None)
-        elif f.dnhydroseq != 0:
-            fate_of_end[t] = (OFF, None)
+        elif shore and f.dnhydroseq in shore:
+            fate_of_end[t] = (sea_side(f.coords[-1]), None)
+        elif f.dnhydroseq != 0 and f.hydroseq != f.terminalpa:
+            # The water flows on past the map's edge.
+            fate_of_end[t] = ((leaves_to_sea or {}).get(f.terminalpa, OFF), None)
         else:
-            fate_of_end[t] = nearest_sink(f.coords[-1], sinks)
+            # The network ends here: in a sink, at the coast, or inland.
+            kind, name = nearest_sink(f.coords[-1], sinks)
+            sea = sea_at(f.coords[-1]) if kind == INLAND else None
+            fate_of_end[t] = (sea, None) if sea is not None else (kind, name)
     fates = [fate_of_end[ends[i]][0] for i in range(len(lines))]
     sink_names = [fate_of_end[ends[i]][1] for i in range(len(lines))]
     return fates, sink_names
@@ -200,8 +233,12 @@ def to_flowline(f: dict) -> Flowline:
     )
 
 
-def fetch_flowlines(refresh: bool) -> list[Flowline]:
-    return [to_flowline(f) for f in area_query(C.NHD_FLOWLINES, refresh, fields=FIELDS) if f.get("geometry")]
+def fetch_flowlines(refresh: bool) -> tuple[list[Flowline], set[int]]:
+    """The study area's creeks, and the hydroseqs of its coastline. NHD threads the
+    coastline into the flow network, so coastal rivers drain into it, but it isn't a creek."""
+    feats = [f for f in area_query(C.NHD_FLOWLINES, refresh, fields=FIELDS) if f.get("geometry")]
+    shore = {int(f["properties"]["hydroseq"]) for f in feats if int(f["properties"]["ftype"]) == C.FTYPE_COASTLINE}
+    return [to_flowline(f) for f in feats if int(f["properties"]["ftype"]) != C.FTYPE_COASTLINE], shore
 
 
 def route_to_sea(mainstem: list[Flowline], mapped: set[int]) -> list[Flowline]:
@@ -223,9 +260,24 @@ def fetch_routes(lines: list[Flowline], refresh: bool) -> list[Flowline]:
         route = route_to_sea(mainstem, mapped)
         for f in route:
             f.route = True
-        name = next((f.name for f in route if f.name), str(terminal))
-        log(f"streams: {len(route)} flowlines, {sum(f.lengthkm for f in route):.0f} km, from the map to the sea along the {name}")
+        if route:
+            name = next((f.name for f in route if f.name), str(terminal))
+            log(f"streams: {len(route)} flowlines, {sum(f.lengthkm for f in route):.0f} km, from the map to the sea along the {name}")
         out += route
+    return out
+
+
+def leaving_to_sea(lines: list[Flowline], nxt: list[int], sea_at: Callable[[LonLat], int | None], refresh: bool) -> dict[int, int]:
+    """Terminal paths whose water runs off the map and ends at the sea, with that sea's fate.
+    Each path's last flowline has the path's id as its hydroseq; look up where it ends."""
+    leaving = {f.terminalpa for i, f in enumerate(lines) if nxt[i] < 0 and f.dnhydroseq != 0 and f.hydroseq != f.terminalpa}
+    ids = sorted(leaving - {C.TERMINAL_GULF, C.TERMINAL_ATLANTIC})
+    out: dict[int, int] = {}
+    for k in range(0, len(ids), 150):
+        where = f"hydroseq IN ({','.join(map(str, ids[k : k + 150]))})"
+        for f in arcgis_query(C.NHD_FLOWLINES, where=where, fields="hydroseq", refresh=refresh):
+            if f.get("geometry") and (sea := sea_at(line_coords(f["geometry"])[-1])) is not None:
+                out[int(f["properties"]["hydroseq"])] = sea
     return out
 
 
@@ -236,13 +288,20 @@ def mouths(lines: list[Flowline], fates: list[int]) -> list[int]:
 
 
 def build(refresh: bool = False) -> dict:
-    lines = fetch_flowlines(refresh)
-    log(f"streams: {len(lines)} flowlines")
+    lines, shore = fetch_flowlines(refresh)
+    log(f"streams: {len(lines)} flowlines, {len(shore)} more on the coastline")
     lines += fetch_routes(lines, refresh)
     nxt = link(lines)
     acc = accumulate(lines, nxt)
     sinks = sink_points(refresh)
-    fates, sink_names = classify(lines, nxt, sinks)
+    coast = coast_mod.Coast(coast_mod.sea(refresh))
+    sides = {"gulf": GULF, "atl": ATLANTIC}
+
+    def sea_at(p: LonLat) -> int | None:
+        side = coast.sea_at(p)
+        return sides[side] if side else None
+
+    fates, sink_names = classify(lines, nxt, sinks, sea_at, leaving_to_sea(lines, nxt, sea_at, refresh), shore)
 
     names: list[str] = []
     index: dict[str, int] = {}

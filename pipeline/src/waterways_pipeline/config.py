@@ -18,8 +18,17 @@ STREAMS_BBOX: Bbox = (-82.99, 29.56, -82.01, 30.09)
 #: The Atlantic route out of it: Orange Lake, Silver Springs, the Ocklawaha,
 #: and the St. Johns through Lake George to Welaka.
 ATLANTIC_CORRIDOR: Bbox = (-82.30, 29.12, -81.50, 29.60)
-#: The rain map's study area is the union of these boxes (an L shape).
-STREAMS_AREAS: list[Bbox] = [STREAMS_BBOX, ATLANTIC_CORRIDOR]
+#: The springs belt around them. West of the Suwannee is karst with few surface
+#: streams (Troy, Royal, Peacock, Lafayette Blue); north are Suwannee Springs and
+#: White Springs; the south box runs from Manatee Springs through Rainbow River
+#: and Dunnellon to Crystal River and Homosassa on the Gulf; the upper Ocklawaha
+#: box has Lake Weir, the Harris Chain, and Alexander Springs.
+SUWANNEE_WEST: Bbox = (-83.30, 29.56, -82.99, 30.50)
+SUWANNEE_NORTH: Bbox = (-82.99, 30.09, -82.60, 30.50)
+SOUTH_BELT: Bbox = (-83.20, 28.75, -82.30, 29.56)
+UPPER_OCKLAWAHA: Bbox = (-82.30, 28.75, -81.50, 29.12)
+#: The rain map's study area is the union of these boxes.
+STREAMS_AREAS: list[Bbox] = [STREAMS_BBOX, ATLANTIC_CORRIDOR, SUWANNEE_WEST, SUWANNEE_NORTH, SOUTH_BELT, UPPER_OCKLAWAHA]
 #: The sea under the rain map, where the Suwannee and St. Johns reach the coast, is
 #: everything in this box that isn't land. It reaches past the whole-map view on even a
 #: very wide screen, so the sea's edge only shows when zoomed far out.
@@ -52,6 +61,7 @@ TERMINAL_ATLANTIC = 15000300000195  # St. Johns River → Atlantic
 
 # NHD feature types.
 FTYPE_UNDERGROUND = 420
+FTYPE_COASTLINE = 566
 FTYPE_ARTIFICIAL = 558
 FTYPE_SINK_RISE = 450
 FTYPE_SPRING = 458

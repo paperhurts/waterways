@@ -27,8 +27,9 @@ const lakes = read<LakesFile>("public/data/lakes.json");
 const statewide = read<SpringsFile>("public/data/springs.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 
-// The rain map's study area (a union of boxes), padded for features that cross an edge.
-const PAD = 0.12;
+// The rain map's study area (a union of boxes), padded for features that cross an edge:
+// a whole flowline is kept when it touches a box, and the longest reach about 0.13°.
+const PAD = 0.15;
 const inBox = (lon: number, lat: number) =>
   streams.meta.areas.some(([w, s, e, n]) => lon >= w - PAD && lon <= e + PAD && lat >= s - PAD && lat <= n + PAD);
 
@@ -67,28 +68,43 @@ describe("streams.json", () => {
       const c = segs[i][0];
       return [c[c.length - 2] / k + ox, c[c.length - 1] / k + oy];
     };
-    const mouths = new Map(streams.mouths.map((i) => [segs[i][1], { i, name: names[segs[i][4]], at: end(i) }]));
-    expect(mouths.get(Fate.Gulf)).toMatchObject({ name: "Suwannee River" });
-    expect(mouths.get(Fate.Atlantic)).toMatchObject({ name: "Saint Johns River" });
+    // Coastal creeks all have mouths; each sea's biggest is its big river.
+    const biggestMouth = (fate: Fate) => streams.mouths.filter((i) => segs[i][1] === fate).reduce((a, b) => (segs[b][3] > segs[a][3] ? b : a));
+    const gulf = biggestMouth(Fate.Gulf);
+    const atl = biggestMouth(Fate.Atlantic);
+    expect(names[segs[gulf][4]]).toBe("Suwannee River");
+    expect(names[segs[atl][4]]).toBe("Saint Johns River");
     // Suwannee Sound and Mayport.
-    expect(mouths.get(Fate.Gulf)!.at[0]).toBeCloseTo(-83.16, 1);
-    expect(mouths.get(Fate.Gulf)!.at[1]).toBeCloseTo(29.29, 1);
-    expect(mouths.get(Fate.Atlantic)!.at[0]).toBeCloseTo(-81.4, 1);
-    expect(mouths.get(Fate.Atlantic)!.at[1]).toBeCloseTo(30.4, 1);
-    for (const { i } of mouths.values()) expect(segs[i][2]).toBe(-1);
+    expect(end(gulf)[0]).toBeCloseTo(-83.16, 1);
+    expect(end(gulf)[1]).toBeCloseTo(29.29, 1);
+    expect(end(atl)[0]).toBeCloseTo(-81.4, 1);
+    expect(end(atl)[1]).toBeCloseTo(30.4, 1);
+    for (const i of streams.mouths) {
+      expect(segs[i][2]).toBe(-1);
+      expect([Fate.Gulf, Fate.Atlantic]).toContain(segs[i][1]);
+    }
     // The route is a continuation of the map, not its own network: every route segment
-    // drains to a mouth, and the map's biggest Gulf and Atlantic rivers drain into the route.
-    for (let i = 0; i < segs.length; i++) {
-      if (!segs[i][8]) continue;
-      let j = i;
-      while (segs[j][2] >= 0) j = segs[j][2];
-      expect(streams.mouths).toContain(j);
-    }
+    // drains to a mouth, and so do the map's biggest Gulf and Atlantic rivers.
+    const mouthOf = (i: number) => {
+      while (segs[i][2] >= 0) i = segs[i][2];
+      return i;
+    };
+    for (let i = 0; i < segs.length; i++) if (segs[i][8]) expect(streams.mouths).toContain(mouthOf(i));
     for (const fate of [Fate.Gulf, Fate.Atlantic]) {
-      const biggest = segs.filter((s) => s[1] === fate && !s[8]).reduce((a, b) => (b[3] > a[3] ? b : a));
-      expect(biggest[2]).toBeGreaterThanOrEqual(0);
-      expect(segs[biggest[2]][8]).toBe(1);
+      let biggest = -1;
+      segs.forEach((s, i) => {
+        if (s[1] === fate && !s[8] && (biggest < 0 || s[3] > segs[biggest][3])) biggest = i;
+      });
+      expect(streams.mouths).toContain(mouthOf(biggest));
     }
+  });
+
+  it("sends the springs belt's own coastal rivers to the Gulf", () => {
+    const fatesOf = (name: string) => new Set(segs.filter((s) => names[s[4]] === name).map((s) => s[1]));
+    for (const river of ["Withlacoochee River", "Rainbow River", "Crystal River", "Homosassa River", "Waccasassa River"]) {
+      expect(fatesOf(river)).toEqual(new Set([Fate.Gulf]));
+    }
+    expect(fatesOf("Ocklawaha River")).toEqual(new Set([Fate.Atlantic]));
   });
 
   it("forms a network without cycles", () => {
