@@ -7,12 +7,15 @@
   --card: rgba(28, 25, 17, .93); --hi: #fff6de;
   /* water */
   --tannin: #d19a4a; --spring: #5fd8cc; --under: #9b8cd6; --river: #4a4230; --contour: #3b3a2c;
+  /* Lake Okeechobee's water, green with algae, on the St. Lucie map. Stepped away from --tannin so the
+     two stay apart with red-green color blindness (checked with the dataviz validator). */
+  --lakewater: #c2e070;
   /* where the rain goes */
   --gulf: #d19a4a; --atl: #7fa9e6; --sink: #a794f0; --inland: #8c8577; --off: #5d584b;
   /* still water and wetland */
   --lake: #1b2224; --shore: #2d3837; --marsh: #34362a; --sea: #1f2c30;
   /* Chart lines: the water colors stepped into a line chart's lightness band (checked with the dataviz validator). */
-  --chart-spring: #27a397; --chart-tannin: #b87f33;
+  --chart-spring: #27a397; --chart-tannin: #b87f33; --chart-lake: #6f9a2e; --chart-estuary: #5b86d6;
 
   --serif: "Spectral", Georgia, "Times New Roman", serif;
   --sans: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
@@ -24,9 +27,10 @@
     --bg: #dfe2d8; --land: #e7e9e0; --ink: #1f2419; --muted: #5b6152; --line: #c3c7b8;
     --card: rgba(236, 238, 230, .95); --hi: #111;
     --tannin: #9a5a12; --spring: #0a8f86; --under: #6b58b8; --river: #b9ae92; --contour: #c7cbbc;
+    --lakewater: #6a9a1a;
     --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
     --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c; --sea: #c2d0d1;
-    --chart-spring: #0a8f86; --chart-tannin: #9a5a12;
+    --chart-spring: #0a8f86; --chart-tannin: #9a5a12; --chart-lake: #4d7a17; --chart-estuary: #2f5fa8;
     color-scheme: light;
   }
 }
@@ -35,8 +39,9 @@
   --bg: #dfe2d8; --land: #e7e9e0; --ink: #1f2419; --muted: #5b6152; --line: #c3c7b8;
   --card: rgba(236, 238, 230, .95); --hi: #111;
   --tannin: #9a5a12; --spring: #0a8f86; --under: #6b58b8; --river: #b9ae92; --contour: #c7cbbc;
+  --lakewater: #6a9a1a;
   --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
   --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c; --sea: #c2d0d1;
-  --chart-spring: #0a8f86; --chart-tannin: #9a5a12;
+  --chart-spring: #0a8f86; --chart-tannin: #9a5a12; --chart-lake: #4d7a17; --chart-estuary: #2f5fa8;
   color-scheme: light;
 }

@@ -24,10 +24,11 @@ COAST_DEG = 0.015
 PENINSULA_SPINE = -82.0
 
 
-def sea(refresh: bool = False):
-    states = arcgis_query(C.CENSUS_STATES, C.SEA_CLIP, fields="STUSAB", refresh=refresh)
+def sea(refresh: bool = False, clip: C.Bbox = C.SEA_CLIP):
+    """Everything in `clip` that isn't land."""
+    states = arcgis_query(C.CENSUS_STATES, clip, fields="STUSAB", refresh=refresh)
     land = unary_union([shape(f["geometry"]) for f in states if f.get("geometry")])
-    return box(*C.SEA_CLIP).difference(land)
+    return box(*clip).difference(land)
 
 
 class Coast:

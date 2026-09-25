@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import gauges from "../../config/gauges.json";
-import { fmtCfs, latestUrl, parseLatest } from "./live";
+import { depthOf, fmtCfs, latestUrl, parseLatest, parseSalinity } from "./live";
 
 describe("latestUrl", () => {
   it("asks for every site in one request, with room for all of them", () => {
@@ -29,6 +29,36 @@ describe("parseLatest", () => {
     const m = parseLatest({ features: [f("1", "2026-09-24T02:00:00Z", null), f("2", "2026-09-24T02:00:00Z", "-999999")] });
     expect(m.size).toBe(0);
   });
+
+  it("keeps reverse flow only where water can run backward", () => {
+    const body = { features: [f("02276877", "2026-09-25T14:00:00Z", "-648"), f("3", "2026-09-25T14:00:00Z", "-5")] };
+    expect(parseLatest(body).size).toBe(0);
+    const m = parseLatest(body, new Set(["02276877"]));
+    expect(m.get("02276877")!.cfs).toBe(-648);
+    expect(m.has("3")).toBe(false);
+    expect(parseLatest({ features: [f("02276877", "2026-09-25T14:00:00Z", "-999999")] }, new Set(["02276877"])).size).toBe(0);
+  });
+});
+
+describe("parseSalinity", () => {
+  const f = (series: string, id: string, time: string, value: string | null) => ({ properties: { time_series_id: series, monitoring_location_id: `USGS-${id}`, time, value } });
+  const meta = { features: [{ properties: { id: "a", sublocation_identifier: "TOP (from SP cond)" } }, { properties: { id: "b", sublocation_identifier: "BOTTOM" } }, { properties: { id: "c", sublocation_identifier: "TOP" } }] };
+
+  it("sorts each station's two sensors by depth", () => {
+    const m = parseSalinity(
+      { features: [f("a", "02277100", "2026-09-25T14:45:00Z", "13"), f("b", "02277100", "2026-09-25T14:45:00Z", "21"), f("c", "02277110", "2026-09-25T14:45:00Z", "23"), f("x", "02277110", "2026-09-25T14:45:00Z", "99")] },
+      meta,
+    );
+    expect(m.get("02277100")).toMatchObject({ top: 13, bottom: 21 });
+    expect(m.get("02277110")).toMatchObject({ top: 23, bottom: null });
+  });
+
+  it("skips sensors that aren't reporting", () => {
+    const m = parseSalinity({ features: [f("b", "02277100", "2026-09-25T10:00:00Z", null)] }, meta);
+    expect(m.size).toBe(0);
+    expect(depthOf("BOTTOM (from SP cond)")).toBe("bottom");
+    expect(depthOf(null)).toBeNull();
+  });
 });
 
 describe("fmtCfs", () => {
@@ -37,5 +67,7 @@ describe("fmtCfs", () => {
     expect(fmtCfs(0.94)).toBe("0.9");
     expect(fmtCfs(40.9)).toBe("41");
     expect(fmtCfs(1140)).toBe((1140).toLocaleString());
+    expect(fmtCfs(-648)).toBe("-648");
+    expect(fmtCfs(-1310)).toBe((-1310).toLocaleString());
   });
 });

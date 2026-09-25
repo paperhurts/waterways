@@ -102,6 +102,18 @@ export interface RainbowFile {
   history: { years: number[]; Rb: (number | null)[]; WH: (number | null)[] };
 }
 
+// ---------- st-lucie.json (St. Lucie map) ----------
+
+export interface StLucieFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
+  /** Main stems, upstream to downstream, by NHD name: Saint Lucie Canal, the South and North Forks, Saint Lucie River (the estuary), County Line Canal (C-23), Indian River. */
+  rivers: Record<string, { p: LonLat[]; u: (0 | 1)[] }>;
+  /** The sea (with the estuary and lagoon) first, then lakes; the same shape as lakes.json's bodies. */
+  water: LakesFile["bodies"];
+  /** Water-year mean flow (cfs) out of Lake Okeechobee at S-308 and into the estuary at S-80; negative is flow back toward the lake. */
+  history: { years: number[]; S308: (number | null)[]; S80: (number | null)[] };
+}
+
 // ---------- statewide.json (statewide springs map; the springs are springs.json) ----------
 
 export interface AreaFile {
@@ -135,7 +147,12 @@ export const RAINBOW_KEYS = ["WH", "RbN", "Rb", "WD", "WB", "WI"] as const;
 export type RainbowKey = (typeof RAINBOW_KEYS)[number];
 export type RainbowFlows = Record<RainbowKey, number | null>;
 
-export type GaugeKey = FlowKey | RainbowKey;
+/** The St. Lucie map's gauges: the canal's two structures, S-308 at Lake Okeechobee and S-80 at the St. Lucie Lock. */
+export const STLUCIE_KEYS = ["S308", "S80"] as const;
+export type StLucieKey = (typeof STLUCIE_KEYS)[number];
+export type StLucieFlows = Record<StLucieKey, number | null>;
+
+export type GaugeKey = FlowKey | RainbowKey | StLucieKey;
 
 export interface GaugeConfig {
   id: string;
@@ -144,18 +161,41 @@ export interface GaugeConfig {
   name?: string;
   key: GaugeKey;
   /** Which map draws it. */
-  page: "santa-fe" | "rainbow";
+  page: "santa-fe" | "rainbow" | "st-lucie";
+  /** Flow can run backward here, and USGS reports it as negative. */
+  signed?: boolean;
   river?: string;
   spring?: boolean;
   lon: number;
   lat: number;
 }
 
+/** The St. Lucie estuary's salinity stations (config/salinity.json): Speedy Point and Steele Point. */
+export const SALINITY_KEYS = ["SP", "SS"] as const;
+export type SalinityKey = (typeof SALINITY_KEYS)[number];
+
+export interface SalinityStation {
+  id: string;
+  short: string;
+  name: string;
+  key: SalinityKey;
+  lon: number;
+  lat: number;
+}
+
+/** Parts per thousand from the sensor near the surface and the one near the bottom. */
+export interface Salinity {
+  top: number | null;
+  bottom: number | null;
+}
+
 export interface Snapshot {
   /** ISO 8601 time of the newest reading. */
   time: string;
-  /** Every gauge in config/gauges.json, both maps. */
-  cfs: Flows & RainbowFlows;
+  /** Every gauge in config/gauges.json, all maps. */
+  cfs: Flows & RainbowFlows & StLucieFlows;
+  /** Every station in config/salinity.json. */
+  ppt: Record<SalinityKey, Salinity>;
 }
 
 // ---------- aquifer.json ----------

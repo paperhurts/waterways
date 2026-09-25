@@ -1,0 +1,64 @@
+/* Layout for the story maps (Rainbow River, St. Lucie): header, legend, gauge strip, info card, and the flow-history panel. Each page sets its own accent on h1 em. */
+header { padding: 14px 18px 6px; max-width: 44rem; position: relative; z-index: 2; pointer-events: none }
+h1 { margin-bottom: .35em }
+h1 em { font-style: italic }
+.lede { font-size: .98rem; max-width: 36rem }
+
+#legend { position: absolute; left: 12px; top: 8px; font: 500 .82rem/1.3 var(--sans); color: var(--muted); display: flex; flex-direction: column; gap: 3px; pointer-events: none }
+#legend span { display: flex; align-items: center; gap: 7px }
+#legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block }
+
+.tools { position: relative; z-index: 2; background: var(--bg) }
+.tools button, .tools a, .chip { font-size: .82rem }
+
+#profile { position: relative; z-index: 2; display: flex; overflow-x: auto; padding: 8px 12px 10px; border-top: 1px solid var(--line); background: var(--bg); scrollbar-width: none }
+#profile::-webkit-scrollbar { display: none }
+.gauge { flex: 0 0 auto; background: none; border: 0; color: var(--ink); text-align: left; padding: 4px 10px 2px; cursor: pointer; border-left: 1px solid var(--line); font-family: var(--sans) }
+.gauge:first-child { border-left: 0 }
+.gauge:focus-visible { outline: 2px solid var(--spring); outline-offset: 2px }
+.gauge .v { font: 500 1.35rem/1 var(--sans); font-variant-numeric: tabular-nums }
+.gauge .n { font: 400 .78rem/1.2 var(--sans); color: var(--muted); white-space: nowrap }
+.gauge.stale .v { color: var(--muted) }
+
+#status { font-size: .78rem; background: var(--bg); position: relative; z-index: 2 }
+#card { left: 12px; right: 12px; bottom: 12px; padding: 14px 16px; font-size: .95rem }
+
+/* Flow-history panel */
+#hist { position: relative; z-index: 3; margin: 0 10px; max-width: 40rem; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 10px; display: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px) }
+#hist.on { display: block }
+#histTitle { font: 600 1.2rem/1 var(--sans) }
+#histRead { font-size: .92rem; line-height: 1.4; margin: .45em 0 .5em }
+#histRead b { font-weight: 600 }
+#histChart .legend { display: flex; gap: 14px; font: 500 .78rem var(--sans); color: var(--muted); margin-bottom: 2px }
+#histChart .legend i, #histChart .tip i { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px }
+#histChart .plot { position: relative }
+#histChart svg { display: block; overflow: visible }
+#histChart svg:focus-visible { outline: 2px solid var(--spring); outline-offset: 2px; border-radius: 4px }
+#histChart .grid { stroke: var(--line); stroke-width: 1 }
+#histChart .grid.zero { stroke: var(--muted) }
+#histChart .tick { fill: var(--muted); font: 400 11px var(--sans); font-variant-numeric: tabular-nums }
+#histChart .end { fill: var(--ink); font: 600 12px var(--sans) }
+#histChart .line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round }
+#histChart .dot { stroke: var(--bg); stroke-width: 2 }
+#histChart .hair { stroke: var(--muted); stroke-width: 1 }
+#histChart .tip { position: absolute; top: 0; pointer-events: none; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font: 400 .8rem/1.35 var(--sans); color: var(--muted); white-space: nowrap }
+#histChart .tip .yr { color: var(--ink); font-weight: 600 }
+#histChart .tip b { color: var(--ink); font-weight: 600 }
+#histChart .table { font: 400 .76rem var(--sans); color: var(--muted); margin-top: 4px }
+#histChart .table summary, #hist .note summary { cursor: pointer; color: var(--ink) }
+#histChart table { border-collapse: collapse; margin-top: 4px; font-variant-numeric: tabular-nums; max-height: 12rem; display: block; overflow-y: auto }
+#histChart th, #histChart td { text-align: right; padding: 1px 10px 1px 0 }
+#hist .note { font: 400 .76rem/1.35 var(--sans); color: var(--muted); margin-top: 4px }
+
+@media (max-width: 700px) {
+  body.hist .lede, body.hist #legend { display: none }
+  #histRead { font-size: .86rem }
+}
+@media (min-width: 900px) {
+  #card { left: auto; right: 16px; bottom: 16px }
+  body.hist #wrap { display: grid; grid-template-columns: minmax(0, 1fr) 27rem; grid-template-rows: auto minmax(0, 1fr) auto auto auto }
+  body.hist header { grid-column: 1 / -1 }
+  body.hist #stage { grid-column: 1; grid-row: 2 }
+  body.hist #hist { grid-column: 2; grid-row: 2; margin: 0 16px 12px 0; align-self: end; max-width: none }
+  body.hist .tools, body.hist #profile, body.hist #status { grid-column: 1 / -1 }
+}

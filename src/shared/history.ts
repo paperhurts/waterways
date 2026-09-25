@@ -1,7 +1,7 @@
-// "Flow since 1966": water-year mean discharge of the Rainbow and of the Withlacoochee
-// above Dunnellon, as a two-line chart with a snapping crosshair, a tooltip listing both
-// values, and a table view. Colors come from --chart-spring / --chart-tannin, which are
-// the map's water colors stepped into a line chart's lightness band.
+// The story pages' flow history: water-year mean discharge as a line chart with a
+// snapping crosshair, a tooltip listing every series, and a table view. Line colors
+// are CSS custom properties (--chart-*): the map's water colors stepped into a line
+// chart's lightness band. Values can be negative, for flow that runs backward.
 
 import { fmtCfs } from "../shared/live";
 
@@ -23,11 +23,11 @@ function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, 
   return e;
 }
 
-/** Clean y-axis ticks: 0, 500, 1,000... or 0, 1,000, 2,000... depending on range. */
-export function ticks(max: number): number[] {
-  const step = [250, 500, 1000, 2000, 5000].find((s) => max / s <= 5) ?? 10000;
+/** Clean y-axis ticks: 0, 500, 1,000... or 0, 1,000, 2,000... depending on range, reaching below 0 for negative values. */
+export function ticks(max: number, min = 0): number[] {
+  const step = [250, 500, 1000, 2000, 5000].find((s) => (max - Math.min(0, min)) / s <= 5) ?? 10000;
   const out = [];
-  for (let v = 0; v <= max; v += step) out.push(v);
+  for (let v = Math.min(0, Math.floor(min / step) * step); v <= max; v += step) out.push(v);
   if (out[out.length - 1] < max) out.push(out[out.length - 1] + step);
   return out;
 }
@@ -37,10 +37,10 @@ export function renderHistory(host: HTMLElement, years: number[], series: Series
   host.replaceChildren();
   const W = Math.max(260, host.clientWidth);
   const all = series.flatMap((s) => s.values.filter((v): v is number => v != null));
-  const yt = ticks(Math.max(...all));
-  const yMax = yt[yt.length - 1];
+  const yt = ticks(Math.max(...all), Math.min(...all));
+  const [yMin, yMax] = [yt[0], yt[yt.length - 1]];
   const x = (i: number) => PAD.l + (i / (years.length - 1)) * (W - PAD.l - PAD.r);
-  const y = (v: number) => PAD.t + (1 - v / yMax) * (H - PAD.t - PAD.b);
+  const y = (v: number) => PAD.t + (1 - (v - yMin) / (yMax - yMin)) * (H - PAD.t - PAD.b);
 
   const legend = document.createElement("div");
   legend.className = "legend";
@@ -60,7 +60,7 @@ export function renderHistory(host: HTMLElement, years: number[], series: Series
   wrap.appendChild(svg);
 
   for (const v of yt) {
-    el("line", { x1: PAD.l, x2: W - PAD.r, y1: y(v), y2: y(v), class: "grid" }, svg);
+    el("line", { x1: PAD.l, x2: W - PAD.r, y1: y(v), y2: y(v), class: v === 0 && yMin < 0 ? "grid zero" : "grid" }, svg);
     el("text", { x: PAD.l - 6, y: y(v) + 4, class: "tick", "text-anchor": "end" }, svg).textContent = v.toLocaleString();
   }
   years.forEach((yr, i) => {

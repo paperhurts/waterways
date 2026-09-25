@@ -1,0 +1,3 @@
+/* The St. Lucie map, over the shared story-page layout. */
+h1 em { color: var(--chart-lake) }
+.gauge .v small { font-size: .7em; color: var(--muted); margin-left: 2px }

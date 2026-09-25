@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The St. Lucie was plumbed to a lake</title>
+<meta name="description" content="A canal dug a century ago ties the St. Lucie River to Lake Okeechobee. An animated map of the water in the canal and the salt in the estuary from live USGS gauges, with the lake's releases since 1931.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The St. Lucie was plumbed to a lake">
+<meta property="og:description" content="A canal dug a century ago ties the St. Lucie River to Lake Okeechobee. An animated map of the water in the canal and the salt in the estuary from live USGS gauges, with the lake's releases since 1931.">
+<meta property="og:url" content="https://waterways.paperhurts.dev/st-lucie.html">
+<meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="/src/st-lucie/main.ts"></script>
+</head>
+<body>
+<div id="wrap">
+<header>
+  <h1>The St. Lucie <em>was plumbed to a lake</em></h1>
+  <p class="lede" id="lede">Loading flows…</p>
+</header>
+<div id="stage" aria-label="Animated map of Lake Okeechobee, the St. Lucie Canal, the North and South Forks of the St. Lucie River, and its estuary out to the St. Lucie Inlet" role="img">
+  <canvas id="base"></canvas>
+  <canvas id="fx"></canvas>
+  <div id="legend">
+    <span><i style="background:var(--lakewater)"></i>Lake Okeechobee water</span>
+    <span><i style="background:var(--tannin)"></i>Runoff into the canal</span>
+    <span><i style="background:var(--atl)"></i>Seawater, as far up as the salinity reaches</span>
+  </div>
+  <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
+</div>
+<section id="hist" aria-label="Lake releases since 1931">
+  <div id="histTitle">Lake releases since 1931</div>
+  <p id="histRead"></p>
+  <div id="histChart"></div>
+  <details class="note"><summary>About this data</summary>Yearly means for each water year (October through September), from USGS daily records. Out of the lake: the St. Lucie Canal below Port Mayaca, S-308 (02276877); below zero, more water ran back into the lake than out. Into the estuary: the St. Lucie Lock, S-80 (02277000 through 2003, then 02276998 from 2017). USGS didn't gauge Port Mayaca from 1953 to 1981 or the lock from 2004 to 2016, and years missing more than a month of days are left out.</details>
+</section>
+<div class="tools">
+  <button id="bAll" type="button">Lake to the sea</button>
+  <button id="bCanal" type="button">The canal</button>
+  <button id="bEstuary" type="button">The estuary</button>
+  <button id="bHist" type="button" aria-pressed="false">Releases since 1931</button>
+  <button id="bPause" type="button" aria-pressed="false">Pause</button>
+  <a href="rainbow.html">Rainbow River</a>
+  <a href="rain.html">Every creek</a>
+  <a href="springs.html">All Florida springs</a>
+</div>
+<div id="profile" aria-label="USGS gauges"></div>
+<div id="status"></div>
+</div>
+</body>
+</html>

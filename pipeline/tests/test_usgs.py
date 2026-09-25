@@ -1,6 +1,6 @@
 import pytest
 
-from waterways_pipeline.usgs import flows_for, monthly_means, ratio_to_fort_white
+from waterways_pipeline.usgs import depth, flows_for, monthly_means, parse_salinity, ratio_to_fort_white, reading
 
 # Fort White has a long record; O'Leno only reported in two Mays.
 MONTHS = {
@@ -43,3 +43,28 @@ def test_typical_uses_long_records_directly_and_estimates_short_ones():
 def test_missing_fort_white_is_an_error():
     with pytest.raises(RuntimeError, match="Fort White"):
         flows_for(MONTHS, (1900, 5))
+
+
+def test_negative_flow_is_kept_only_where_water_runs_backward():
+    assert reading("-648", signed=True) == -648.0
+    assert reading("-648") is None
+    assert reading("-999999", signed=True) is None
+    assert reading(None) is None
+    assert reading("12.5") == 12.5
+
+
+def test_salinity_keeps_the_newest_reading_at_each_depth():
+    def feat(series, site, time, value):
+        return {"properties": {"time_series_id": series, "monitoring_location_id": f"USGS-{site}", "time": time, "value": value}}
+
+    layer = {"a": depth("TOP (from SP cond)"), "b": depth("BOTTOM"), "c": depth("TOP")}
+    stations = [{"id": "02277100", "key": "SP", "short": "Speedy Point"}, {"id": "02277110", "key": "SS", "short": "Steele Point"}]
+    feats = [
+        feat("a", "02277100", "2026-09-25T14:45:00+00:00", "13"),
+        feat("b", "02277100", "2026-09-25T14:45:00+00:00", "21"),
+        feat("c", "02277110", "2026-09-25T14:45:00+00:00", "23"),
+        # An older series at the same depth, and one with no known depth.
+        feat("c", "02277110", "2026-09-20T14:45:00+00:00", "30"),
+        feat("z", "02277110", "2026-09-25T14:45:00+00:00", "99"),
+    ]
+    assert parse_salinity(feats, layer, stations) == {"SP": {"top": 13.0, "bottom": 21.0}, "SS": {"top": 23.0, "bottom": None}}
