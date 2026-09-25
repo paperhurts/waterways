@@ -27,12 +27,26 @@ SUWANNEE_WEST: Bbox = (-83.30, 29.56, -82.99, 30.50)
 SUWANNEE_NORTH: Bbox = (-82.99, 30.09, -82.60, 30.50)
 SOUTH_BELT: Bbox = (-83.20, 28.75, -82.30, 29.56)
 UPPER_OCKLAWAHA: Bbox = (-82.30, 28.75, -81.50, 29.12)
+#: Up the St. Johns, which flows north: the middle river from Astor past DeLeon and Blue
+#: Springs to Lake Monroe and Lake Harney, with the Wekiva and its springs.
+MIDDLE_ST_JOHNS: Bbox = (-81.75, 28.55, -80.95, 29.20)
 #: The rain map's study area is the union of these boxes.
-STREAMS_AREAS: list[Bbox] = [STREAMS_BBOX, ATLANTIC_CORRIDOR, SUWANNEE_WEST, SUWANNEE_NORTH, SOUTH_BELT, UPPER_OCKLAWAHA]
+STREAMS_AREAS: list[Bbox] = [
+    STREAMS_BBOX, ATLANTIC_CORRIDOR, SUWANNEE_WEST, SUWANNEE_NORTH, SOUTH_BELT, UPPER_OCKLAWAHA,
+    MIDDLE_ST_JOHNS,
+]
+#: NHD for these boxes comes from USGS's bulk NHDPlus HR files, one per 4-digit HUC (the
+#: files each box needs are listed), instead of the map server, which times out on big
+#: queries. Both serve the same release, so the older boxes, whose map server responses
+#: are cached, match them exactly.
+BULK_AREAS: dict[Bbox, list[str]] = {MIDDLE_ST_JOHNS: ["0308"]}
 #: The sea under the rain map, where the Suwannee and St. Johns reach the coast, is
 #: everything in this box that isn't land. It reaches past the whole-map view on even a
 #: very wide screen, so the sea's edge only shows when zoomed far out.
 SEA_CLIP: Bbox = (-85.2, 27.9, -79.6, 31.6)
+#: Boxes where the Census outlines count a lagoon, like the Indian River, as land. NHD's
+#: bays (BayInlet areas) there join the sea. None of the rain map reaches one yet.
+LAGOON_AREAS: list[Bbox] = []
 #: Main stems drawn on the Santa Fe map; wider so the Suwannee fits.
 RIVERS_BBOX: Bbox = (-83.08, 29.54, -82.14, 30.09)
 RIVERS = ["Santa Fe River", "Ichetucknee River", "Suwannee River", "New River", "Olustee Creek"]
@@ -96,6 +110,8 @@ SWFWMD_SPRINGSHEDS = "https://www25.swfwmd.state.fl.us/arcgis12/rest/services/Ba
 #: FDEP's Springs Priority Focus Areas, drawn around Outstanding Florida Springs.
 FDEP_PRIORITY_FOCUS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/STATEWIDE_BMAP/MapServer/1"
 USGS_API = "https://api.waterdata.usgs.gov/ogcapi/v1/collections"
+#: USGS's bulk NHDPlus HR release, one zipped file geodatabase per 4-digit HUC.
+NHD_BULK = "https://prd-tnm.s3.amazonaws.com/StagedProducts/Hydrography/NHDPlusHR/Beta/GDB/NHDPLUS_H_{hu4}_HU4_GDB.zip"
 
 # NHDPlus HR terminal paths (terminalpa) for the two ocean outlets. Each is also the
 # level path (levelpathi) of that river's main stem, from its headwaters to its mouth.
@@ -108,6 +124,8 @@ FTYPE_COASTLINE = 566
 FTYPE_ARTIFICIAL = 558
 FTYPE_SINK_RISE = 450
 FTYPE_SPRING = 458
+FTYPE_BAY_INLET = 312
+FTYPE_STREAM_AREA = 460
 
 
 def gauges(page: str | None = None) -> list[dict]:

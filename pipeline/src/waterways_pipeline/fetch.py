@@ -53,6 +53,18 @@ def get_json(url: str, params: dict[str, Any] | None = None, *, refresh: bool = 
     return body
 
 
+def download(url: str, path: Path) -> None:
+    """Stream a big file to disk."""
+    log(f"GET {url}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with _session.get(url, stream=True, timeout=(30, 600)) as res:
+        res.raise_for_status()
+        with path.open("wb") as fh:
+            for block in res.iter_content(1 << 20):
+                fh.write(block)
+    log(f"  {path.stat().st_size / 1e6:.0f} MB")
+
+
 def arcgis_query(
     layer: str,
     bbox: Bbox | None = None,

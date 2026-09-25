@@ -21,7 +21,7 @@ const FATES = [
 ];
 
 const VIEWS = {
-  all: bounds(-83.3, 28.75, -81.33, 30.5),
+  all: bounds(-83.3, 28.55, -80.95, 30.5),
   gnv: bounds(-82.48, 29.57, -82.22, 29.72),
   ala: bounds(-82.62, 29.72, -82.36, 29.9),
   spr: bounds(-82.8, 29.8, -82.55, 29.95),
@@ -31,6 +31,7 @@ const VIEWS = {
   stj: bounds(-82.12, 29.14, -81.52, 29.56),
   ock: bounds(-82.1, 28.75, -81.5, 29.25),
   atl: bounds(-81.92, 29.44, -81.3, 30.46),
+  mid: bounds(-81.62, 28.6, -81.0, 29.2),
 };
 
 /** Town names, and the zoom (pixels per map unit) below which smaller ones are hidden. */
@@ -42,17 +43,23 @@ const PLACES: [name: string, lon: number, lat: number, minScale?: number][] = [
   ["Live Oak", -82.984, 30.295, 1500], ["Mayo", -83.175, 30.053, 1500], ["Branford", -82.928, 29.96, 1500],
   ["White Springs", -82.759, 30.33, 1500], ["Chiefland", -82.86, 29.475, 1500], ["Cedar Key", -83.035, 29.138, 1500],
   ["Williston", -82.447, 29.387, 1500], ["Crystal River", -82.593, 28.902, 1500], ["Inverness", -82.33, 28.836, 1500],
-  ["Leesburg", -81.878, 28.811, 1500],
+  ["Leesburg", -81.878, 28.811, 1500], ["DeLand", -81.303, 29.028], ["Sanford", -81.269, 28.8],
+  ["Apopka", -81.511, 28.676, 1500], ["Oviedo", -81.208, 28.67, 1500], ["Astor", -81.525, 29.167, 1500],
 ];
 
 /** How a Gulf- or Atlantic-bound creek's water gets to the sea, by the rivers on its path. */
 function seaway(s0: Segment, trace: Trace): string {
-  if (s0.fate === Fate.Atlantic) {
-    return trace.path.some((s) => s.name === "Ocklawaha River") ? FATES[Fate.Atlantic].via : "Flows to the St. Johns River, then north along it to the Atlantic.";
-  }
   // The last named river before the coast: the Suwannee, the Withlacoochee, Crystal River...
   let outlet: string | null = null;
   for (let i = trace.path.length - 1; i >= 0 && !outlet; i--) outlet = trace.path[i].name;
+  if (s0.fate === Fate.Atlantic) {
+    const on = (name: string) => trace.path.some((s) => s.name === name);
+    if (on("Ocklawaha River")) return FATES[Fate.Atlantic].via;
+    if (on("Saint Johns River")) return "Flows to the St. Johns River, then north along it to the Atlantic.";
+    // East of the St. Johns' basin, creeks run straight to the coast's lagoons.
+    if (on("Indian River")) return "Flows into the Indian River Lagoon, which opens to the Atlantic through inlets in the barrier islands.";
+    return outlet ? `Flows down the ${escapeHtml(outlet)} to the Atlantic.` : "Flows to the Atlantic.";
+  }
   return outlet ? `Flows down the ${escapeHtml(outlet)} to the Gulf of Mexico.` : FATES[Fate.Gulf].via;
 }
 
@@ -129,7 +136,7 @@ async function main() {
   const sizeClass = Uint8Array.from(segs, (s) => (s.acc < 15 ? 0 : s.acc < 150 ? 1 : 2));
 
   document.getElementById("lede")!.innerHTML =
-    `Every mapped creek in north Florida's springs belt, from the middle Suwannee to Rainbow River and the Ocklawaha, colored by where its water ends up, ` +
+    `Every mapped creek in the springs belt, from the middle Suwannee to Rainbow River and the Ocklawaha, and up the St. Johns past Blue Spring and the Wekiva to Lake Harney, colored by where its water ends up, ` +
     `and followed down the rivers to the sea. ` +
     `<b>${Math.round(pct[Fate.Gulf])}%</b> of creek length drains to the Gulf and <b>${Math.round(pct[Fate.Atlantic])}%</b> to the Atlantic. ` +
     `The other <b>${Math.round(pct[Fate.Sink] + pct[Fate.Inland])}%</b> never reaches a river: it ends inland, in a sink, a closed wetland, ` +
@@ -267,7 +274,7 @@ async function main() {
       }
     };
     seaLabel("Gulf of Mexico", "Gulf", [[-83.8, 29.35], [-83.3, 28.95]]);
-    seaLabel("Atlantic Ocean", "Atlantic", [[-81.3, 30.06]]);
+    seaLabel("Atlantic Ocean", "Atlantic", [[-81.3, 30.06], [-80.75, 29.0]]);
   }
 
   // ----- particles: rain falls on every creek, weighted by length -----

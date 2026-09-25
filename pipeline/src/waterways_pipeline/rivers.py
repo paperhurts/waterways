@@ -8,7 +8,7 @@ from datetime import date
 from shapely.geometry import MultiPolygon, Polygon, box, shape
 from shapely.validation import make_valid
 
-from . import coast
+from . import coast, nhd
 from . import config as C
 from .fetch import arcgis_query, log
 from .geo import ORIGIN, SCALE, LonLat, in_bbox, line_coords, pack, simplify
@@ -139,7 +139,7 @@ def waterbodies(
     feats = [
         f
         for area in areas
-        for f in arcgis_query(
+        for f in nhd.query(
             C.NHD_WATERBODIES,
             area,
             where=f"areasqkm >= {LAKE_MIN_KM2} AND ftype IN ({ftypes})",

@@ -31,10 +31,6 @@ from .rivers import KM2_PER_DEG2, LAKE_MIN_KM2, LAKE_SIMPLIFY_DEG, SEA_SIMPLIFY_
 
 #: S-80's earlier gauge, at the lock itself; config/gauges.json has the current one.
 S80_OLD = "02277000"
-#: NHDArea types that are part of the tidal water: wide rivers (the estuary and the lower
-#: forks) and bays (the Indian River Lagoon, its coves, and the St. Lucie Inlet).
-STREAM_AREA = 460
-BAY_INLET = 312
 #: Lakes and reservoirs from NHDWaterbody.
 LAKE_FTYPES = (390, 436)
 
@@ -51,10 +47,11 @@ def water(refresh: bool = False) -> list[dict]:
     """The sea (with the estuary and lagoon), then lakes largest first, like lakes.json."""
     areas = [
         f
-        for ftype in (STREAM_AREA, BAY_INLET)
+        # Wide rivers (the estuary and the lower forks) and bays (the lagoon, its coves, and the inlet).
+        for ftype in (C.FTYPE_STREAM_AREA, C.FTYPE_BAY_INLET)
         for f in arcgis_query(C.NHD_AREAS, C.STLUCIE_WATER, where=f"ftype = {ftype}", fields="nhdplusid,gnis_name,ftype", refresh=refresh)
     ]
-    parts = [census_sea(refresh, C.STLUCIE_SEA)] + [shape(f["geometry"]).intersection(box(*C.STLUCIE_WATER)) for f in areas if f.get("geometry")]
+    parts = [census_sea(refresh, C.STLUCIE_SEA, lagoons=[])] + [shape(f["geometry"]).intersection(box(*C.STLUCIE_WATER)) for f in areas if f.get("geometry")]
     sea = drop_specks(unary_union(parts), SEA_SPECK_KM2).simplify(SEA_SIMPLIFY_DEG, preserve_topology=True)
     bodies = [{"name": None, "kind": "sea", "km2": round(sea.area * KM2_PER_DEG2), "rings": polygon_rings(sea)}]
     ftypes = ",".join(map(str, LAKE_FTYPES))
