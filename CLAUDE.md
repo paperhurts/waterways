@@ -19,6 +19,8 @@ Two canvas-animated maps of north Florida hydrology (Vite + TypeScript, no frame
 - **Theme.** Colors are CSS custom properties in `src/shared/tokens.css`. The canvas reads them via `cssVar()` and re-reads them on color-scheme change. Keep them plain hex/rgba; `light-dark()` would break the canvas.
 - **Live gauges.** They use `api.waterdata.usgs.gov/ogcapi/v1` (the legacy `waterservices.usgs.gov` is retired in early 2027). That API's default page size is 10, so always pass `limit`.
 - **Deploy.** Pages builds via Actions; the six-hourly deploy refreshes `snapshot.json` in the build only, without committing, and pings the journal database so it stays awake.
+  - A daily watcher in the private `paperhurts/admin` repo backs this up. It pings the journal too, and emails if this deploy is disabled or the repo goes 50 days without a push (GitHub pauses scheduled workflows in public repos at 60).
+  - The watcher reads `url` and `publishableKey` from `config/supabase.json` on main, so keep that file's path and shape stable.
 - **Hosting.** The site lives at `waterways.paperhurts.dev`: a Pages custom domain, backed by a CNAME record `waterways` → `paperhurts.github.io` at Namecheap. The Supabase Site URL points at `https://waterways.paperhurts.dev/journal.html`. The `paperhurts-dev` repo topic adds this project to the paperhurts.dev homepage. Log cross-project follow-ups in the private `paperhurts/admin` repo (`C:/dev/admin`).
 - **Spring journal.**
   - It runs on Supabase project `pbswebsavanetmieodsf`; the schema is in `supabase/migrations/`. Apply new migrations with the Supabase MCP `apply_migration`, commit the SQL too, and run `get_advisors` afterward.
