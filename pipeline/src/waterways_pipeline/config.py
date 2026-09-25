@@ -30,23 +30,36 @@ UPPER_OCKLAWAHA: Bbox = (-82.30, 28.75, -81.50, 29.12)
 #: Up the St. Johns, which flows north: the middle river from Astor past DeLeon and Blue
 #: Springs to Lake Monroe and Lake Harney, with the Wekiva and its springs.
 MIDDLE_ST_JOHNS: Bbox = (-81.75, 28.55, -80.95, 29.20)
+#: Then the upper river's marshes and chain of lakes to its headwaters at Blue Cypress
+#: Lake, in two boxes that step east with the basin's divide from the Kissimmee. They
+#: reach the Indian River Lagoon, which the basin's east edge runs close to.
+UPPER_ST_JOHNS: Bbox = (-81.20, 28.20, -80.50, 28.55)
+ST_JOHNS_MARSH: Bbox = (-81.00, 27.60, -80.30, 28.20)
+#: The Treasure Coast: the lagoon from Vero Beach south, the St. Lucie basin from Lake
+#: Okeechobee's east shore to the St. Lucie Inlet, and the Loxahatchee at Jupiter.
+TREASURE_COAST: Bbox = (-80.75, 26.85, -80.05, 27.60)
 #: The rain map's study area is the union of these boxes.
 STREAMS_AREAS: list[Bbox] = [
     STREAMS_BBOX, ATLANTIC_CORRIDOR, SUWANNEE_WEST, SUWANNEE_NORTH, SOUTH_BELT, UPPER_OCKLAWAHA,
-    MIDDLE_ST_JOHNS,
+    MIDDLE_ST_JOHNS, UPPER_ST_JOHNS, ST_JOHNS_MARSH, TREASURE_COAST,
 ]
 #: NHD for these boxes comes from USGS's bulk NHDPlus HR files, one per 4-digit HUC (the
 #: files each box needs are listed), instead of the map server, which times out on big
 #: queries. Both serve the same release, so the older boxes, whose map server responses
 #: are cached, match them exactly.
-BULK_AREAS: dict[Bbox, list[str]] = {MIDDLE_ST_JOHNS: ["0308"]}
+BULK_AREAS: dict[Bbox, list[str]] = {
+    MIDDLE_ST_JOHNS: ["0308"],
+    UPPER_ST_JOHNS: ["0308", "0309"],
+    ST_JOHNS_MARSH: ["0308", "0309"],
+    TREASURE_COAST: ["0309", "0308"],
+}
 #: The sea under the rain map, where the Suwannee and St. Johns reach the coast, is
 #: everything in this box that isn't land. It reaches past the whole-map view on even a
 #: very wide screen, so the sea's edge only shows when zoomed far out.
-SEA_CLIP: Bbox = (-85.2, 27.9, -79.6, 31.6)
-#: Boxes where the Census outlines count a lagoon, like the Indian River, as land. NHD's
-#: bays (BayInlet areas) there join the sea. None of the rain map reaches one yet.
-LAGOON_AREAS: list[Bbox] = []
+SEA_CLIP: Bbox = (-85.2, 26.4, -79.6, 31.6)
+#: Boxes where the Census outlines count the Indian River Lagoon as land. NHD's bays
+#: (BayInlet areas) there join the sea.
+LAGOON_AREAS: list[Bbox] = [UPPER_ST_JOHNS, ST_JOHNS_MARSH, TREASURE_COAST]
 #: Main stems drawn on the Santa Fe map; wider so the Suwannee fits.
 RIVERS_BBOX: Bbox = (-83.08, 29.54, -82.14, 30.09)
 RIVERS = ["Santa Fe River", "Ichetucknee River", "Suwannee River", "New River", "Olustee Creek"]

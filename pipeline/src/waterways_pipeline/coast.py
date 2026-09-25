@@ -3,7 +3,8 @@
 The sea is everything in C.SEA_CLIP that isn't land in the Census Bureau's
 shoreline-clipped state outlines. (NHD's sea polygons end offshore in
 watershed-boundary staircases, so they can't draw a coast.) Those outlines count
-the Indian River Lagoon as land, so NHD's bays in C.LAGOON_AREAS join the sea.
+the Indian River Lagoon as land, so in C.LAGOON_AREAS NHD's bays join the sea, and so
+do the wide rivers that open onto it, like the St. Lucie's estuary.
 """
 
 from __future__ import annotations
@@ -33,15 +34,27 @@ def sea(refresh: bool = False, clip: C.Bbox = C.SEA_CLIP, lagoons: list[C.Bbox] 
     land = unary_union([shape(f["geometry"]) for f in states if f.get("geometry")])
     water = box(*clip).difference(land)
     boxes = C.LAGOON_AREAS if lagoons is None else lagoons
-    return unary_union([water, bays(boxes, refresh)]) if boxes else water
+    if not boxes:
+        return water
+    salt = unary_union([water, areas(boxes, C.FTYPE_BAY_INLET, refresh)])
+    # Wide rivers only count where they open onto that water: the tidal St. Lucie, not the
+    # St. Johns' marshes upstream.
+    rivers = areas(boxes, C.FTYPE_STREAM_AREA, refresh)
+    rivers = [g for g in getattr(rivers, "geoms", [rivers]) if g.intersects(salt.buffer(TIDAL_DEG))]
+    return unary_union([salt, *rivers])
 
 
-def bays(areas: list[C.Bbox], refresh: bool = False):
-    """NHD's BayInlet areas (lagoons, coves, inlets) touching the boxes, clipped to them."""
+#: A wide river counts as tidal when it comes this close (degrees, ~100 m) to the sea or a lagoon.
+TIDAL_DEG = 0.001
+
+
+def areas(boxes: list[C.Bbox], ftype: int, refresh: bool = False):
+    """NHD's areas of one type (BayInlet: lagoons, coves, inlets; StreamRiver: wide rivers)
+    touching the boxes, clipped to them."""
     seen: set = set()
     parts = []
-    for a in areas:
-        for f in nhd.query(C.NHD_AREAS, a, where=f"ftype = {C.FTYPE_BAY_INLET}", fields="nhdplusid", refresh=refresh):
+    for a in boxes:
+        for f in nhd.query(C.NHD_AREAS, a, where=f"ftype = {ftype}", fields="nhdplusid", refresh=refresh):
             key = f["properties"].get("nhdplusid")
             if f.get("geometry") and key not in seen:
                 seen.add(key)

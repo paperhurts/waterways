@@ -58,14 +58,19 @@ def gdb(hu4: str, refresh: bool = False) -> Path:
     return path
 
 
+def whole(v) -> int | None:
+    """An integer attribute, or None where the file leaves it blank (NaN), as the map server does."""
+    return None if v is None or v != v else int(v)
+
+
 @cache
-def network(hu4: str) -> dict[int, tuple[int, ...]]:
+def network(hu4: str) -> dict[int, tuple[int | None, ...]]:
     """nhdplusid → the VAA fields, for every flowline in the flow network."""
     import pyogrio.raw
 
     meta, _, _, data = pyogrio.raw.read(gdb(hu4), layer="NHDPlusFlowlineVAA", read_geometry=False)
     cols = {k.lower(): v for k, v in zip(meta["fields"], data)}
-    return {int(i): tuple(int(cols[k][n]) for k in VAA) for n, i in enumerate(cols["nhdplusid"])}
+    return {int(i): tuple(whole(cols[k][n]) for k in VAA) for n, i in enumerate(cols["nhdplusid"])}
 
 
 def bulk(layer: str, hu4: str, area: C.Bbox, where: str, fields: str, refresh: bool = False) -> list[dict]:
@@ -76,7 +81,7 @@ def bulk(layer: str, hu4: str, area: C.Bbox, where: str, fields: str, refresh: b
     return to_features(meta["fields"], data, shapely.from_wkb(geoms), area, fields, network(hu4) if layer == "NHDFlowline" else None)
 
 
-def to_features(names, data, geoms, area: C.Bbox, fields: str, vaa: dict[int, tuple[int, ...]] | None) -> list[dict]:
+def to_features(names, data, geoms, area: C.Bbox, fields: str, vaa: dict[int, tuple[int | None, ...]] | None) -> list[dict]:
     """GeoJSON-like features with the requested fields, lowercase as the map server names
     them. The bulk read's box filter is by envelope, so keep only what touches the box.
     With `vaa`, only network flowlines, with their network attributes."""
