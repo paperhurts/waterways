@@ -15,5 +15,7 @@
   {"id": "02313100", "short": "Rainbow mouth", "name": "Rainbow River at Dunnellon", "key": "Rb", "page": "rainbow", "river": "Rainbow River", "lon": -82.447778, "lat": 29.049167},
   {"id": "02313200", "short": "US 41", "name": "Withlacoochee River at US 41, Dunnellon", "key": "WD", "page": "rainbow", "river": "Withlacoochee River", "lon": -82.464722, "lat": 29.045833},
   {"id": "02313250", "short": "Inglis bypass", "name": "Withlacoochee bypass channel near Inglis", "key": "WB", "page": "rainbow", "river": "Withlacoochee River", "lon": -82.6378818, "lat": 29.0210854},
-  {"id": "02313230", "short": "Inglis Dam", "name": "Withlacoochee at Inglis Dam", "key": "WI", "page": "rainbow", "river": "Withlacoochee River", "lon": -82.6167699, "lat": 29.0099749}
+  {"id": "02313230", "short": "Inglis Dam", "name": "Withlacoochee at Inglis Dam", "key": "WI", "page": "rainbow", "river": "Withlacoochee River", "lon": -82.6167699, "lat": 29.0099749},
+  {"id": "02276877", "short": "Port Mayaca (S-308)", "name": "St. Lucie Canal below S-308, Port Mayaca", "key": "S308", "page": "st-lucie", "signed": true, "lon": -80.6156, "lat": 26.985533},
+  {"id": "02276998", "short": "St. Lucie Lock (S-80)", "name": "St. Lucie Canal above S-80, near Stuart", "key": "S80", "page": "st-lucie", "signed": true, "lon": -80.28725, "lat": 27.108667}
 ]

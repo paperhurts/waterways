@@ -46,6 +46,19 @@ RAINBOW_VENTS_BBOX: Bbox = (-82.46, 29.04, -82.40, 29.11)
 #: Everything the Rainbow map draws: the rivers and the springshed, up past Williston.
 RAINBOW_VIEW: Bbox = (-82.80, 28.92, -82.05, 29.70)
 
+# ---- St. Lucie map ----
+#: Everything the St. Lucie map draws: Lake Okeechobee's east shore at Port Mayaca, the
+#: St. Lucie Canal, both forks, the estuary, and the St. Lucie Inlet.
+STLUCIE_VIEW: Bbox = (-80.75, 26.92, -80.08, 27.42)
+#: Its water reaches past the view, so panning doesn't find the sea's edge: all of Lake
+#: Okeechobee, the lagoon up past Fort Pierce, and the coast down to Jupiter.
+STLUCIE_WATER: Bbox = (-81.15, 26.8, -79.9, 27.6)
+#: The open sea (Census land subtracted from this box) reaches farther still, past the
+#: widest view.
+STLUCIE_SEA: Bbox = (-81.3, 26.3, -79.0, 28.1)
+#: The main stems it draws, by NHD name. County Line Canal is C-23.
+STLUCIE_RIVERS = ["Saint Lucie Canal", "South Fork Saint Lucie River", "North Fork Saint Lucie River", "Saint Lucie River", "County Line Canal", "Indian River"]
+
 #: Aquifer grid: 0.01° cells. Keep in sync with the frontend's expectations in src/shared/types.ts.
 AQUIFER_GRID = {"lon0": -83.15, "lat0": 29.35, "res": 0.01, "nx": 121, "ny": 81}
 #: Averaged for each surface's "central area" level on the sparkline.
@@ -55,6 +68,8 @@ AQUIFER_MEAN_WINDOW: Bbox = (-82.8, 29.63, -82.3, 29.98)
 NHDPLUS_HR = "https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer"
 NHD_POINTS = f"{NHDPLUS_HR}/2"
 NHD_FLOWLINES = f"{NHDPLUS_HR}/3"
+#: Polygons for wide rivers and canals (FType 460, 336), sea, and other areas.
+NHD_AREAS = f"{NHDPLUS_HR}/8"
 NHD_WATERBODIES = f"{NHDPLUS_HR}/9"
 #: Census cartographic (1:500,000) state outlines, which are clipped to the shoreline.
 CENSUS_STATES = "https://tigerweb.geo.census.gov/arcgis/rest/services/Generalized_ACS2024/State_County/MapServer/7"
@@ -81,9 +96,14 @@ FTYPE_SPRING = 458
 
 
 def gauges(page: str | None = None) -> list[dict]:
-    """config/gauges.json, optionally just one map's ("santa-fe" or "rainbow")."""
+    """config/gauges.json, optionally just one map's ("santa-fe", "rainbow", or "st-lucie")."""
     rows = json.loads((CONFIG / "gauges.json").read_text(encoding="utf-8"))
     return [g for g in rows if page is None or g["page"] == page]
+
+
+def salinity_stations() -> list[dict]:
+    """config/salinity.json: the St. Lucie estuary's salinity stations."""
+    return json.loads((CONFIG / "salinity.json").read_text(encoding="utf-8"))
 
 
 def named_sinks() -> list[dict]:

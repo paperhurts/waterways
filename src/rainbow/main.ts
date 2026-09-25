@@ -1,4 +1,5 @@
 import "../shared/map.css";
+import "../shared/story.css";
 import "./rainbow.css";
 import gaugeConfig from "../../config/gauges.json";
 import { InfoCard } from "../shared/card";
@@ -13,7 +14,7 @@ import type { GaugeConfig, LakesFile, RainbowFile, RainbowFlows, RainbowKey, Sna
 import { Viewport, startLoop } from "../shared/viewport";
 import { CANAL_TEXT, LAKE_ROUSSEAU, TOWNS, US41_NOTE, VIEWS, focusText, springshedText } from "./content";
 import { mgd, rainbowModel, summarize, type RainbowModel } from "./flow";
-import { renderHistory } from "./history";
+import { renderHistory } from "../shared/history";
 
 /** Particles spawned per cfs per second. */
 const K = 0.035;

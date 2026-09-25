@@ -1,4 +1,5 @@
-"""River discharge from the USGS Water Data API: latest readings and monthly means."""
+"""River discharge and estuary salinity from the USGS Water Data API: latest readings,
+daily values, and monthly means."""
 
 from __future__ import annotations
 
@@ -15,13 +16,30 @@ SCALED = ("O", "R", "U", "I", "H", "Fn")
 MIN_DAYS = 20
 #: Minimum Mays on record for a gauge's own median to count as "typical".
 MIN_TYPICAL_YEARS = 30
+#: USGS marks missing values with sentinels like -999999. Real reverse flows, as when the
+#: St. Lucie Canal runs back into Lake Okeechobee, are never anywhere near this big.
+SENTINEL = -99999
 
 Month = tuple[int, int]
 
 
+def reading(value: object, signed: bool = False) -> float | None:
+    """A reported value, or None if it's missing, a sentinel, or a negative flow at a
+    gauge that can't run backward. `signed` gauges report reverse flow as negative."""
+    try:
+        v = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    if v <= SENTINEL or (v < 0 and not signed):
+        return None
+    return v
+
+
 def latest(refresh: bool = True) -> dict:
-    """snapshot.json: the newest discharge reading at every gauge."""
+    """snapshot.json: the newest discharge reading at every gauge, and the newest salinity
+    at each estuary station."""
     gauges = C.gauges()
+    signed = {g["id"] for g in gauges if g.get("signed")}
     body = get_json(
         f"{C.USGS_API}/latest-continuous/items",
         {
@@ -38,13 +56,10 @@ def latest(refresh: bool = True) -> dict:
     newest: dict[str, tuple[datetime, float]] = {}
     for feat in body["features"]:
         p = feat["properties"]
-        try:
-            v = float(p["value"])
-        except (TypeError, ValueError):
-            continue
-        if v < 0:
-            continue
         site = p["monitoring_location_id"].removeprefix("USGS-")
+        v = reading(p["value"], site in signed)
+        if v is None:
+            continue
         t = datetime.fromisoformat(p["time"])
         if site not in newest or t > newest[site][0]:
             newest[site] = (t, v)
@@ -57,11 +72,58 @@ def latest(refresh: bool = True) -> dict:
     return {
         "time": time.astimezone().isoformat(timespec="seconds"),
         "cfs": {g["key"]: newest[g["id"]][1] if g["id"] in newest else None for g in gauges},
+        "ppt": salinity(refresh),
     }
 
 
-def daily(site: str, refresh: bool = False) -> dict[str, float]:
-    """Every daily mean discharge on record, by ISO date."""
+def depth(sublocation: str | None) -> str | None:
+    """"top" or "bottom" from a series' sublocation, e.g. "BOTTOM (from SP cond)"."""
+    s = (sublocation or "").upper()
+    return "top" if s.startswith("TOP") else "bottom" if s.startswith("BOTTOM") else None
+
+
+def salinity(refresh: bool = True) -> dict:
+    """Newest surface and bottom salinity (ppt) at each station in config/salinity.json.
+
+    Each station has a sensor near the surface and one near the bottom. The latest values
+    don't say which is which, so the series metadata maps each series id to its depth."""
+    stations = C.salinity_stations()
+    common = {
+        "f": "json",
+        "monitoring_location_id": ",".join(f"USGS-{s['id']}" for s in stations),
+        "parameter_code": "00480",
+        "limit": 200,
+        "skipGeometry": "true",
+    }
+    meta = get_json(f"{C.USGS_API}/time-series-metadata/items", common, refresh=refresh, cache=False)
+    layer = {f["properties"]["id"]: depth(f["properties"].get("sublocation_identifier")) for f in meta["features"]}
+    body = get_json(f"{C.USGS_API}/latest-continuous/items", common | {"properties": "time_series_id,monitoring_location_id,time,value"}, refresh=refresh, cache=False)
+    return parse_salinity(body["features"], layer, stations)
+
+
+def parse_salinity(features: list[dict], layer: dict[str, str | None], stations: list[dict]) -> dict:
+    """{station key: {"top": ppt, "bottom": ppt}} from latest-continuous features, keeping
+    the newest reading at each depth."""
+    newest: dict[tuple[str, str], tuple[datetime, float]] = {}
+    for feat in features:
+        p = feat["properties"]
+        where = layer.get(p["time_series_id"])
+        v = reading(p["value"])
+        if where is None or v is None:
+            continue
+        key = (p["monitoring_location_id"].removeprefix("USGS-"), where)
+        t = datetime.fromisoformat(p["time"])
+        if key not in newest or t > newest[key][0]:
+            newest[key] = (t, v)
+    missing = [s["short"] for s in stations if not any((s["id"], d) in newest for d in ("top", "bottom"))]
+    if missing:
+        log(f"snapshot: no salinity at {', '.join(missing)}")
+    return {s["key"]: {d: newest[(s["id"], d)][1] if (s["id"], d) in newest else None for d in ("top", "bottom")} for s in stations}
+
+
+def daily(site: str, refresh: bool = False, signed: bool = False) -> dict[str, float]:
+    """Every daily mean discharge on record, by ISO date. Negative means are kept only
+    for `signed` gauges, where they're flow running backward."""
     url = f"{C.USGS_API}/daily/items"
     params = {
         "f": "json",
@@ -77,8 +139,8 @@ def daily(site: str, refresh: bool = False) -> dict[str, float]:
     while True:
         for feat in page["features"]:
             p = feat["properties"]
-            if p["value"] is not None and float(p["value"]) >= 0:
-                out[p["time"][:10]] = float(p["value"])
+            if (v := reading(p["value"], signed)) is not None:
+                out[p["time"][:10]] = v
         nxt = next((link["href"] for link in page.get("links", []) if link.get("rel") == "next"), None)
         if not nxt:
             return out

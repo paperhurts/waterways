@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
 import {
   FLOW_KEYS,
   RAINBOW_KEYS,
+  SALINITY_KEYS,
+  STLUCIE_KEYS,
   Fate,
   type AquiferFile,
   type ContoursFile,
@@ -15,8 +17,10 @@ import {
   type RainbowFile,
   type RiversFile,
   type Snapshot,
+  type SalinityStation,
   type SpringsFile,
   type StatewideFile,
+  type StLucieFile,
   type StreamsFile,
 } from "../src/shared/types";
 
@@ -30,7 +34,21 @@ const lakes = read<LakesFile>("public/data/lakes.json");
 const statewide = read<SpringsFile>("public/data/springs.json");
 const rainbow = read<RainbowFile>("public/data/rainbow.json");
 const statewideMap = read<StatewideFile>("public/data/statewide.json");
+const stLucie = read<StLucieFile>("public/data/st-lucie.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
+const salinity = read<SalinityStation[]>("config/salinity.json");
+
+/** Even-odd ray casting over packed rings, the same rule the maps fill with. */
+function inPacked(rings: number[][], [ox, oy]: [number, number], k: number, lon: number, lat: number): boolean {
+  const [x, y] = [(lon - ox) * k, (lat - oy) * k];
+  let inside = false;
+  for (const r of rings) {
+    for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
+      if (r[i + 1] > y !== r[j + 1] > y && x < ((r[j] - r[i]) * (y - r[i + 1])) / (r[j + 1] - r[i + 1]) + r[i]) inside = !inside;
+    }
+  }
+  return inside;
+}
 
 // The rain map's study area (a union of boxes), padded for features that cross an edge:
 // a whole flowline is kept when it touches a box, and the longest reach about 0.13°.
@@ -398,17 +416,82 @@ describe("statewide.json", () => {
   });
 });
 
+describe("st-lucie.json", () => {
+  const near = ([x, y]: number[], [lon, lat]: number[], tol: number) => Math.abs(x - lon) < tol && Math.abs(y - lat) < tol;
+  const r = stLucie.rivers;
+  const first = (name: string) => r[name].p[0];
+  const last = (name: string) => r[name].p[r[name].p.length - 1];
+
+  it("runs the canal from the lake to the lock, and the river from the forks to the inlet", () => {
+    for (const name of ["Saint Lucie Canal", "South Fork Saint Lucie River", "North Fork Saint Lucie River", "Saint Lucie River", "County Line Canal", "Indian River"]) {
+      expect(r[name]?.p.length, name).toBeGreaterThan(3);
+      expect(r[name].u).toHaveLength(r[name].p.length);
+    }
+    // Port Mayaca at the lake end, then east past the St. Lucie Lock.
+    expect(first("Saint Lucie Canal")[0]).toBeLessThan(-80.6);
+    expect(near(last("Saint Lucie Canal"), [-80.29, 27.11], 0.06)).toBe(true);
+    // The forks meet at Stuart; the estuary ends at the St. Lucie Inlet.
+    expect(near(last("North Fork Saint Lucie River"), [-80.26, 27.2], 0.05)).toBe(true);
+    expect(near(last("South Fork Saint Lucie River"), [-80.26, 27.19], 0.05)).toBe(true);
+    expect(near(last("Saint Lucie River"), [-80.155, 27.166], 0.04)).toBe(true);
+  });
+
+  it("has the sea, estuary, and lagoon as water, and Lake Okeechobee", () => {
+    const sea = stLucie.water.filter((b) => b.kind === "sea").flatMap((b) => b.rings);
+    const inSea = (lon: number, lat: number) => inPacked(sea, stLucie.meta.coordOrigin, stLucie.meta.coordScale, lon, lat);
+    // Offshore, the estuary at the A1A bridge, and the lagoon off Jensen Beach.
+    for (const [lon, lat] of [[-80.1, 27.3], [-80.207, 27.199], [-80.215, 27.25]]) expect(inSea(lon, lat), `${lon},${lat}`).toBe(true);
+    // Downtown Stuart, Indiantown, and Palm City are land.
+    for (const [lon, lat] of [[-80.245, 27.19], [-80.486, 27.027], [-80.3, 27.16]]) expect(inSea(lon, lat), `${lon},${lat}`).toBe(false);
+    expect(stLucie.water.some((b) => b.name === "Lake Okeechobee")).toBe(true);
+    for (const b of stLucie.water) for (const ring of b.rings) expect(ring.length % 2).toBe(0);
+  });
+
+  it("has decades of releases at both ends of the canal, with backflow years", () => {
+    const { years, S308, S80 } = stLucie.history;
+    years.forEach((y, i) => i && expect(y).toBe(years[i - 1] + 1));
+    expect(years[0]).toBeLessThanOrEqual(1932);
+    expect(years[years.length - 1]).toBeLessThan(new Date().getFullYear() + 1);
+    expect(S308.length).toBe(years.length);
+    expect(S80.length).toBe(years.length);
+    expect(S308.filter((v) => v != null).length).toBeGreaterThan(55);
+    expect(S80.filter((v) => v != null).length).toBeGreaterThan(50);
+    expect(S308.some((v) => v != null && v < 0)).toBe(true);
+    for (const v of [...S308, ...S80]) if (v != null) expect(Math.abs(v)).toBeLessThan(10000);
+  });
+});
+
 describe("gauges and snapshot", () => {
+  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS];
+
   it("has one gauge per flow key with unique site ids", () => {
-    expect(gauges.map((g) => g.key).sort()).toEqual([...FLOW_KEYS, ...RAINBOW_KEYS].sort());
-    for (const g of gauges) expect(["santa-fe", "rainbow"]).toContain(g.page);
+    expect(gauges.map((g) => g.key).sort()).toEqual([...keys].sort());
+    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie"]).toContain(g.page);
     expect(gauges.filter((g) => g.page === "rainbow").map((g) => g.key).sort()).toEqual([...RAINBOW_KEYS].sort());
+    expect(gauges.filter((g) => g.page === "st-lucie").map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS].sort());
+    // Only the canal's structures run backward.
+    expect(gauges.filter((g) => g.signed).map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS].sort());
     expect(new Set(gauges.map((g) => g.id)).size).toBe(gauges.length);
     for (const g of gauges) expect(g.id).toMatch(/^\d{8,15}$/);
   });
 
-  it("has a dated reading for every gauge", () => {
+  it("has one salinity station per key", () => {
+    expect(salinity.map((s) => s.key).sort()).toEqual([...SALINITY_KEYS].sort());
+    for (const s of salinity) expect(s.id).toMatch(/^\d{8,15}$/);
+  });
+
+  it("has a dated reading for every gauge and station", () => {
     expect(Number.isNaN(Date.parse(snapshot.time))).toBe(false);
-    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS]) expect(snapshot.cfs).toHaveProperty(k);
+    for (const k of keys) expect(snapshot.cfs).toHaveProperty(k);
+    for (const k of SALINITY_KEYS) {
+      expect(snapshot.ppt[k]).toHaveProperty("top");
+      expect(snapshot.ppt[k]).toHaveProperty("bottom");
+      for (const v of [snapshot.ppt[k].top, snapshot.ppt[k].bottom]) if (v != null) expect(v >= 0 && v <= 45).toBe(true);
+    }
+    // Only the canal's structures can read below zero.
+    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS]) {
+      const v = snapshot.cfs[k];
+      if (v != null) expect(v).toBeGreaterThanOrEqual(0);
+    }
   });
 });
