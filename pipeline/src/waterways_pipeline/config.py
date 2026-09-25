@@ -59,6 +59,21 @@ STLUCIE_SEA: Bbox = (-81.3, 26.3, -79.0, 28.1)
 #: The main stems it draws, by NHD name. County Line Canal is C-23.
 STLUCIE_RIVERS = ["Saint Lucie Canal", "South Fork Saint Lucie River", "North Fork Saint Lucie River", "Saint Lucie River", "County Line Canal", "Indian River"]
 
+# ---- Lake Okeechobee map ----
+#: Everything it draws: the lake with the Kissimmee's mouth and Fisheating Creek, the
+#: Caloosahatchee west to its estuary at Fort Myers, the St. Lucie Canal east to Stuart,
+#: and the farm canals south toward the Everglades.
+LAKEO_VIEW: Bbox = (-81.95, 26.3, -80.15, 27.45)
+#: Lakes, marshes, and estuaries reach past the view so panning doesn't find their edge.
+LAKEO_WATER: Bbox = (-82.2, 26.0, -79.95, 27.7)
+LAKEO_SEA: Bbox = (-83.0, 25.4, -79.0, 28.2)
+#: The main stems it draws, by NHD name: the lake's two big inflows, the Caloosahatchee
+#: (a canal above LaBelle, a river below), the St. Lucie Canal, and the four canals south.
+LAKEO_RIVERS = [
+    "Kissimmee River", "Fisheating Creek", "Caloosahatchee Canal", "Caloosahatchee River", "Saint Lucie Canal",
+    "Miami Canal", "North New River Canal", "Hillsboro Canal", "West Palm Beach Canal",
+]
+
 #: Aquifer grid: 0.01° cells. Keep in sync with the frontend's expectations in src/shared/types.ts.
 AQUIFER_GRID = {"lon0": -83.15, "lat0": 29.35, "res": 0.01, "nx": 121, "ny": 81}
 #: Averaged for each surface's "central area" level on the sparkline.

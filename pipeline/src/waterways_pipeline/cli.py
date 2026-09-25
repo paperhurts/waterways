@@ -6,11 +6,11 @@ import argparse
 import json
 from pathlib import Path
 
-from . import aquifer, rainbow, rivers, springs, statewide, stlucie, streams, usgs
+from . import aquifer, lakeo, rainbow, rivers, springs, statewide, stlucie, streams, usgs
 from .config import OUT
 from .fetch import log
 
-DATASETS = ["springs", "streams", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "statewide", "snapshot"]
+DATASETS = ["springs", "streams", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "statewide", "snapshot"]
 
 
 def write(out: Path, name: str, data: dict) -> None:
@@ -37,6 +37,8 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
         write(out, "rainbow.json", rainbow.build(refresh))
     elif dataset == "st-lucie":
         write(out, "st-lucie.json", stlucie.build(refresh))
+    elif dataset == "lake-o":
+        write(out, "lake-o.json", lakeo.build(refresh))
     elif dataset == "statewide":
         write(out, "statewide.json", statewide.build(refresh))
     elif dataset == "snapshot":

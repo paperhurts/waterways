@@ -15,7 +15,7 @@
   /* still water and wetland */
   --lake: #1b2224; --shore: #2d3837; --marsh: #34362a; --sea: #1f2c30;
   /* Chart lines: the water colors stepped into a line chart's lightness band (checked with the dataviz validator). */
-  --chart-spring: #27a397; --chart-tannin: #b87f33; --chart-lake: #6f9a2e; --chart-estuary: #5b86d6;
+  --chart-spring: #27a397; --chart-tannin: #b87f33; --chart-lake: #6f9a2e; --chart-estuary: #5a82de;
 
   --serif: "Spectral", Georgia, "Times New Roman", serif;
   --sans: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;

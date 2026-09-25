@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import date
 
-from shapely.geometry import MultiPolygon, Polygon, shape
+from shapely.geometry import MultiPolygon, Polygon, box, shape
+from shapely.validation import make_valid
 
 from . import coast
 from . import config as C
@@ -124,28 +125,52 @@ def seas(refresh: bool = False) -> list[dict]:
     return [{"name": None, "kind": "sea", "km2": round(sea.area * KM2_PER_DEG2), "rings": rings}] if rings else []
 
 
-def build_lakes(refresh: bool = False) -> dict:
+def waterbodies(
+    areas: list[C.Bbox],
+    refresh: bool = False,
+    clip: C.Bbox | None = None,
+    generalize: float | None = None,
+    min_km2: tuple[float, float] = (LAKE_MIN_KM2, SWAMP_MIN_KM2),
+) -> list[dict]:
+    """Lakes and wetlands touching the boxes of at least `min_km2` (lake, wetland), largest
+    first and simplified, optionally trimmed to `clip`. `generalize` has NHD simplify them
+    first (see arcgis_query)."""
     ftypes = ",".join(map(str, LAKE_FTYPES))
     feats = [
         f
-        for area in WATER_AREAS
+        for area in areas
         for f in arcgis_query(
-            C.NHD_WATERBODIES, area, where=f"areasqkm >= {LAKE_MIN_KM2} AND ftype IN ({ftypes})", fields="nhdplusid,gnis_name,ftype,areasqkm", refresh=refresh
+            C.NHD_WATERBODIES,
+            area,
+            where=f"areasqkm >= {LAKE_MIN_KM2} AND ftype IN ({ftypes})",
+            fields="nhdplusid,gnis_name,ftype,areasqkm",
+            refresh=refresh,
+            generalize=generalize,
         )
     ]
     bodies, seen = [], set()
     for f in sorted(feats, key=lambda f: -float(f["properties"]["areasqkm"])):
         p = f["properties"]
         kind = LAKE_FTYPES[int(p["ftype"])]
-        if p["nhdplusid"] in seen or not f.get("geometry") or (kind == "swamp" and float(p["areasqkm"]) < SWAMP_MIN_KM2):
+        if p["nhdplusid"] in seen or not f.get("geometry") or float(p["areasqkm"]) < min_km2[kind == "swamp"]:
             continue
         seen.add(p["nhdplusid"])
         g = shape(f["geometry"])
+        if generalize:
+            # The server's simplified rings can cross themselves.
+            g = make_valid(g)
+        if clip:
+            g = g.intersection(box(*clip))
         if kind == "swamp":
             g = drop_specks(g, SWAMP_SPECK_KM2)
         g = g.simplify(SWAMP_SIMPLIFY_DEG if kind == "swamp" else LAKE_SIMPLIFY_DEG, preserve_topology=True)
         if rings := polygon_rings(g):
             bodies.append({"name": p.get("gnis_name") or None, "kind": kind, "km2": round(float(p["areasqkm"]), 2), "rings": rings})
+    return bodies
+
+
+def build_lakes(refresh: bool = False) -> dict:
+    bodies = waterbodies(WATER_AREAS, refresh)
     log(f"lakes: {len(bodies)} waterbodies ≥ {LAKE_MIN_KM2} km²")
     sea = seas(refresh)
     log(f"lakes: sea in {sum(len(s['rings']) for s in sea)} rings")

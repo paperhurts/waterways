@@ -114,6 +114,18 @@ export interface StLucieFile {
   history: { years: number[]; S308: (number | null)[]; S80: (number | null)[] };
 }
 
+// ---------- lake-o.json (Lake Okeechobee map) ----------
+
+export interface LakeOFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
+  /** Main stems by NHD name, upstream to downstream (config LAKEO_RIVERS). */
+  rivers: Record<string, { p: LonLat[]; u: (0 | 1)[] }>;
+  /** The sea, then lakes and marshes; the same shape as lakes.json's bodies. */
+  water: LakesFile["bodies"];
+  /** Water-year mean flow (cfs) out of the lake each way; negative is flow into it. South is S-351 and S-354 together. */
+  history: { years: number[]; east: (number | null)[]; west: (number | null)[]; south: (number | null)[] };
+}
+
 // ---------- statewide.json (statewide springs map; the springs are springs.json) ----------
 
 export interface AreaFile {
@@ -152,7 +164,12 @@ export const STLUCIE_KEYS = ["S308", "S80"] as const;
 export type StLucieKey = (typeof STLUCIE_KEYS)[number];
 export type StLucieFlows = Record<StLucieKey, number | null>;
 
-export type GaugeKey = FlowKey | RainbowKey | StLucieKey;
+/** The Lake Okeechobee map's gauges: its outlets west (S-77, S-79 below it), south (S-351 into two canals, S-354), and Fisheating Creek coming in. S-308 is the St. Lucie map's. */
+export const LAKEO_KEYS = ["S77", "S79", "S351H", "S351N", "S354", "FEC"] as const;
+export type LakeOKey = (typeof LAKEO_KEYS)[number];
+export type LakeOFlows = Record<LakeOKey | "S308", number | null>;
+
+export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey;
 
 export interface GaugeConfig {
   id: string;
@@ -161,7 +178,7 @@ export interface GaugeConfig {
   name?: string;
   key: GaugeKey;
   /** Which map draws it. */
-  page: "santa-fe" | "rainbow" | "st-lucie";
+  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o";
   /** Flow can run backward here, and USGS reports it as negative. */
   signed?: boolean;
   river?: string;
@@ -193,7 +210,7 @@ export interface Snapshot {
   /** ISO 8601 time of the newest reading. */
   time: string;
   /** Every gauge in config/gauges.json, all maps. */
-  cfs: Flows & RainbowFlows & StLucieFlows;
+  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey, number | null>;
   /** Every station in config/salinity.json. */
   ppt: Record<SalinityKey, Salinity>;
 }
