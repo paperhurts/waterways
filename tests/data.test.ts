@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   FLOW_KEYS,
+  LAKEO_KEYS,
   RAINBOW_KEYS,
   SALINITY_KEYS,
   STLUCIE_KEYS,
@@ -13,6 +14,7 @@ import {
   type AquiferFile,
   type ContoursFile,
   type GaugeConfig,
+  type LakeOFile,
   type LakesFile,
   type RainbowFile,
   type RiversFile,
@@ -35,6 +37,7 @@ const statewide = read<SpringsFile>("public/data/springs.json");
 const rainbow = read<RainbowFile>("public/data/rainbow.json");
 const statewideMap = read<StatewideFile>("public/data/statewide.json");
 const stLucie = read<StLucieFile>("public/data/st-lucie.json");
+const lakeO = read<LakeOFile>("public/data/lake-o.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
 
@@ -461,16 +464,60 @@ describe("st-lucie.json", () => {
   });
 });
 
+describe("lake-o.json", () => {
+  const r = lakeO.rivers;
+  const sea = lakeO.water.filter((b) => b.kind === "sea").flatMap((b) => b.rings);
+  const inSea = (lon: number, lat: number) => inPacked(sea, lakeO.meta.coordOrigin, lakeO.meta.coordScale, lon, lat);
+  const lake = lakeO.water.find((b) => b.name === "Lake Okeechobee");
+  const inLake = (lon: number, lat: number) => inPacked(lake!.rings, lakeO.meta.coordOrigin, lakeO.meta.coordScale, lon, lat);
+
+  it("has the lake, and every path stops at its shore", () => {
+    expect(lake).toBeDefined();
+    expect(inLake(-80.83, 26.95)).toBe(true);
+    const inflows = new Set(["Kissimmee River", "Fisheating Creek"]);
+    for (const [name, river] of Object.entries(r)) {
+      expect(river.p.length, name).toBeGreaterThan(3);
+      expect(river.u).toHaveLength(river.p.length);
+      // Only the few vertices where it meets the shore can be in the lake: an inflow's last
+      // ones, an outlet's first ones. None runs across it.
+      const wet = river.p.flatMap(([lon, lat], i) => (inLake(lon, lat) ? [i] : []));
+      const n = river.p.length;
+      for (const i of wet) expect(inflows.has(name) ? i >= n - 4 : i < 4, `${name} vertex ${i} of ${n}`).toBe(true);
+    }
+    // The inflows end at the lake, and the outlets start there.
+    const last = (n: string) => r[n].p[r[n].p.length - 1];
+    expect(last("Kissimmee River")[1]).toBeLessThan(27.3);
+    expect(r["Caloosahatchee River"].p[0][0]).toBeGreaterThan(-81.2);
+    expect(last("Caloosahatchee River")[0]).toBeLessThan(-81.8);
+    expect(r["Saint Lucie Canal"].p[0][0]).toBeLessThan(-80.55);
+  });
+
+  it("has the Gulf and the Atlantic as sea, and farmland south of the lake as land", () => {
+    for (const [lon, lat] of [[-82.3, 26.4], [-80.0, 27.0]]) expect(inSea(lon, lat), `${lon},${lat}`).toBe(true);
+    for (const [lon, lat] of [[-80.668, 26.684], [-81.438, 26.762]]) expect(inSea(lon, lat), `${lon},${lat}`).toBe(false);
+  });
+
+  it("has decades of flow each way, with the south canals running backward in some", () => {
+    const { years, east, west, south } = lakeO.history;
+    years.forEach((y, i) => i && expect(y).toBe(years[i - 1] + 1));
+    for (const s of [east, west, south]) expect(s.length).toBe(years.length);
+    expect(west.filter((v) => v != null).length).toBeGreaterThan(70);
+    expect(south.filter((v) => v != null).length).toBeGreaterThan(55);
+    expect(south.some((v) => v != null && v < 0)).toBe(true);
+    for (const v of [...east, ...west, ...south]) if (v != null) expect(Math.abs(v)).toBeLessThan(10000);
+  });
+});
+
 describe("gauges and snapshot", () => {
-  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS];
+  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS];
 
   it("has one gauge per flow key with unique site ids", () => {
     expect(gauges.map((g) => g.key).sort()).toEqual([...keys].sort());
-    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie"]).toContain(g.page);
+    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o"]).toContain(g.page);
     expect(gauges.filter((g) => g.page === "rainbow").map((g) => g.key).sort()).toEqual([...RAINBOW_KEYS].sort());
     expect(gauges.filter((g) => g.page === "st-lucie").map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS].sort());
-    // Only the canal's structures run backward.
-    expect(gauges.filter((g) => g.signed).map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS].sort());
+    // Only the canals' structures run backward; the rivers and creeks can't.
+    expect(gauges.filter((g) => g.signed).map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS, ...LAKEO_KEYS.filter((k) => k !== "FEC")].sort());
     expect(new Set(gauges.map((g) => g.id)).size).toBe(gauges.length);
     for (const g of gauges) expect(g.id).toMatch(/^\d{8,15}$/);
   });
@@ -488,8 +535,8 @@ describe("gauges and snapshot", () => {
       expect(snapshot.ppt[k]).toHaveProperty("bottom");
       for (const v of [snapshot.ppt[k].top, snapshot.ppt[k].bottom]) if (v != null) expect(v >= 0 && v <= 45).toBe(true);
     }
-    // Only the canal's structures can read below zero.
-    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS]) {
+    // Only the canals' structures can read below zero.
+    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const]) {
       const v = snapshot.cfs[k];
       if (v != null) expect(v).toBeGreaterThanOrEqual(0);
     }

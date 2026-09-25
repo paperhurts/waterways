@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lake Okeechobee used to drain south</title>
+<meta name="description" content="Lake Okeechobee once spilled south into the Everglades. Now canals take its water east, west, and south. An animated map of its outlets from live USGS gauges, with where its water has gone since 1932.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Lake Okeechobee used to drain south">
+<meta property="og:description" content="Lake Okeechobee once spilled south into the Everglades. Now canals take its water east, west, and south. An animated map of its outlets from live USGS gauges, with where its water has gone since 1932.">
+<meta property="og:url" content="https://waterways.paperhurts.dev/lake-o.html">
+<meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="/src/lake-o/main.ts"></script>
+</head>
+<body>
+<div id="wrap">
+<header>
+  <h1>Lake Okeechobee <em>used to drain south</em></h1>
+  <p class="lede" id="lede">Loading flows…</p>
+</header>
+<div id="stage" aria-label="Animated map of Lake Okeechobee, the Kissimmee River and Fisheating Creek flowing in, and its outlets: the Caloosahatchee west to Fort Myers, the St. Lucie Canal east, and four canals south toward the Everglades" role="img">
+  <canvas id="base"></canvas>
+  <canvas id="fx"></canvas>
+  <div id="legend">
+    <span><i style="background:var(--lakewater)"></i>Lake water, heading for the open outlets</span>
+    <span><i style="background:var(--tannin)"></i>Creek, river, and farm runoff</span>
+  </div>
+  <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
+</div>
+<section id="hist" aria-label="Where the lake's water went">
+  <div id="histTitle">Where the lake's water went</div>
+  <p id="histRead"></p>
+  <div id="histChart"></div>
+  <details class="note"><summary>About this data</summary>Yearly means for each water year (October through September), from USGS daily records. East: the St. Lucie Canal below Port Mayaca, S-308 (02276877). West: the Caloosahatchee below Moore Haven, S-77 (02292000 through 2003, then 02292010 from 2008). South: the Hillsboro (02280500) and North New River (02283500) canals below S-351 and the Miami Canal at S-354 (02286400), added together in years all three report. The West Palm Beach Canal at S-352 isn't included: USGS stopped gauging it in 2008. Below zero, more water flowed into the lake than out. Years missing more than about a month of days are left out.</details>
+</section>
+<div class="tools">
+  <button id="bAll" type="button">Lake and outlets</button>
+  <button id="bLake" type="button">The lake</button>
+  <button id="bWest" type="button">The Caloosahatchee</button>
+  <button id="bHist" type="button" aria-pressed="false">Since 1932</button>
+  <button id="bPause" type="button" aria-pressed="false">Pause</button>
+  <a href="st-lucie.html">St. Lucie</a>
+  <a href="rain.html">Every creek</a>
+  <a href="springs.html">All Florida springs</a>
+</div>
+<div id="profile" aria-label="USGS gauges"></div>
+<div id="status"></div>
+</div>
+</body>
+</html>
