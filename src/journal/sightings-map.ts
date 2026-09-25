@@ -11,8 +11,10 @@ import { GROUPS, groupColor, type AnimalGroup } from "./wildlife";
 // the spring pools and runs themselves.
 const usgs = (svc: string) => `https://basemap.nationalmap.gov/arcgis/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`;
 export type Basemap = "imagery" | "topo";
+// Both caches stop at zoom 16 (tiles past it return 404), so Leaflet enlarges z16 tiles
+// for the closer zooms. Claiming more stops the imagery from zooming in.
 const BASEMAPS: Record<Basemap, { url: string; maxNativeZoom: number }> = {
-  imagery: { url: usgs("USGSImageryOnly"), maxNativeZoom: 19 },
+  imagery: { url: usgs("USGSImageryOnly"), maxNativeZoom: 16 },
   topo: { url: usgs("USGSTopo"), maxNativeZoom: 16 },
 };
 const HYDRO = usgs("USGSHydroCached");
