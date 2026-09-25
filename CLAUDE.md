@@ -23,6 +23,8 @@ Two canvas-animated maps of north Florida hydrology (Vite + TypeScript, no frame
 - **Spring journal.**
   - It runs on Supabase project `pbswebsavanetmieodsf`; the schema is in `supabase/migrations/`. Apply new migrations with the Supabase MCP `apply_migration`, commit the SQL too, and run `get_advisors` afterward.
   - Access is enforced by RLS through `private.is_member()`, which checks the JWT email against `public.members`. The helper deliberately lives outside the API schema.
+  - Sign-up is members-only too: the "Before User Created" auth hook (`private.hook_members_only`, enabled in the dashboard) refuses to create accounts, and so to send sign-in emails, for addresses not in `public.members`.
+  - Sign-in emails go out through custom SMTP, because the built-in sender only reaches the Supabase team. Their templates are in `supabase/templates/`; paste any changes into Authentication > Emails.
   - Spring ids come from `springs.py` (name + county slug) and are stored in visits, so never change the id scheme without migrating `visits.spring_id`.
   - The maps load journal code only when `hasStoredSession()` is true (`src/journal/session.ts`), which keeps supabase-js out of public map bundles.
   - Test UI changes with `journal.html?demo` on the dev server.
