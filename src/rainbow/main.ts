@@ -3,7 +3,7 @@ import "./rainbow.css";
 import gaugeConfig from "../../config/gauges.json";
 import { InfoCard } from "../shared/card";
 import { loadData, showLoadError } from "../shared/data";
-import { KM_PER_UNIT, nearestDistance, pointAt, polyline, project, type Polyline, type XY } from "../shared/geo";
+import { KM_PER_UNIT, nearestDistance, pointAt, polyline, project, ringsPath, unpackRings, type Polyline, type XY } from "../shared/geo";
 import { drawJournal, journalCardHtml, loadJournalOverlay, type JournalOverlay } from "../shared/journal-overlay";
 import { decodeLakes, drawLakeLabels, drawLakes } from "../shared/lakes";
 import { STALE_MS, fetchLatest, fmtCfs } from "../shared/live";
@@ -89,14 +89,7 @@ const timeFmt = (d: Date) => d.toLocaleString([], { month: "short", day: "numeri
 async function main() {
   const [data, snapshot, lakesFile] = await Promise.all([loadData<RainbowFile>("rainbow.json"), loadData<Snapshot>("snapshot.json"), loadData<LakesFile>("lakes.json"), fontsReady()]);
   const lakes = decodeLakes(lakesFile);
-  const [ox, oy] = data.meta.coordOrigin;
-  const k = data.meta.coordScale;
-  const decodeRings = (rings: number[][]): XY[][] =>
-    rings.map((flat) => {
-      const pts: XY[] = [];
-      for (let i = 0; i < flat.length; i += 2) pts.push(project(flat[i] / k + ox, flat[i + 1] / k + oy));
-      return pts;
-    });
+  const decodeRings = (rings: number[][]) => unpackRings(rings, data.meta.coordOrigin, data.meta.coordScale);
 
   // ---------- geometry ----------
   const line = (name: string): River => ({ ...polyline(data.rivers[name].p.map(([x, y]) => project(x, y))), name });
@@ -130,13 +123,8 @@ async function main() {
   const shedRings = decodeRings(data.springshed.rings);
   const focusRings = decodeRings(data.focusArea.rings);
   const contours = data.contours.map((c) => ({ v: c.v, pts: c.p.map(([x, y]) => project(x, y)) }));
-  const ringPath = (rings: XY[][]) => {
-    const p = new Path2D();
-    for (const r of rings) r.forEach((q, i) => (i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1])));
-    return p;
-  };
-  const shedPath = ringPath(shedRings);
-  const focusPath = ringPath(focusRings);
+  const shedPath = ringsPath(shedRings);
+  const focusPath = ringsPath(focusRings);
   const probe = document.createElement("canvas").getContext("2d")!;
   const inside = (p: Path2D, xy: XY) => probe.isPointInPath(p, xy[0], xy[1], "evenodd");
   const box = (rings: XY[][]) => {

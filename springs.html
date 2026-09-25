@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Florida's springs</title>
+<meta name="description" content="Every spring on FDEP's statewide list, sized by how much water it puts out, with the springsheds the state's cleanup plans cover.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Florida's springs">
+<meta property="og:description" content="Every spring on FDEP's statewide list, sized by how much water it puts out, with the springsheds the state's cleanup plans cover.">
+<meta property="og:url" content="https://waterways.paperhurts.dev/springs.html">
+<meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="/src/springs/main.ts"></script>
+</head>
+<body>
+<div id="wrap">
+<header>
+  <h1>Florida's <em>springs</em></h1>
+  <p class="lede" id="lede">Loading springs…</p>
+</header>
+<div id="stage" role="img" aria-label="Map of every spring on FDEP's statewide list, sized by magnitude, with the springs cleanup plan areas shaded">
+  <canvas id="base"></canvas>
+  <canvas id="fx"></canvas>
+  <div id="legend">
+    <span><i class="dot big"></i>First magnitude</span>
+    <span><i class="dot mid"></i>Second magnitude</span>
+    <span><i class="dot"></i>Smaller or unrated</span>
+    <span><i class="area"></i>Springs cleanup plan area</span>
+    <span><i class="area focus"></i>Priority focus area</span>
+  </div>
+  <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
+</div>
+<div class="tools">
+  <button id="bAll" type="button">Whole state</button>
+  <select id="view" aria-label="Zoom to a region">
+    <option value="">Zoom to…</option>
+    <option value="pan">Panhandle: Jackson Blue, Wakulla, Wacissa</option>
+    <option value="suw">Suwannee and Santa Fe</option>
+    <option value="coast">Springs Coast: Rainbow to Weeki Wachee</option>
+    <option value="ocala">Silver Springs and the Ocala forest</option>
+    <option value="stj">St. Johns: Wekiwa, Blue, DeLeon</option>
+  </select>
+  <button id="bBig" type="button" aria-pressed="false">Biggest springs</button>
+  <input id="find" type="search" list="springList" placeholder="Find a spring" aria-label="Find a spring by name">
+  <datalist id="springList"></datalist>
+  <a href="rain.html">Every creek</a>
+  <a href="santa-fe.html">Santa Fe</a>
+  <a href="rainbow.html">Rainbow River</a>
+</div>
+<div id="status">Springs: FDEP's Florida Springs layer, with the vents of one spring merged. Cleanup plan (BMAP) and priority focus areas: FDEP. Coastline: US Census Bureau.</div>
+</div>
+</body>
+</html>

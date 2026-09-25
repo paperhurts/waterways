@@ -6,16 +6,19 @@ Animated maps of the rivers, springs, and sinks of north Florida's springs belt:
 - **The Santa Fe breathes groundwater** (`santa-fe.html`) animates river and spring flow from live USGS gauges. It shows the river vanishing at River Sink and returning at River Rise, dye traces from Gainesville's sinks, and an aquifer time slider that runs from before development to the present.
 - **Rainbow River starts full grown** (`rainbow.html`) shows a river that rises out of the ground at full size. Clear water from about 20 spring vents and tannic Withlacoochee water from upstream meet at Dunnellon, spread through Lake Rousseau, and leave for the Gulf down the old river or the barge canal, all driven by six live USGS gauges. Groundwater drifts across Rainbow's springshed toward the head springs, and a panel charts sixty years of flow: the spring barely changes while the river swings.
 
+- **Florida's springs** (`springs.html`) maps every spring on FDEP's statewide list (the journal's list, 889 after merging vents), sized by magnitude, with the first- and second-magnitude springs boiling. The areas FDEP's 13 springs cleanup plans (BMAPs) cover, and their priority focus areas, are shaded. Search by name, zoom to a region, or show only the biggest springs; cards link to the rain map or the Rainbow page where a spring appears there.
+
 - **Spring journal** (`journal.html`) is a private, shared log of Florida spring visits. It covers all 889 springs in FDEP's statewide list. Each visit records a date, a 1–5 rating, notes, photos, and wildlife sightings. A sighting can be pinned by the phone's GPS when you tap it. The journal map shows visits and sightings over USGS satellite or topo imagery, with a layer per animal group that you can switch on and off. Signed-in members also see their visits and sightings on the public maps.
 
 ## Layout
 
 ```
-index.html, rain.html, santa-fe.html, rainbow.html   page shells (Vite entry points)
+index.html, rain.html, santa-fe.html, rainbow.html, springs.html   page shells (Vite entry points)
 src/shared/     projection, pan/zoom viewport, streak renderer, lakes, theme tokens, data types
 src/rain/       the rain map and its creek-network logic
 src/santa-fe/   the Santa Fe map: flow model, aquifer grids, authored content
 src/rainbow/    the Rainbow River map: flow model, flow-history chart, authored content
+src/springs/    the statewide springs map
 src/journal/    the spring journal: Supabase client, visit form, sightings map (Leaflet)
 supabase/       database migrations for the journal (tables, row-level security, photo bucket)
 public/data/    generated datasets the pages fetch at runtime
@@ -57,6 +60,7 @@ Then run `npm test` from the repo root to check the output before committing it.
 | `lakes.json` | NHDPlus HR waterbodies; Census cartographic state outlines (1:500,000) | Lakes ≥ 0.2 km² and wetlands ≥ 1.5 km², simplified; wetland islands and scraps under 0.5 km² are dropped. The sea is everything in a box around both river mouths that isn't land in the Census's shoreline-clipped state outlines. |
 | `aquifer.json`, `contours.json` | FDEP/FGS Upper Floridan potentiometric surface layer; USGS daily discharge | Each surface is gridded at 0.01° by distance-weighting the two nearest contours of different elevation. Flows are monthly means. A gauge with no record that month is estimated from Fort White by its median same-month ratio (shown as "est."). |
 | `rainbow.json` | NHDPlus HR; FDEP springs; SWFWMD springsheds; FDEP Springs Priority Focus Areas; FGS potentiometric surface; USGS daily discharge | Main stems of the Rainbow, the Withlacoochee from above Holder to the Gulf, and the barge canal. FDEP vents on the upper Rainbow, with duplicates within 15 m merged. SWFWMD's Rainbow Springs Group springshed (interpreted from USGS's 1994 potentiometric maps) and FDEP's Rainbow priority focus area, geometry only. The latest FGS contours around them. Water-year mean flows for the Rainbow at Dunnellon and the Withlacoochee near Holder, finished years only. |
+| `statewide.json` | Census cartographic state outlines (1:500,000); FDEP Statewide BMAP layers | Florida and its neighbors' outlines, the springs cleanup plan (BMAP) areas, and the Springs Priority Focus Areas, geometry and names only (FDEP's records also carry staff contacts). Plans get short display names in `statewide.PLAN_NAMES`, and the build fails if FDEP adds one without a name. The springs themselves come from `springs.json`. |
 | `snapshot.json` | USGS Water Data API, latest values | Fallback readings for when a visitor's browser can't reach USGS. Covers both river maps' gauges (`page` in `config/gauges.json`). |
 
 ## Spring journal
@@ -81,7 +85,7 @@ Pages must be set to deploy from **GitHub Actions** (Settings → Pages → Sour
 - Journal basemaps: USGS The National Map (imagery, topo, hydrography)
 - River and spring discharge: [USGS Water Data API](https://api.waterdata.usgs.gov/) (instantaneous and daily values)
 - Springs: FDEP Florida Springs layer
-- Springsheds: Southwest Florida Water Management District (Major Springsheds); priority focus areas: FDEP Statewide BMAP layer
+- Springsheds: Southwest Florida Water Management District (Major Springsheds); springs cleanup plan (BMAP) and priority focus areas: FDEP Statewide BMAP layers
 - Swallets: Florida Geological Survey swallet survey
 - Aquifer: FDEP / FGS Upper Floridan Aquifer potentiometric surface, including the USGS pre-development and historic surfaces
 - Dye traces: Karst Environmental Services, Mill Creek and Lee Sinks Dye Trace (2005), for Alachua County EPD

@@ -90,3 +90,19 @@ export function nearestDistance(line: Polyline, x: number, y: number): number {
   }
   return line.cum[bi];
 }
+
+/** Packed rings (flat ints of (lon - origin) * scale, as the pipeline writes them) in map units. */
+export function unpackRings(rings: number[][], [ox, oy]: [number, number], scale: number): XY[][] {
+  return rings.map((flat) => {
+    const pts: XY[] = [];
+    for (let i = 0; i < flat.length; i += 2) pts.push(project(flat[i] / scale + ox, flat[i + 1] / scale + oy));
+    return pts;
+  });
+}
+
+/** One Path2D (map units) of every ring, for even-odd fills and hit tests. */
+export function ringsPath(rings: XY[][]): Path2D {
+  const p = new Path2D();
+  for (const r of rings) r.forEach((q, i) => (i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1])));
+  return p;
+}

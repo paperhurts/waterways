@@ -5,6 +5,7 @@ import { escapeHtml, loadData, showLoadError } from "../shared/data";
 import { KM_PER_UNIT, bounds, pointAt, project, type XY } from "../shared/geo";
 import { drawJournal, journalCardHtml, loadJournalOverlay, type JournalOverlay } from "../shared/journal-overlay";
 import { decodeLakes, drawLakeLabels, drawLakes, inLake } from "../shared/lakes";
+import { MAG_TEXT } from "../shared/magnitude";
 import { StreakLayer, drawBoil, fadeLayer } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
 import { Fate, type LakesFile, type StreamsFile } from "../shared/types";
@@ -57,12 +58,6 @@ function seaway(s0: Segment, trace: Trace): string {
 
 /** Boil size by spring magnitude (index), so first-magnitude springs read as the giants they are. */
 const MAG_SIZE = [1, 2, 1.45, 1.15, 1, 1, 1, 1, 1];
-const MAG_TEXT = [
-  "",
-  "A first-magnitude spring: more than 100 cubic feet of water a second, about 65 million gallons a day. ",
-  "A second-magnitude spring, flowing 10 to 100 cubic feet a second. ",
-  "A third-magnitude spring, flowing 1 to 10 cubic feet a second. ",
-];
 
 /**
  * Rain drops per second per km of creek, so every creek gets the same rain however
