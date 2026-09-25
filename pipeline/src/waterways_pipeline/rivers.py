@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import date
 
-from shapely.geometry import MultiPolygon, Polygon, box, shape
-from shapely.ops import unary_union
+from shapely.geometry import MultiPolygon, Polygon, shape
 
+from . import coast
 from . import config as C
 from .fetch import arcgis_query, log
 from .geo import ORIGIN, SCALE, LonLat, in_bbox, line_coords, pack, simplify
@@ -17,9 +17,12 @@ LAKE_SIMPLIFY_DEG = 0.0003
 LAKE_MIN_KM2 = 0.2
 #: Wetlands are numerous and ragged; keep the big ones, drawn coarser.
 SWAMP_MIN_KM2 = 1.5
-SWAMP_SIMPLIFY_DEG = 0.0006
-#: Covers both maps, including the rain map's Atlantic corridor.
-WATER_AREAS: list[C.Bbox] = [(-83.08, 29.54, -82.01, 30.09), C.ATLANTIC_CORRIDOR]
+SWAMP_SIMPLIFY_DEG = 0.001
+#: Big swamps are riddled with upland islands (one has 1,500 rings); under the stipple,
+#: islands and scraps this small don't show.
+SWAMP_SPECK_KM2 = 0.5
+#: Covers both maps: the Santa Fe map's box and all of the rain map's.
+WATER_AREAS: list[C.Bbox] = [(-83.08, 29.54, -82.01, 30.09), *C.STREAMS_AREAS]
 LAKE_FTYPES = {390: "lake", 436: "lake", 466: "swamp"}
 SEA_SIMPLIFY_DEG = 0.0003
 #: Sea pieces and islands smaller than this vanish at map scale.
@@ -90,9 +93,11 @@ def build_rivers(refresh: bool = False) -> dict:
 
 
 def polygon_rings(g) -> list[list[int]]:
-    """Packed outer and hole rings of a (Multi)Polygon; anything else has none."""
+    """Packed outer and hole rings of a (Multi)Polygon; anything else has none. A ring
+    that packing's ~11 m grid collapses below a triangle (4 points, closed) is dropped."""
     polys = g.geoms if isinstance(g, MultiPolygon) else [g] if isinstance(g, Polygon) else []
-    return [pack(list(r.coords)) for poly in polys for r in [poly.exterior, *poly.interiors] if len(r.coords) >= 4]
+    rings = (pack(list(r.coords)) for poly in polys for r in [poly.exterior, *poly.interiors])
+    return [r for r in rings if len(r) >= 8]
 
 
 def drop_specks(g, min_km2: float):
@@ -107,12 +112,8 @@ def drop_specks(g, min_km2: float):
 
 
 def seas(refresh: bool = False) -> list[dict]:
-    """The Gulf and the Atlantic around the two river mouths: everything in C.SEA_CLIP
-    that isn't land, from the Census Bureau's shoreline-clipped state outlines. (NHD's
-    sea polygons end offshore in watershed-boundary staircases, so they can't draw a coast.)"""
-    states = arcgis_query(C.CENSUS_STATES, C.SEA_CLIP, fields="STUSAB", refresh=refresh)
-    land = unary_union([shape(f["geometry"]) for f in states if f.get("geometry")])
-    sea = drop_specks(box(*C.SEA_CLIP).difference(land), SEA_SPECK_KM2).simplify(SEA_SIMPLIFY_DEG, preserve_topology=True)
+    """The Gulf and the Atlantic around the map, as one simplified shape."""
+    sea = drop_specks(coast.sea(refresh), SEA_SPECK_KM2).simplify(SEA_SIMPLIFY_DEG, preserve_topology=True)
     rings = polygon_rings(sea)
     return [{"name": None, "kind": "sea", "km2": round(sea.area * KM2_PER_DEG2), "rings": rings}] if rings else []
 
@@ -133,7 +134,10 @@ def build_lakes(refresh: bool = False) -> dict:
         if p["nhdplusid"] in seen or not f.get("geometry") or (kind == "swamp" and float(p["areasqkm"]) < SWAMP_MIN_KM2):
             continue
         seen.add(p["nhdplusid"])
-        g = shape(f["geometry"]).simplify(SWAMP_SIMPLIFY_DEG if kind == "swamp" else LAKE_SIMPLIFY_DEG, preserve_topology=True)
+        g = shape(f["geometry"])
+        if kind == "swamp":
+            g = drop_specks(g, SWAMP_SPECK_KM2)
+        g = g.simplify(SWAMP_SIMPLIFY_DEG if kind == "swamp" else LAKE_SIMPLIFY_DEG, preserve_topology=True)
         if rings := polygon_rings(g):
             bodies.append({"name": p.get("gnis_name") or None, "kind": kind, "km2": round(float(p["areasqkm"]), 2), "rings": rings})
     log(f"lakes: {len(bodies)} waterbodies ≥ {LAKE_MIN_KM2} km²")

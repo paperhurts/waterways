@@ -72,6 +72,33 @@ def test_water_leaving_toward_another_end_is_off_the_map():
     assert classify(net, link(net), [])[0] == [OFF]
 
 
+def test_a_creek_ending_on_the_coast_reaches_that_sea():
+    # The Withlacoochee's own terminal path ends at the Gulf, not via the Suwannee.
+    net = [fl(2, 1, 1), fl(1, 0, 1, end=(-82.76, 29.0))]
+    coastal = {(-82.76, 29.0): GULF}
+    fates, _ = classify(net, link(net), [], coastal.get)
+    assert fates == [GULF, GULF]
+
+
+def test_a_creek_draining_into_nhds_coastline_reaches_that_sea():
+    # Crystal River ends where NHD's coastline starts, km inside the generalized Census coast.
+    net = [fl(2, 1, 1), fl(1, 900, 1, end=(-82.68, 28.92)), fl(3, 901, 3, end=(-81.4, 30.4))]
+    fates, _ = classify(net, link(net), [], shore={900, 901})
+    assert fates == [GULF, GULF, ATLANTIC]
+
+
+def test_a_mapped_sink_on_the_coast_is_still_a_sink():
+    net = [fl(1, 0, 1, end=(-82.76, 29.0))]
+    fates, names = classify(net, link(net), [SinkPoint(-82.76, 29.0, "Coastal Sink")], lambda p: GULF)
+    assert (fates, names) == ([SINK], ["Coastal Sink"])
+
+
+def test_water_leaving_the_map_toward_the_sea_takes_that_fate():
+    net = [fl(1, 99, 12345), fl(2, 98, 777)]
+    fates, _ = classify(net, link(net), [], leaves_to_sea={12345: ATLANTIC})
+    assert fates == [ATLANTIC, OFF]
+
+
 def test_the_route_to_the_sea_is_the_main_stem_below_the_map():
     # A main stem from headwaters (50) to its mouth (10, which is also its terminal path id).
     stem = [fl(seq, seq - 10, 10) for seq in (50, 40, 30, 20, 10)]

@@ -9,10 +9,10 @@ import { StreakLayer, drawBoil, fadeLayer } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
 import { Fate, type LakesFile, type StreamsFile } from "../shared/types";
 import { Viewport, startLoop } from "../shared/viewport";
-import { decodeSegments, fateShares, sinkLabels, traceDownstream, type Trace } from "./network";
+import { decodeSegments, fateShares, sinkLabels, traceDownstream, type Segment, type Trace } from "./network";
 
 const FATES = [
-  { v: "--gulf", label: "Reaches the Gulf", via: "Flows to the Suwannee and on to the Gulf of Mexico." },
+  { v: "--gulf", label: "Reaches the Gulf", via: "Flows to the Gulf of Mexico." },
   { v: "--atl", label: "Reaches the Atlantic", via: "Flows to the Ocklawaha River, then north along the St. Johns to the Atlantic. Water from Gainesville's east side passes through Orange Lake first, and some of it leaves through sinks on the way." },
   { v: "--sink", label: "Drops into a sink", via: "Ends at a mapped sink and goes straight into the Floridan aquifer." },
   { v: "--inland", label: "Ends inland", via: "Ends with no mapped outlet. That's usually a sink, a closed wetland, or a lake with no surface exit, but it can also be a gap in the map." },
@@ -20,21 +20,40 @@ const FATES = [
 ];
 
 const VIEWS = {
-  all: bounds(-83.25, 29.12, -81.33, 30.43),
-  gulf: bounds(-83.3, 29.24, -82.82, 29.64),
-  atl: bounds(-81.92, 29.44, -81.3, 30.46),
-  stj: bounds(-82.12, 29.14, -81.52, 29.56),
+  all: bounds(-83.3, 28.75, -81.33, 30.5),
   gnv: bounds(-82.48, 29.57, -82.22, 29.72),
   ala: bounds(-82.62, 29.72, -82.36, 29.9),
   spr: bounds(-82.8, 29.8, -82.55, 29.95),
+  msw: bounds(-83.3, 29.92, -82.85, 30.5),
+  gulf: bounds(-83.25, 29.25, -82.75, 29.65),
+  rbw: bounds(-82.8, 28.75, -82.35, 29.15),
+  stj: bounds(-82.12, 29.14, -81.52, 29.56),
+  ock: bounds(-82.1, 28.75, -81.5, 29.25),
+  atl: bounds(-81.92, 29.44, -81.3, 30.46),
 };
 
-const PLACES: [string, number, number][] = [
+/** Town names, and the zoom (pixels per map unit) below which smaller ones are hidden. */
+const PLACES: [name: string, lon: number, lat: number, minScale?: number][] = [
   ["Gainesville", -82.325, 29.665], ["High Springs", -82.585, 29.815], ["Alachua", -82.47, 29.752],
   ["Fort White", -82.713, 29.905], ["Lake City", -82.64, 30.085], ["Newberry", -82.61, 29.646],
   ["Ocala", -82.14, 29.187], ["Silver Springs", -82.03, 29.235], ["Welaka", -81.672, 29.48],
-  ["Palatka", -81.637, 29.648], ["Jacksonville", -81.656, 30.332],
+  ["Palatka", -81.637, 29.648], ["Jacksonville", -81.656, 30.332], ["Dunnellon", -82.461, 29.049],
+  ["Live Oak", -82.984, 30.295, 1500], ["Mayo", -83.175, 30.053, 1500], ["Branford", -82.928, 29.96, 1500],
+  ["White Springs", -82.759, 30.33, 1500], ["Chiefland", -82.86, 29.475, 1500], ["Cedar Key", -83.035, 29.138, 1500],
+  ["Williston", -82.447, 29.387, 1500], ["Crystal River", -82.593, 28.902, 1500], ["Inverness", -82.33, 28.836, 1500],
+  ["Leesburg", -81.878, 28.811, 1500],
 ];
+
+/** How a Gulf- or Atlantic-bound creek's water gets to the sea, by the rivers on its path. */
+function seaway(s0: Segment, trace: Trace): string {
+  if (s0.fate === Fate.Atlantic) {
+    return trace.path.some((s) => s.name === "Ocklawaha River") ? FATES[Fate.Atlantic].via : "Flows to the St. Johns River, then north along it to the Atlantic.";
+  }
+  // The last named river before the coast: the Suwannee, the Withlacoochee, Crystal River...
+  let outlet: string | null = null;
+  for (let i = trace.path.length - 1; i >= 0 && !outlet; i--) outlet = trace.path[i].name;
+  return outlet ? `Flows down the ${escapeHtml(outlet)} to the Gulf of Mexico.` : FATES[Fate.Gulf].via;
+}
 
 /** Boil size by spring magnitude (index), so first-magnitude springs read as the giants they are. */
 const MAG_SIZE = [1, 2, 1.45, 1.15, 1, 1, 1, 1, 1];
@@ -45,13 +64,29 @@ const MAG_TEXT = [
   "A third-magnitude spring, flowing 1 to 10 cubic feet a second. ",
 ];
 
-/** Rain drops per second, and the cap on live particles. */
-const RATE = 225;
+/**
+ * Rain drops per second per km of creek, so every creek gets the same rain however
+ * big the map grows. Most drops merge into a bigger stream within seconds, so only a
+ * few thousand are alive at once; the cap is a safety net.
+ */
+const RAIN_PER_KM = 0.0456;
 const MAX_PARTICLES = 26000;
 /** Speed of a drop on a headwater creek, in map units (about 111 km) a second. Rivers run faster. */
 const BASE_SPEED = 0.0323;
 /** Share of drops reaching a river mouth that ripple out into the sea. */
 const SEA_RIPPLE_CHANCE = 0.08;
+/** Creek line widths are rounded to this many pixels so they can be drawn in batches. */
+const WIDTH_STEP = 0.1;
+
+const Line = { Surface: 0, ThroughLake: 1, Underground: 2 } as const;
+type Line = (typeof Line)[keyof typeof Line];
+/** Every creek drawn in one line style, as one path in map units. */
+interface StrokeGroup {
+  width: number;
+  fate: Fate;
+  kind: Line;
+  path: Path2D;
+}
 /**
  * When a drop flows into a bigger size class of stream, only this share keeps
  * going (drawn heavier); the rest merge into it. Volume is conserved on
@@ -78,16 +113,29 @@ async function main() {
   // shows that water, so those lines stay faint; drops still flow along them. (Wide
   // rivers like the Suwannee are artificial paths too, so test against the lakes.)
   const throughLake = new Set(segs.filter((s) => s.artificial && inLake(lakes, pointAt(s, s.len / 2))));
-  // Draw small creeks first so rivers sit on top.
-  const order = [...segs].sort((a, b) => a.acc - b.acc);
+  // The base layer redraws on every pan and zoom frame, so creeks are batched: one
+  // Path2D per line style, built once in map units and drawn through the camera
+  // transform. Small creeks come first so rivers sit on top.
+  const strokeGroups = (() => {
+    const groups = new Map<string, StrokeGroup>();
+    for (const s of segs) {
+      const width = Math.round((0.45 + Math.log10(s.acc + 1) * 0.75) / WIDTH_STEP) * WIDTH_STEP;
+      const kind = s.underground ? Line.Underground : throughLake.has(s) ? Line.ThroughLake : Line.Surface;
+      const key = `${width}|${s.fate}|${kind}`;
+      let g = groups.get(key);
+      if (!g) groups.set(key, (g = { width, fate: s.fate, kind, path: new Path2D() }));
+      s.pts.forEach((p, i) => (i ? g.path.lineTo(p[0], p[1]) : g.path.moveTo(p[0], p[1])));
+    }
+    return [...groups.values()].sort((a, b) => a.width - b.width);
+  })();
   // Big rivers run faster than headwater creeks: speed grows with the log of upstream length.
   const vel = Float32Array.from(segs, (s) => BASE_SPEED * (0.45 + 0.32 * Math.log10(s.acc + 1)));
   /** 0 creek, 1 stream, 2 river, by km of creek upstream. */
   const sizeClass = Uint8Array.from(segs, (s) => (s.acc < 15 ? 0 : s.acc < 150 ? 1 : 2));
 
   document.getElementById("lede")!.innerHTML =
-    `Every mapped creek between the Suwannee and Gainesville, and along the water's route east to the St. Johns, colored by where it ends up, ` +
-    `then the two rivers that carry it to the sea. ` +
+    `Every mapped creek in north Florida's springs belt, from the middle Suwannee to Rainbow River and the Ocklawaha, colored by where its water ends up, ` +
+    `and followed down the rivers to the sea. ` +
     `<b>${Math.round(pct[Fate.Gulf])}%</b> of creek length drains to the Gulf and <b>${Math.round(pct[Fate.Atlantic])}%</b> to the Atlantic. ` +
     `The other <b>${Math.round(pct[Fate.Sink] + pct[Fate.Inland])}%</b> never reaches a river: it ends inland, in a sink, a closed wetland, ` +
     `or a lake with no outlet, and much of that water goes into the aquifer.`;
@@ -111,7 +159,7 @@ async function main() {
   card.onHide = () => select(null);
 
   const view = new Viewport({
-    minScale: 250,
+    minScale: 150,
     maxScale: 60000,
     padding: (w) => {
       const p = w < 600 ? 10 : 40;
@@ -148,16 +196,18 @@ async function main() {
     c.lineCap = "round";
     c.lineJoin = "round";
     const zs = Math.max(0.6, Math.min(2.2, view.scale / 1500));
-    for (const s of order) {
-      c.lineWidth = (0.45 + Math.log10(s.acc + 1) * 0.75) * zs;
-      c.strokeStyle = FC[s.fate];
-      c.globalAlpha = s.underground ? 0.4 : throughLake.has(s) ? 0.1 : glow ? 0.3 : 0.26;
-      if (s.underground) c.setLineDash([3, 4]);
-      c.beginPath();
-      strokePath(c, s.pts);
-      c.stroke();
-      if (s.underground) c.setLineDash([]);
+    // Paths are in map units, so widths and dashes are divided by the scale to stay in pixels.
+    const { s: k, tx, ty } = view.cam;
+    c.setTransform(view.DPR * k, 0, 0, view.DPR * k, view.DPR * tx, view.DPR * ty);
+    for (const g of strokeGroups) {
+      c.lineWidth = (g.width * zs) / k;
+      c.strokeStyle = FC[g.fate];
+      c.globalAlpha = g.kind === Line.Underground ? 0.4 : g.kind === Line.ThroughLake ? 0.1 : glow ? 0.3 : 0.26;
+      c.setLineDash(g.kind === Line.Underground ? [3 / k, 4 / k] : []);
+      c.stroke(g.path);
     }
+    c.setLineDash([]);
+    c.setTransform(view.DPR, 0, 0, view.DPR, 0, 0);
     c.globalAlpha = 1;
     if (selected) {
       c.strokeStyle = C.hi;
@@ -186,7 +236,8 @@ async function main() {
       if (onScreen(x, y)) sinkRing(c, x, y, s.name, view.scale > 1600);
     }
     c.fillStyle = C.muted;
-    for (const [n, lon, lat] of PLACES) {
+    for (const [n, lon, lat, min = 0] of PLACES) {
+      if (view.scale < min) continue;
       const p = project(lon, lat);
       c.fillText(n, X(p[0]), Y(p[1]));
     }
@@ -199,22 +250,29 @@ async function main() {
     label("Suwannee", -82.99, 29.7, FC[Fate.Gulf]);
     label("Santa Fe", -82.47, 29.93, FC[Fate.Gulf]);
     label("Paynes Prairie", -82.33, 29.585, FC[Fate.Sink]);
+    label("Suwannee", -83.14, 30.25, FC[Fate.Gulf]);
+    label("Withlacoochee", -82.72, 28.95, FC[Fate.Gulf]);
     label("Ocklawaha", -81.99, 29.37, FC[Fate.Atlantic]);
     label("St. Johns", -81.63, 29.54, FC[Fate.Atlantic]);
     label("St. Johns", -81.62, 30.1, FC[Fate.Atlantic]);
-    // Sea names start just offshore and run out to sea. On a phone there's little sea
-    // on screen, so use the short name, and skip a name that would run off the edge.
-    const seaLabel = (full: string, short: string, lon: number, lat: number) => {
-      const p = project(lon, lat);
-      const x = X(p[0]);
-      const y = Y(p[1]);
+    // Sea names sit in open water, clear of the coast. Each has spots to try in order:
+    // well offshore when the screen is wide, nearer the coast when it isn't. On a phone
+    // there's little sea on screen, so use the short name; skip it if nothing fits.
+    const seaLabel = (full: string, short: string, spots: [number, number][]) => {
       const t = W < 600 ? short : full;
-      if (x < 0 || y < 0 || y > H || x + c.measureText(t).width > W) return;
-      c.fillStyle = C.muted;
-      c.fillText(t, x, y);
+      const w = c.measureText(t).width;
+      for (const [lon, lat] of spots) {
+        const p = project(lon, lat);
+        const x = X(p[0]);
+        const y = Y(p[1]);
+        if (x < 0 || y < 0 || y > H || x + w > W) continue;
+        c.fillStyle = C.muted;
+        c.fillText(t, x, y);
+        return;
+      }
     };
-    seaLabel("Gulf of Mexico", "Gulf", -83.24, 29.17);
-    seaLabel("Atlantic Ocean", "Atlantic", -81.3, 30.06);
+    seaLabel("Gulf of Mexico", "Gulf", [[-83.8, 29.35], [-83.3, 28.95]]);
+    seaLabel("Atlantic Ocean", "Atlantic", [[-81.3, 30.06]]);
   }
 
   // ----- particles: rain falls on every creek, weighted by length -----
@@ -223,6 +281,7 @@ async function main() {
   const cumLen: number[] = [];
   let totalLen = 0;
   segs.forEach((s, i) => cumLen.push((totalLen += s.route ? 0 : s.len * MERGE_KEEP ** sizeClass[i])));
+  const rate = RAIN_PER_KM * segs.reduce((km, s) => km + (s.route ? 0 : s.len * KM_PER_UNIT), 0);
   const pickSeg = () => {
     const r = Math.random() * totalLen;
     let lo = 0;
@@ -240,7 +299,7 @@ async function main() {
   let spawnAcc = 0;
 
   function step(dt: number, fresh = true) {
-    spawnAcc += RATE * dt;
+    spawnAcc += rate * dt;
     while (spawnAcc >= 1) {
       spawnAcc--;
       if (parts.length < MAX_PARTICLES) {
@@ -435,12 +494,14 @@ async function main() {
     const sea = s0.fate === Fate.Gulf ? "Gulf" : "Atlantic";
     const body = s0.route
       ? `Past the mapped creeks, the ${escapeHtml(s0.name ?? "river")} carries their water the rest of the way to the sea.`
-      : s0.fate === Fate.Sink && s0.sink ? `Ends at <b>${escapeHtml(s0.sink)}</b> and goes straight into the Floridan aquifer.` : F.via;
+      : s0.fate === Fate.Sink && s0.sink ? `Ends at <b>${escapeHtml(s0.sink)}</b> and goes straight into the Floridan aquifer.`
+      : s0.fate <= Fate.Atlantic ? seaway(s0, trace) : F.via;
     const dist = s0.fate > Fate.Atlantic
       ? `Its water travels about ${miles} miles along the surface before it disappears.`
       : trace.toSea ? `Its water travels about ${miles} miles to reach the ${sea}.` : `Its water travels at least ${miles} miles before leaving this map.`;
     const underground = trace.path.some((s) => s.underground) ? " Part of the way it runs underground, through the aquifer." : "";
-    const joins = trace.joins && trace.joins !== s0.name ? ` Along the way it joins ${escapeHtml(trace.joins)}.` : "";
+    // Skip the river it joins when the card already names it ("Flows down the Withlacoochee River...").
+    const joins = trace.joins && trace.joins !== s0.name && !body.includes(escapeHtml(trace.joins)) ? ` Along the way it joins ${escapeHtml(trace.joins)}.` : "";
     card.show({ title: s0.name || "Unnamed creek", kind: F.label, color: FC[s0.fate], body: `${body} ${dist}${underground}${joins}` });
   }
 
@@ -476,9 +537,14 @@ async function main() {
     });
   }
 
-  for (const [id, b] of [["vAll", VIEWS.all], ["vGnv", VIEWS.gnv], ["vAla", VIEWS.ala], ["vSpr", VIEWS.spr], ["vStj", VIEWS.stj], ["vGulf", VIEWS.gulf], ["vAtl", VIEWS.atl]] as const) {
-    document.getElementById(id)!.addEventListener("click", () => view.fit(b, true));
-  }
+  document.getElementById("vAll")!.addEventListener("click", () => view.fit(VIEWS.all, true));
+  const pick = document.getElementById("view") as HTMLSelectElement;
+  pick.addEventListener("change", () => {
+    const b = VIEWS[pick.value as keyof typeof VIEWS];
+    if (b) view.fit(b, true);
+    // Back to "Zoom to…", so the same place can be picked again after panning away.
+    pick.value = "";
+  });
   let paused = false;
   const bp = document.getElementById("bPause")!;
   const setPaused = (p: boolean) => {
