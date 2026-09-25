@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rainbow River starts full grown</title>
+<meta name="description" content="Rainbow River rises out of the ground at full size. An animated map of its springs, the Withlacoochee it joins, where its groundwater comes from, and its flow since 1966, from live USGS gauges.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Rainbow River starts full grown">
+<meta property="og:description" content="Rainbow River rises out of the ground at full size. An animated map of its springs, the Withlacoochee it joins, where its groundwater comes from, and its flow since 1966, from live USGS gauges.">
+<meta property="og:url" content="https://waterways.paperhurts.dev/rainbow.html">
+<meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="/src/rainbow/main.ts"></script>
+</head>
+<body>
+<div id="wrap">
+<header>
+  <h1>Rainbow River <em>starts full grown</em></h1>
+  <p class="lede" id="lede">Loading flows…</p>
+</header>
+<div id="stage" aria-label="Animated map of Rainbow River, its springs, the Withlacoochee River to the Gulf, and Rainbow's springshed" role="img">
+  <canvas id="base"></canvas>
+  <canvas id="fx"></canvas>
+  <div id="legend">
+    <span><i style="background:var(--spring)"></i>Spring water from the Rainbow</span>
+    <span><i style="background:var(--tannin)"></i>Withlacoochee water from upstream</span>
+    <span><i style="background:var(--under)"></i>Groundwater in the springshed</span>
+  </div>
+  <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
+</div>
+<section id="hist" aria-label="Flow since 1966">
+  <div id="histTitle">Flow since 1966</div>
+  <p id="histRead"></p>
+  <div id="histChart"></div>
+  <details class="note"><summary>About this data</summary>Yearly means for each water year (October through September), from USGS daily records: Rainbow River at Dunnellon (02313100) and Withlacoochee River near Holder (02313000), above where the Rainbow joins. Rain drives most of the year-to-year change.</details>
+</section>
+<div class="tools">
+  <button id="bAll" type="button">Springshed</button>
+  <button id="bRiver" type="button">River to the Gulf</button>
+  <button id="bSprings" type="button">Head springs</button>
+  <button id="bHist" type="button" aria-pressed="false">Flow since 1966</button>
+  <button id="bPause" type="button" aria-pressed="false">Pause</button>
+  <a href="rain.html">Every creek</a>
+  <a href="santa-fe.html">Santa Fe</a>
+</div>
+<div id="profile" aria-label="USGS gauges"></div>
+<div id="status"></div>
+</div>
+</body>
+</html>

@@ -37,6 +37,15 @@ SEA_CLIP: Bbox = (-85.2, 27.9, -79.6, 31.6)
 RIVERS_BBOX: Bbox = (-83.08, 29.54, -82.14, 30.09)
 RIVERS = ["Santa Fe River", "Ichetucknee River", "Suwannee River", "New River", "Olustee Creek"]
 
+# ---- Rainbow River map ----
+#: Its rivers: the Withlacoochee from above Holder to the Gulf, and the Rainbow from its head springs.
+RAINBOW_BBOX: Bbox = (-82.80, 28.92, -82.25, 29.14)
+RAINBOW_RIVERS = ["Rainbow River", "Withlacoochee River", "Cross Florida Barge Canal"]
+#: FDEP spring vents along the upper Rainbow and Indian Creek.
+RAINBOW_VENTS_BBOX: Bbox = (-82.46, 29.04, -82.40, 29.11)
+#: Everything the Rainbow map draws: the rivers and the springshed, up past Williston.
+RAINBOW_VIEW: Bbox = (-82.80, 28.92, -82.05, 29.70)
+
 #: Aquifer grid: 0.01° cells. Keep in sync with the frontend's expectations in src/shared/types.ts.
 AQUIFER_GRID = {"lon0": -83.15, "lat0": 29.35, "res": 0.01, "nx": 121, "ny": 81}
 #: Averaged for each surface's "central area" level on the sparkline.
@@ -52,6 +61,10 @@ CENSUS_STATES = "https://tigerweb.geo.census.gov/arcgis/rest/services/Generalize
 FDEP_SPRINGS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/SPRINGS/MapServer/1"
 FGS_SWALLETS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/FGS_PUBLIC/MapServer/2"
 FGS_POTENTIOMETRIC = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/FGS_PUBLIC/MapServer/8"
+#: SWFWMD's springsheds, interpreted from USGS's May and September 1994 potentiometric maps.
+SWFWMD_SPRINGSHEDS = "https://www25.swfwmd.state.fl.us/arcgis12/rest/services/BaseVector/MajorSpringsheds/MapServer/0"
+#: FDEP's Springs Priority Focus Areas, drawn around Outstanding Florida Springs.
+FDEP_PRIORITY_FOCUS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/STATEWIDE_BMAP/MapServer/1"
 USGS_API = "https://api.waterdata.usgs.gov/ogcapi/v1/collections"
 
 # NHDPlus HR terminal paths (terminalpa) for the two ocean outlets. Each is also the
@@ -67,8 +80,10 @@ FTYPE_SINK_RISE = 450
 FTYPE_SPRING = 458
 
 
-def gauges() -> list[dict]:
-    return json.loads((CONFIG / "gauges.json").read_text(encoding="utf-8"))
+def gauges(page: str | None = None) -> list[dict]:
+    """config/gauges.json, optionally just one map's ("santa-fe" or "rainbow")."""
+    rows = json.loads((CONFIG / "gauges.json").read_text(encoding="utf-8"))
+    return [g for g in rows if page is None or g["page"] == page]
 
 
 def named_sinks() -> list[dict]:

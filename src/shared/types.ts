@@ -85,17 +85,46 @@ export interface ContoursFile {
   contours: { v: number; p: LonLat[] }[];
 }
 
+// ---------- rainbow.json (Rainbow River map) ----------
+
+export interface RainbowFile {
+  /** surface: the FGS potentiometric surface the contours come from. */
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number; surface: string };
+  /** Main stems, upstream to downstream: Rainbow River, Withlacoochee River, Cross Florida Barge Canal. */
+  rivers: Record<string, { p: LonLat[]; u: (0 | 1)[] }>;
+  /** FDEP spring vents on the upper Rainbow and Indian Creek, north to south. */
+  vents: [name: string, lon: number, lat: number][];
+  /** Rings are packed like lakes.json (coordOrigin, coordScale). */
+  springshed: { km2: number; rings: number[][] };
+  focusArea: { km2: number; rings: number[][] };
+  contours: { v: number; p: LonLat[] }[];
+  /** Water-year mean discharge (cfs), Rainbow at Dunnellon and Withlacoochee near Holder. */
+  history: { years: number[]; Rb: (number | null)[]; WH: (number | null)[] };
+}
+
 // ---------- gauges (config/gauges.json) and flows ----------
 
+/** The Santa Fe map's gauges; the aquifer steps carry flows for these. */
 export const FLOW_KEYS = ["W", "O", "R", "U", "F", "I", "H", "B", "Bl", "Wx", "Fn"] as const;
 export type FlowKey = (typeof FLOW_KEYS)[number];
 /** Discharge in cubic feet per second, by gauge key. null = no record. */
 export type Flows = Record<FlowKey, number | null>;
 
+/** The Rainbow River map's gauges: Holder, upper Rainbow, Rainbow mouth, US 41, Inglis bypass, Inglis Dam. */
+export const RAINBOW_KEYS = ["WH", "RbN", "Rb", "WD", "WB", "WI"] as const;
+export type RainbowKey = (typeof RAINBOW_KEYS)[number];
+export type RainbowFlows = Record<RainbowKey, number | null>;
+
+export type GaugeKey = FlowKey | RainbowKey;
+
 export interface GaugeConfig {
   id: string;
   short: string;
-  key: FlowKey;
+  /** USGS's site name, tidied, for cards; the Santa Fe map builds its own titles. */
+  name?: string;
+  key: GaugeKey;
+  /** Which map draws it. */
+  page: "santa-fe" | "rainbow";
   river?: string;
   spring?: boolean;
   lon: number;
@@ -105,7 +134,8 @@ export interface GaugeConfig {
 export interface Snapshot {
   /** ISO 8601 time of the newest reading. */
   time: string;
-  cfs: Flows;
+  /** Every gauge in config/gauges.json, both maps. */
+  cfs: Flows & RainbowFlows;
 }
 
 // ---------- aquifer.json ----------

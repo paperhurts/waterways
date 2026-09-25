@@ -6,11 +6,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   FLOW_KEYS,
+  RAINBOW_KEYS,
   Fate,
   type AquiferFile,
   type ContoursFile,
   type GaugeConfig,
   type LakesFile,
+  type RainbowFile,
   type RiversFile,
   type Snapshot,
   type SpringsFile,
@@ -25,6 +27,7 @@ const aquifer = read<AquiferFile>("public/data/aquifer.json");
 const snapshot = read<Snapshot>("public/data/snapshot.json");
 const lakes = read<LakesFile>("public/data/lakes.json");
 const statewide = read<SpringsFile>("public/data/springs.json");
+const rainbow = read<RainbowFile>("public/data/rainbow.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 
 // The rain map's study area (a union of boxes), padded for features that cross an edge:
@@ -292,15 +295,79 @@ describe("lakes.json", () => {
   });
 });
 
+describe("rainbow.json", () => {
+  const near = ([x, y]: number[], [lon, lat]: number[], tol: number) => Math.abs(x - lon) < tol && Math.abs(y - lat) < tol;
+  const [ox, oy] = rainbow.meta.coordOrigin;
+  const k = rainbow.meta.coordScale;
+  /** Even-odd ray casting over packed rings. */
+  const inRings = (rings: number[][], lon: number, lat: number) => {
+    const [x, y] = [(lon - ox) * k, (lat - oy) * k];
+    let inside = false;
+    for (const r of rings) {
+      for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
+        if (r[i + 1] > y !== r[j + 1] > y && x < ((r[j] - r[i]) * (y - r[i + 1])) / (r[j + 1] - r[i + 1]) + r[i]) inside = !inside;
+      }
+    }
+    return inside;
+  };
+
+  it("runs the Rainbow from its head springs and the Withlacoochee to the Gulf", () => {
+    const rb = rainbow.rivers["Rainbow River"].p;
+    const wl = rainbow.rivers["Withlacoochee River"].p;
+    expect(rb.length).toBeGreaterThan(20);
+    expect(near(rb[0], [-82.4377, 29.1027], 0.01)).toBe(true);
+    expect(near(rb[rb.length - 1], [-82.458, 29.047], 0.01)).toBe(true);
+    expect(near(wl[wl.length - 1], [-82.755, 28.998], 0.02)).toBe(true);
+    expect(rainbow.rivers["Cross Florida Barge Canal"].p.length).toBeGreaterThan(5);
+  });
+
+  it("has the head spring vents, on the upper river", () => {
+    const names = rainbow.vents.map((v) => v[0]);
+    expect(names).toContain("Rainbow Springs");
+    expect(rainbow.vents.length).toBeGreaterThanOrEqual(10);
+    for (const [, lon, lat] of rainbow.vents) expect(lon > -82.46 && lon < -82.4 && lat > 29.07 && lat < 29.11).toBe(true);
+  });
+
+  it("has a springshed and focus area around the springs", () => {
+    expect(rainbow.springshed.km2).toBeGreaterThan(1000);
+    expect(rainbow.springshed.km2).toBeLessThan(3000);
+    expect(rainbow.focusArea.km2).toBeGreaterThan(50);
+    expect(rainbow.focusArea.km2).toBeLessThan(rainbow.springshed.km2);
+    for (const area of [rainbow.springshed, rainbow.focusArea]) {
+      for (const r of area.rings) {
+        expect(r.length % 2).toBe(0);
+        expect(r.length).toBeGreaterThanOrEqual(8);
+      }
+    }
+    // A spot just east of the head springs is inside both; the Gulf coast is inside neither.
+    expect(inRings(rainbow.springshed.rings, -82.42, 29.11)).toBe(true);
+    expect(inRings(rainbow.focusArea.rings, -82.42, 29.11)).toBe(true);
+    expect(inRings(rainbow.springshed.rings, -82.75, 29.0)).toBe(false);
+    expect(rainbow.contours.length).toBeGreaterThan(3);
+  });
+
+  it("has decades of finished water years for both rivers", () => {
+    const { years, Rb, WH } = rainbow.history;
+    expect(years.length).toBeGreaterThanOrEqual(50);
+    years.forEach((y, i) => i && expect(y).toBe(years[i - 1] + 1));
+    expect(years[years.length - 1]).toBeLessThan(new Date().getFullYear() + 1);
+    expect(Rb.length).toBe(years.length);
+    expect(WH.length).toBe(years.length);
+    for (const v of Rb) expect(v).toBeGreaterThan(300);
+  });
+});
+
 describe("gauges and snapshot", () => {
   it("has one gauge per flow key with unique site ids", () => {
-    expect(gauges.map((g) => g.key).sort()).toEqual([...FLOW_KEYS].sort());
+    expect(gauges.map((g) => g.key).sort()).toEqual([...FLOW_KEYS, ...RAINBOW_KEYS].sort());
+    for (const g of gauges) expect(["santa-fe", "rainbow"]).toContain(g.page);
+    expect(gauges.filter((g) => g.page === "rainbow").map((g) => g.key).sort()).toEqual([...RAINBOW_KEYS].sort());
     expect(new Set(gauges.map((g) => g.id)).size).toBe(gauges.length);
     for (const g of gauges) expect(g.id).toMatch(/^\d{8,15}$/);
   });
 
   it("has a dated reading for every gauge", () => {
     expect(Number.isNaN(Date.parse(snapshot.time))).toBe(false);
-    for (const k of FLOW_KEYS) expect(snapshot.cfs).toHaveProperty(k);
+    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS]) expect(snapshot.cfs).toHaveProperty(k);
   });
 });

@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { latestUrl, parseLatest } from "./live";
+import gauges from "../../config/gauges.json";
+import { fmtCfs, latestUrl, parseLatest } from "./live";
 
 describe("latestUrl", () => {
   it("asks for every site in one request, with room for all of them", () => {
     const u = new URL(latestUrl(["02322500", "02321500"]));
     expect(u.searchParams.get("monitoring_location_id")).toBe("USGS-02322500,USGS-02321500");
     expect(u.searchParams.get("parameter_code")).toBe("00060");
-    expect(Number(u.searchParams.get("limit"))).toBeGreaterThanOrEqual(11);
+    // Both maps' gauges come back in one page.
+    expect(Number(u.searchParams.get("limit"))).toBeGreaterThanOrEqual(gauges.length);
   });
 });
 
@@ -26,5 +28,14 @@ describe("parseLatest", () => {
   it("drops missing and negative sentinel values", () => {
     const m = parseLatest({ features: [f("1", "2026-09-24T02:00:00Z", null), f("2", "2026-09-24T02:00:00Z", "-999999")] });
     expect(m.size).toBe(0);
+  });
+});
+
+describe("fmtCfs", () => {
+  it("rounds by magnitude", () => {
+    expect(fmtCfs(null)).toBe("—");
+    expect(fmtCfs(0.94)).toBe("0.9");
+    expect(fmtCfs(40.9)).toBe("41");
+    expect(fmtCfs(1140)).toBe((1140).toLocaleString());
   });
 });

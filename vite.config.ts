@@ -16,6 +16,7 @@ export default defineConfig({
         index: resolve(import.meta.dirname, "index.html"),
         rain: resolve(import.meta.dirname, "rain.html"),
         santaFe: resolve(import.meta.dirname, "santa-fe.html"),
+        rainbow: resolve(import.meta.dirname, "rainbow.html"),
         journal: resolve(import.meta.dirname, "journal.html"),
       },
     },

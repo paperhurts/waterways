@@ -1,11 +1,9 @@
 // The flow model behind the Santa Fe animation: how much water enters each
 // reach, inferred from the difference between the gauges that bracket it.
 
+import { fmtCfs } from "../shared/live";
 import type { Flows } from "../shared/types";
 import type { Reach } from "./content";
-
-export const fmtCfs = (n: number | null | undefined): string =>
-  n == null ? "—" : n >= 100 ? Math.round(n).toLocaleString() : n.toFixed(n < 10 ? 1 : 0);
 
 const v = (f: Flows, k: keyof Flows) => f[k] ?? 0;
 

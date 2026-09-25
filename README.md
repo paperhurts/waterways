@@ -4,16 +4,18 @@ Animated maps of the rivers, springs, and sinks of north Florida's springs belt:
 
 - **Where does the rain go?** (`rain.html`) shows every mapped creek in the springs belt, from the middle Suwannee (Troy, Royal, Peacock, Lafayette Blue) and the Santa Fe, south through Manatee Springs, Rainbow River, and Dunnellon to Crystal River and Homosassa, and east along the Ocklawaha from the Harris Chain past Silver Springs to the St. Johns at Lake George. Each creek is colored by where its water ends up: the Gulf (down the Suwannee or the Nature Coast's own rivers), the Atlantic via the St. Johns, a sink into the aquifer, or nowhere on the map. The St. Johns is followed past the mapped creeks to the Atlantic, so a traced drop ends at the sea. Spring boils are sized by FDEP magnitude. Rain falls on every creek and flows downstream, faster on bigger rivers. Tap a creek to send a drop down its whole path. Tap a swallet to see where a creek goes underground and where it rises again.
 - **The Santa Fe breathes groundwater** (`santa-fe.html`) animates river and spring flow from live USGS gauges. It shows the river vanishing at River Sink and returning at River Rise, dye traces from Gainesville's sinks, and an aquifer time slider that runs from before development to the present.
+- **Rainbow River starts full grown** (`rainbow.html`) shows a river that rises out of the ground at full size. Clear water from about 20 spring vents and tannic Withlacoochee water from upstream meet at Dunnellon, spread through Lake Rousseau, and leave for the Gulf down the old river or the barge canal, all driven by six live USGS gauges. Groundwater drifts across Rainbow's springshed toward the head springs, and a panel charts sixty years of flow: the spring barely changes while the river swings.
 
-- **Spring journal** (`journal.html`) is a private, shared log of Florida spring visits. It covers all 889 springs in FDEP's statewide list. Each visit records a date, a 1–5 rating, notes, photos, and wildlife sightings. A sighting can be pinned by the phone's GPS when you tap it. The journal map shows visits and sightings over USGS satellite or topo imagery, with a layer per animal group that you can switch on and off. Signed-in members also see their visits and sightings on the two public maps.
+- **Spring journal** (`journal.html`) is a private, shared log of Florida spring visits. It covers all 889 springs in FDEP's statewide list. Each visit records a date, a 1–5 rating, notes, photos, and wildlife sightings. A sighting can be pinned by the phone's GPS when you tap it. The journal map shows visits and sightings over USGS satellite or topo imagery, with a layer per animal group that you can switch on and off. Signed-in members also see their visits and sightings on the public maps.
 
 ## Layout
 
 ```
-index.html, rain.html, santa-fe.html   page shells (Vite entry points)
+index.html, rain.html, santa-fe.html, rainbow.html   page shells (Vite entry points)
 src/shared/     projection, pan/zoom viewport, streak renderer, lakes, theme tokens, data types
 src/rain/       the rain map and its creek-network logic
-src/santa-fe/   the Santa Fe map: flow model, aquifer grids, live gauges, authored content
+src/santa-fe/   the Santa Fe map: flow model, aquifer grids, authored content
+src/rainbow/    the Rainbow River map: flow model, flow-history chart, authored content
 src/journal/    the spring journal: Supabase client, visit form, sightings map (Leaflet)
 supabase/       database migrations for the journal (tables, row-level security, photo bucket)
 public/data/    generated datasets the pages fetch at runtime
@@ -54,14 +56,15 @@ Then run `npm test` from the repo root to check the output before committing it.
 | `rivers.json` | NHDPlus HR | The main level path of each named river, trimmed to the map. Underground conduits (FType 420) are flagged per vertex. |
 | `lakes.json` | NHDPlus HR waterbodies; Census cartographic state outlines (1:500,000) | Lakes ≥ 0.2 km² and wetlands ≥ 1.5 km², simplified; wetland islands and scraps under 0.5 km² are dropped. The sea is everything in a box around both river mouths that isn't land in the Census's shoreline-clipped state outlines. |
 | `aquifer.json`, `contours.json` | FDEP/FGS Upper Floridan potentiometric surface layer; USGS daily discharge | Each surface is gridded at 0.01° by distance-weighting the two nearest contours of different elevation. Flows are monthly means. A gauge with no record that month is estimated from Fort White by its median same-month ratio (shown as "est."). |
-| `snapshot.json` | USGS Water Data API, latest values | Fallback readings for when a visitor's browser can't reach USGS. |
+| `rainbow.json` | NHDPlus HR; FDEP springs; SWFWMD springsheds; FDEP Springs Priority Focus Areas; FGS potentiometric surface; USGS daily discharge | Main stems of the Rainbow, the Withlacoochee from above Holder to the Gulf, and the barge canal. FDEP vents on the upper Rainbow, with duplicates within 15 m merged. SWFWMD's Rainbow Springs Group springshed (interpreted from USGS's 1994 potentiometric maps) and FDEP's Rainbow priority focus area, geometry only. The latest FGS contours around them. Water-year mean flows for the Rainbow at Dunnellon and the Withlacoochee near Holder, finished years only. |
+| `snapshot.json` | USGS Water Data API, latest values | Fallback readings for when a visitor's browser can't reach USGS. Covers both river maps' gauges (`page` in `config/gauges.json`). |
 
 ## Spring journal
 
 The journal runs on a free Supabase project. `config/supabase.json` holds its URL and publishable key. Both are public by design: every table and the photo bucket use row-level security, and all access requires a signed-in email on the `members` list. Members can read everything. Each person can edit or delete only their own entries. Photos are resized and re-encoded in the browser before upload, which strips their EXIF GPS tags.
 
 - **Sign in:** members get an emailed link. In Supabase → Authentication → URL Configuration, set the Site URL to `https://waterways.paperhurts.dev/journal.html` and add `http://localhost:5180/journal.html` as a redirect URL.
-- **Invite people:** add them under People in the journal. Supabase's built-in email only delivers to members of your Supabase organization's team, a few messages an hour. To reach anyone else, either invite them to the team or set a custom SMTP sender (Authentication → Emails → SMTP; Resend's free tier works).
+- **Invite people:** add them under People in the journal; they sign in from the journal page with that email. Sign-in links go out through a custom SMTP sender (Resend), because Supabase's built-in email only reaches its own team. A "Before User Created" auth hook refuses accounts for anyone not on the list, so the form can't email strangers.
 - **Schema:** SQL lives in `supabase/migrations/`. The first member is seeded by hand, so no personal email is committed.
 - **Staying awake:** Supabase pauses free projects after a week without activity. The six-hourly deploy calls a no-op `ping()` to prevent that. If the journal ever says it can't load, restore the project from the Supabase dashboard.
 - **Developing without an account:** `http://localhost:5180/journal.html?demo` shows sample data and saves nothing. It's dev-only and stripped from production builds.
@@ -78,6 +81,7 @@ Pages must be set to deploy from **GitHub Actions** (Settings → Pages → Sour
 - Journal basemaps: USGS The National Map (imagery, topo, hydrography)
 - River and spring discharge: [USGS Water Data API](https://api.waterdata.usgs.gov/) (instantaneous and daily values)
 - Springs: FDEP Florida Springs layer
+- Springsheds: Southwest Florida Water Management District (Major Springsheds); priority focus areas: FDEP Statewide BMAP layer
 - Swallets: Florida Geological Survey swallet survey
 - Aquifer: FDEP / FGS Upper Floridan Aquifer potentiometric surface, including the USGS pre-development and historic surfaces
 - Dye traces: Karst Environmental Services, Mill Creek and Lee Sinks Dye Trace (2005), for Alachua County EPD

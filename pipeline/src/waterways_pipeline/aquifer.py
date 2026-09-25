@@ -46,8 +46,9 @@ def grid_bbox(pad: float = 0.0) -> C.Bbox:
     return (g["lon0"] - pad, g["lat0"] - pad, g["lon0"] + (g["nx"] - 1) * g["res"] + pad, g["lat0"] + (g["ny"] - 1) * g["res"] + pad)
 
 
-def fetch_contours(month_year: str, refresh: bool = False) -> list[tuple[float, list[tuple[float, float]]]]:
-    feats = arcgis_query(C.FGS_POTENTIOMETRIC, grid_bbox(FETCH_PAD_DEG), where=f"MONTH_YEAR='{month_year}'", fields="CONTOUR,MONTH_YEAR", refresh=refresh)
+def fetch_contours(month_year: str, refresh: bool = False, bbox: C.Bbox | None = None) -> list[tuple[float, list[tuple[float, float]]]]:
+    """(level ft, polyline) for one surface, around the aquifer grid unless given a box."""
+    feats = arcgis_query(C.FGS_POTENTIOMETRIC, bbox or grid_bbox(FETCH_PAD_DEG), where=f"MONTH_YEAR='{month_year}'", fields="CONTOUR,MONTH_YEAR", refresh=refresh)
     out = [(float(f["properties"]["CONTOUR"]), part) for f in feats if f.get("geometry") for part in line_parts(f["geometry"])]
     if not out:
         raise RuntimeError(f"FGS returned no contours for {month_year!r}")

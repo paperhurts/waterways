@@ -7,6 +7,10 @@ export interface Reading {
   time: Date;
 }
 
+/** Discharge for labels: whole numbers from 100 up, one decimal under 10, "—" if unknown. */
+export const fmtCfs = (n: number | null | undefined): string =>
+  n == null ? "—" : n >= 100 ? Math.round(n).toLocaleString() : n.toFixed(n < 10 ? 1 : 0);
+
 /** A reading older than this is flagged on the map as possibly out of date. */
 export const STALE_MS = 36 * 3600e3;
 
@@ -17,7 +21,7 @@ export function latestUrl(siteIds: string[]): string {
     f: "json",
     monitoring_location_id: siteIds.map((id) => `USGS-${id}`).join(","),
     parameter_code: "00060",
-    // The API's default page size is 10, fewer than our 11 gauges.
+    // The API's default page size is 10, fewer than our gauges.
     limit: "100",
     skipGeometry: "true",
     properties: "monitoring_location_id,time,value",

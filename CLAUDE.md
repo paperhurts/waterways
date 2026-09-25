@@ -1,6 +1,6 @@
 # Waterways
 
-Two canvas-animated maps of north Florida hydrology (Vite + TypeScript, no framework), plus a Python pipeline that regenerates their data. See README.md for the layout and the data method.
+Three canvas-animated maps of north Florida hydrology (Vite + TypeScript, no framework), plus a Python pipeline that regenerates their data. See README.md for the layout and the data method.
 
 ## Commands
 - `npm run dev`: dev server on **5180** (preview on 4180), pinned with `strictPort`. Don't move them to 5173/4173; other local projects use those.
@@ -21,6 +21,12 @@ Two canvas-animated maps of north Florida hydrology (Vite + TypeScript, no frame
   - Water leaving the map takes its terminal path's fate when that path's last flowline (hydroseq == terminalpa) ends on the coast. `coast.PENINSULA_SPINE` decides Gulf vs. Atlantic.
 - **Rendering.** `src/shared/streaks.ts` batches particle streaks per style group, one `stroke()` per group. It uses additive glow in dark mode only. Dense rivers saturate to white under additive blending, so they need low alpha. On the rain map, drops also merge (`MERGE_KEEP`) when they enter a bigger stream class. The rain map's creeks are batched too: one `Path2D` per line style, built once in map units and stroked through the camera transform, because the base layer redraws on every pan and zoom frame. A new per-creek style has to become part of the stroke group key.
 - **Theme.** Colors are CSS custom properties in `src/shared/tokens.css`. The canvas reads them via `cssVar()` and re-reads them on color-scheme change. Keep them plain hex/rgba; `light-dark()` would break the canvas.
+- **The Rainbow River map** (`rainbow.html`, `rainbow.json` from `pipeline/.../rainbow.py`).
+  - Its six gauges share `config/gauges.json` and `snapshot.json` with the Santa Fe map; `page` says which map draws each, and the aquifer steps only average the Santa Fe ones (`FLOW_KEYS` vs `RAINBOW_KEYS`).
+  - The springshed is SWFWMD's, not traced. Tracing groundwater down the FGS contours fails here: Rainbow isn't a low point in the regional surface (heads keep falling west to the Gulf), so paths slide past it, and the contour interpolation leaves pits that trap them.
+  - Keep only geometry from FDEP's BMAP/PFA layers; their records include staff contact details.
+  - Below Dunnellon the US 41 gauge sits in Lake Rousseau's backwater and swings with the dam, so the model uses Holder + the Rainbow instead. At Inglis, water splits by the dam and bypass gauges: NHD routes the dam's releases into the barge canal and the river's main stem through the bypass.
+  - The map's dark spring/tannin colors fail a line chart's lightness band, so the history chart uses `--chart-spring` / `--chart-tannin` (checked with the dataviz validator).
 - **Live gauges.** They use `api.waterdata.usgs.gov/ogcapi/v1` (the legacy `waterservices.usgs.gov` is retired in early 2027). That API's default page size is 10, so always pass `limit`.
 - **Deploy.** Pages builds via Actions; the six-hourly deploy refreshes `snapshot.json` in the build only, without committing, and pings the journal database so it stays awake.
   - A daily watcher in the private `paperhurts/admin` repo backs this up. It pings the journal too, and emails if this deploy is disabled or the repo goes 50 days without a push (GitHub pauses scheduled workflows in public repos at 60).
