@@ -6,14 +6,14 @@ import { loadData, showLoadError } from "../shared/data";
 import { edgeRuns, locate, nearestDistance, pointAt, polyline, project, type Polyline, type XY } from "../shared/geo";
 import { drawJournal, journalCardHtml, loadJournalOverlay, type JournalOverlay } from "../shared/journal-overlay";
 import { decodeLakes, drawLakeLabels, drawLakes } from "../shared/lakes";
+import { STALE_MS, fetchLatest, fmtCfs } from "../shared/live";
 import { StreakLayer, drawBoil, fadeLayer } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
 import type { AquiferFile, ContoursFile, FlowKey, Flows, GaugeConfig, LakesFile, RiversFile, Snapshot } from "../shared/types";
 import { Viewport, startLoop } from "../shared/viewport";
 import { blend, colorize, contour, decodeGrid, type ContourLine } from "./aquifer";
 import { SINKS, SPRINGS, TOWNS, TRACES, UNDERGROUND_TEXT, VIEWS, type Reach } from "./content";
-import { fmtCfs, reachGains, reachInfo, springShare, type ReachInfo } from "./flow";
-import { STALE_MS, fetchLatest } from "./live";
+import { reachGains, reachInfo, springShare, type ReachInfo } from "./flow";
 
 /** Suwannee particles are thinned to this fraction so the big river doesn't drown out the Santa Fe. */
 const SUWK = 0.5;
@@ -31,6 +31,7 @@ interface River extends Polyline {
 }
 
 interface Gauge extends GaugeConfig {
+  key: FlowKey;
   cfs: number | null;
   est: boolean;
   xy: XY;
@@ -118,7 +119,8 @@ async function main() {
   const ug1 = SF.cum[ugIdx[ugIdx.length - 1]];
   const ugMid = pointAt(SF, (ug0 + ug1) / 2);
 
-  const gauges: Gauge[] = (gaugeConfig as GaugeConfig[]).map((g) => {
+  const mine = (g: GaugeConfig): g is GaugeConfig & { key: FlowKey } => g.page === "santa-fe";
+  const gauges: Gauge[] = (gaugeConfig as GaugeConfig[]).filter(mine).map((g) => {
     const xy = project(g.lon, g.lat);
     const river = rivers[g.river ?? "Suwannee River"];
     return { ...g, cfs: null, est: false, xy, d: nearestDistance(river, ...xy) };

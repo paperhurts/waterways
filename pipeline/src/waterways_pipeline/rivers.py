@@ -69,26 +69,32 @@ def trim(pts: list[LonLat], u: list[int], bbox: C.Bbox) -> tuple[list[LonLat], l
     return pts[a:b], u[a:b]
 
 
-def build_rivers(refresh: bool = False) -> dict:
-    names = ",".join(f"'{n}'" for n in C.RIVERS)
-    named = arcgis_query(C.NHD_FLOWLINES, C.RIVERS_BBOX, where=f"gnis_name IN ({names})", fields="gnis_name,levelpathi,lengthkm", refresh=refresh)
+def main_stems(names: list[str], bbox: C.Bbox, refresh: bool = False) -> dict[str, dict]:
+    """Each named river's main stem, upstream to downstream and trimmed to the box, as
+    {"p": [[lon, lat], ...], "u": [0|1 underground per vertex]}."""
+    quoted = ",".join(f"'{n}'" for n in names)
+    named = arcgis_query(C.NHD_FLOWLINES, bbox, where=f"gnis_name IN ({quoted})", fields="gnis_name,levelpathi,lengthkm", refresh=refresh)
     paths = main_levelpaths(named)
     ids = ",".join(str(v) for v in paths.values())
-    segs = arcgis_query(C.NHD_FLOWLINES, C.RIVERS_BBOX, where=f"levelpathi IN ({ids})", fields="nhdplusid,levelpathi,hydroseq,ftype", refresh=refresh)
+    segs = arcgis_query(C.NHD_FLOWLINES, bbox, where=f"levelpathi IN ({ids})", fields="nhdplusid,levelpathi,hydroseq,ftype", refresh=refresh)
     by_path: dict[int, dict[int, tuple[int, list[LonLat], bool]]] = defaultdict(dict)
     for f in segs:
         p = f["properties"]
         by_path[int(p["levelpathi"])][int(p["nhdplusid"])] = (int(p["hydroseq"]), line_coords(f["geometry"]), int(p["ftype"]) == C.FTYPE_UNDERGROUND)
     rivers = {}
-    for name in C.RIVERS:
+    for name in names:
         if name not in paths:
-            raise RuntimeError(f"no NHDPlus flowlines named {name!r} in the rivers bbox")
-        pts, u = trim(*join_path(list(by_path[paths[name]].values())), C.RIVERS_BBOX)
+            raise RuntimeError(f"no NHDPlus flowlines named {name!r} in {bbox}")
+        pts, u = trim(*join_path(list(by_path[paths[name]].values())), bbox)
         rivers[name] = {"p": [[round(x, 5), round(y, 5)] for x, y in pts], "u": u}
         log(f"rivers: {name}: {len(pts)} vertices, {sum(u)} underground")
+    return rivers
+
+
+def build_rivers(refresh: bool = False) -> dict:
     return {
         "meta": {"generator": "waterways-pipeline rivers", "generatedAt": date.today().isoformat(), "sources": [C.NHD_FLOWLINES]},
-        "rivers": rivers,
+        "rivers": main_stems(C.RIVERS, C.RIVERS_BBOX, refresh),
     }
 
 

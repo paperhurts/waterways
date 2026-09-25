@@ -126,8 +126,9 @@ def typical_may(series: dict[Month, float]) -> float | None:
 
 
 def all_monthly(refresh: bool = False) -> dict[str, dict[Month, float]]:
+    """Monthly means for the Santa Fe map's gauges, which the aquifer steps carry."""
     out = {}
-    for g in C.gauges():
+    for g in C.gauges("santa-fe"):
         out[g["key"]] = monthly_means(daily(g["id"], refresh))
         span = f"{min(out[g['key']])}–{max(out[g['key']])}" if out[g["key"]] else "no daily record"
         log(f"flows: {g['short']}: {len(out[g['key']])} months ({span})")

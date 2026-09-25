@@ -6,11 +6,11 @@ import argparse
 import json
 from pathlib import Path
 
-from . import aquifer, rivers, springs, streams, usgs
+from . import aquifer, rainbow, rivers, springs, streams, usgs
 from .config import OUT
 from .fetch import log
 
-DATASETS = ["springs", "streams", "rivers", "lakes", "aquifer", "snapshot"]
+DATASETS = ["springs", "streams", "rivers", "lakes", "aquifer", "rainbow", "snapshot"]
 
 
 def write(out: Path, name: str, data: dict) -> None:
@@ -33,6 +33,8 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
         aq, contours = aquifer.build(refresh)
         write(out, "aquifer.json", aq)
         write(out, "contours.json", contours)
+    elif dataset == "rainbow":
+        write(out, "rainbow.json", rainbow.build(refresh))
     elif dataset == "snapshot":
         # Always fresh: this is the point of the snapshot.
         write(out, "snapshot.json", usgs.latest())

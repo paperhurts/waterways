@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Flows } from "../shared/types";
-import { fmtCfs, reachGains, reachInfo, springShare } from "./flow";
+import { reachGains, reachInfo, springShare } from "./flow";
 
 const flows: Flows = { W: 40.9, O: 87.9, R: 94.9, U: 110, F: 664, I: 216, H: 1140, B: 2680, Bl: 3620, Wx: 5950, Fn: 71.8 };
 
@@ -39,14 +39,5 @@ describe("springShare", () => {
   it("is Fort White's gain below O'Leno as a fraction", () => {
     expect(springShare(flows)).toBeCloseTo((664 - 87.9) / 664);
     expect(springShare({ ...flows, O: 900 })).toBe(0);
-  });
-});
-
-describe("fmtCfs", () => {
-  it("rounds by magnitude", () => {
-    expect(fmtCfs(null)).toBe("—");
-    expect(fmtCfs(0.94)).toBe("0.9");
-    expect(fmtCfs(40.9)).toBe("41");
-    expect(fmtCfs(1140)).toBe((1140).toLocaleString());
   });
 });
