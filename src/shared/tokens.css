@@ -10,6 +10,8 @@
   /* Lake Okeechobee's water, green with algae, on the St. Lucie map. Stepped away from --tannin so the
      two stay apart with red-green color blindness (checked with the dataviz validator). */
   --lakewater: #c2e070;
+  /* Snorkel spots on the springs map, apart from --spring and --under (checked with the dataviz validator). */
+  --coral: #f08a5d;
   /* where the rain goes */
   --gulf: #d19a4a; --atl: #7fa9e6; --sink: #a794f0; --inland: #8c8577; --off: #5d584b;
   /* still water and wetland */
@@ -28,6 +30,7 @@
     --card: rgba(236, 238, 230, .95); --hi: #111;
     --tannin: #9a5a12; --spring: #0a8f86; --under: #6b58b8; --river: #b9ae92; --contour: #c7cbbc;
     --lakewater: #6a9a1a;
+    --coral: #c4552b;
     --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
     --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c; --sea: #c2d0d1;
     --chart-spring: #0a8f86; --chart-tannin: #9a5a12; --chart-lake: #4d7a17; --chart-estuary: #2f5fa8;
@@ -40,6 +43,7 @@
   --card: rgba(236, 238, 230, .95); --hi: #111;
   --tannin: #9a5a12; --spring: #0a8f86; --under: #6b58b8; --river: #b9ae92; --contour: #c7cbbc;
   --lakewater: #6a9a1a;
+  --coral: #c4552b;
   --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
   --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c; --sea: #c2d0d1;
   --chart-spring: #0a8f86; --chart-tannin: #9a5a12; --chart-lake: #4d7a17; --chart-estuary: #2f5fa8;

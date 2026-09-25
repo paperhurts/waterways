@@ -20,6 +20,7 @@ import {
   type RiversFile,
   type Snapshot,
   type SalinityStation,
+  type SnorkelFile,
   type SpringsFile,
   type StatewideFile,
   type StLucieFile,
@@ -40,6 +41,7 @@ const stLucie = read<StLucieFile>("public/data/st-lucie.json");
 const lakeO = read<LakeOFile>("public/data/lake-o.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
+const snorkel = read<SnorkelFile>("config/snorkel.json");
 
 /** Even-odd ray casting over packed rings, the same rule the maps fill with. */
 function inPacked(rings: number[][], [ox, oy]: [number, number], k: number, lon: number, lat: number): boolean {
@@ -443,6 +445,17 @@ describe("statewide.json", () => {
     expect(inRings(plan("Silver and Rainbow Springs").rings, -82.05, 29.215)).toBe(true);
   });
 
+  it("has Florida's coastal lagoons as water, with their names inside them", () => {
+    const lagoon = (name: string) => statewideMap.lagoons.find((l) => l.name === name);
+    for (const n of ["Indian River Lagoon", "Mosquito Lagoon", "Lake Worth Lagoon", "Biscayne Bay", "Santa Rosa Sound", "Big Lagoon"]) expect(lagoon(n), n).toBeDefined();
+    // The Indian River Lagoon at Vero Beach, which the Census outlines count as land.
+    expect(inRings(lagoon("Indian River Lagoon")!.rings, -80.368, 27.63)).toBe(true);
+    for (const l of statewideMap.lagoons) {
+      expect(l.km2, l.name).toBeGreaterThan(5);
+      expect(inRings(l.rings, ...l.label!), `${l.name} label`).toBe(true);
+    }
+  });
+
   it("puts every spring in the springs list on Florida's land", () => {
     const off = statewide.springs.filter(([, , , lon, lat]) => !inRings(statewideMap.land, lon, lat));
     // A few springs are offshore or on the waterline (submarine springs, coastal vents).
@@ -536,6 +549,30 @@ describe("lake-o.json", () => {
     expect(south.filter((v) => v != null).length).toBeGreaterThan(55);
     expect(south.some((v) => v != null && v < 0)).toBe(true);
     for (const v of [...east, ...west, ...south]) if (v != null) expect(Math.abs(v)).toBeLessThan(10000);
+  });
+});
+
+describe("config/snorkel.json", () => {
+  const springIds = new Set(statewide.springs.map((x) => x[0]));
+  const kinds = ["reef", "offshore", "lagoon", "inlet", "park", "island", "beach", "cave", "sinkhole"];
+
+  it("flags springs that are in the journal's list", () => {
+    expect(snorkel.springs.length).toBeGreaterThan(10);
+    for (const id of snorkel.springs) expect(springIds.has(id), id).toBe(true);
+    expect(new Set(snorkel.springs).size).toBe(snorkel.springs.length);
+  });
+
+  it("has spots with unique ids that never clash with a spring's, in Florida", () => {
+    const ids = snorkel.spots.map((x) => x.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const x of snorkel.spots) {
+      expect(x.id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*--[a-z0-9-]+$/);
+      expect(springIds.has(x.id), `${x.id} is a spring's id`).toBe(false);
+      expect(kinds).toContain(x.kind);
+      expect(x.osm).toMatch(/^(node|way|relation)\/\d+$/);
+      if (x.web) expect(x.web).toMatch(/^https?:\/\//);
+      expect(x.lon > -87.7 && x.lon < -79.9 && x.lat > 24.3 && x.lat < 31.1, x.name).toBe(true);
+    }
   });
 });
 

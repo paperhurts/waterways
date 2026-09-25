@@ -1,13 +1,14 @@
 import "../shared/map.css";
 import "./springs.css";
 import { InfoCard } from "../shared/card";
-import { loadData, showLoadError } from "../shared/data";
+import { escapeHtml, loadData, showLoadError } from "../shared/data";
 import { bounds, project, ringsPath, unpackRings, type XY } from "../shared/geo";
 import { drawJournal, hitSighting, journalCardHtml, loadJournalOverlay, sightingCard, type JournalOverlay } from "../shared/journal-overlay";
 import { MAG_TEXT } from "../shared/magnitude";
+import { KIND_LABEL, osmUrl, snorkelSprings, snorkelSpots } from "../shared/snorkel";
 import { drawBoil } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
-import type { SpringsFile, StatewideFile } from "../shared/types";
+import type { SnorkelSpot, SpringsFile, StatewideFile } from "../shared/types";
 import { Viewport, startLoop } from "../shared/viewport";
 
 const VIEWS = {
@@ -17,6 +18,8 @@ const VIEWS = {
   coast: bounds(-82.85, 28.3, -82.2, 29.25),
   ocala: bounds(-82.35, 28.8, -81.45, 29.5),
   stj: bounds(-81.75, 28.6, -81.1, 29.35),
+  east: bounds(-80.55, 26.1, -79.95, 27.65),
+  keys: bounds(-82.95, 24.4, -80.1, 25.6),
 };
 
 const CITIES: [string, number, number][] = [
@@ -35,8 +38,13 @@ interface Spring {
   lat: number;
   mag: number;
   onRainMap: boolean;
+  snorkel: boolean;
   xy: XY;
   phase: number;
+}
+
+interface Spot extends SnorkelSpot {
+  xy: XY;
 }
 
 async function main() {
@@ -45,19 +53,22 @@ async function main() {
   const land = ringsPath(unpack(state.land));
   const plans = state.plans.map((p) => ({ ...p, path: ringsPath(unpack(p.rings)), box: boxOf(unpack(p.rings)) }));
   const focus = state.focusAreas.map((p) => ({ ...p, path: ringsPath(unpack(p.rings)) }));
+  const lagoons = state.lagoons.map((p) => ({ ...p, path: ringsPath(unpack(p.rings)) }));
   const springs: Spring[] = file.springs.map(([id, name, county, lon, lat, mag, onRainMap], i) => ({
-    id, name, county, lon, lat, mag, onRainMap: !!onRainMap, xy: project(lon, lat), phase: (i * 0.618) % 1,
+    id, name, county, lon, lat, mag, onRainMap: !!onRainMap, snorkel: snorkelSprings.has(id), xy: project(lon, lat), phase: (i * 0.618) % 1,
   }));
+  const spots: Spot[] = snorkelSpots.map((s) => ({ ...s, xy: project(s.lon, s.lat) }));
   // Big springs last, so they draw on top of their smaller neighbors.
   springs.sort((a, b) => (b.mag || 9) - (a.mag || 9));
   const big = (s: Spring) => s.mag === 1 || s.mag === 2;
   let bigOnly = false;
-  const shown = () => (bigOnly ? springs.filter(big) : springs);
+  let snorkelOnly = false;
+  const shown = () => springs.filter((s) => (!bigOnly || big(s)) && (!snorkelOnly || s.snorkel));
 
   let C: Record<string, string> = {};
   let glow = true;
   const readColors = () => {
-    C = Object.fromEntries(["bg", "ink", "muted", "spring", "under", "sea", "shore"].map((n) => [n, cssVar(`--${n}`)]));
+    C = Object.fromEntries(["bg", "ink", "muted", "spring", "under", "sea", "shore", "coral"].map((n) => [n, cssVar(`--${n}`)]));
     glow = isDark();
   };
 
@@ -92,6 +103,12 @@ async function main() {
       c.strokeStyle = C.shore;
       c.lineWidth = 0.8 / s;
       c.stroke(land);
+      // The Census outlines count some lagoons as land; NHD's shapes put the water back.
+      c.fillStyle = C.sea;
+      for (const l of lagoons) {
+        c.fill(l.path, "evenodd");
+        c.stroke(l.path);
+      }
       c.fillStyle = C.under;
       for (const p of plans) {
         c.globalAlpha = glow ? 0.08 : 0.1;
@@ -123,6 +140,18 @@ async function main() {
         if (x > 0 && x < W && y > 0 && y < H) c.fillText(p.name, x - c.measureText(p.name).width / 2, y);
       }
     }
+    // Lagoon names, once zoomed in to where they read as water.
+    if (view.scale > 700) {
+      c.font = "italic 400 12px 'Spectral',serif";
+      c.fillStyle = C.muted;
+      for (const l of lagoons) {
+        if (!l.label || (l.km2 < 40 && view.scale < 2500)) continue;
+        const [lx, ly] = project(...l.label);
+        const x = X(lx);
+        const y = Y(ly);
+        if (x > 0 && x < W && y > 0 && y < H) c.fillText(l.name, x + 6, y);
+      }
+    }
     // Small springs are static; the big ones boil on the animated layer.
     c.fillStyle = C.spring;
     for (const s of shown()) {
@@ -133,6 +162,32 @@ async function main() {
       c.fill();
     }
     c.globalAlpha = 1;
+    // Snorkel springs wear a coral ring; the spots that aren't springs are coral diamonds.
+    const z = Math.min(1.6, Math.max(1, Math.sqrt(view.scale / 900)));
+    c.strokeStyle = C.coral;
+    c.lineWidth = 1.5;
+    for (const s of shown()) {
+      if (!s.snorkel) continue;
+      c.beginPath();
+      c.arc(X(s.xy[0]), Y(s.xy[1]), radius(s) + 2.5 * z, 0, 7);
+      c.stroke();
+    }
+    c.fillStyle = C.coral;
+    c.strokeStyle = C.bg;
+    c.lineWidth = 1;
+    for (const s of spots) {
+      const x = X(s.xy[0]);
+      const y = Y(s.xy[1]);
+      const r = 4 * z;
+      c.beginPath();
+      c.moveTo(x, y - r);
+      c.lineTo(x + r, y);
+      c.lineTo(x, y + r);
+      c.lineTo(x - r, y);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    }
     if (journal) drawJournal(c, journal, X, Y, springs, C.ink, glow);
   }
 
@@ -159,26 +214,41 @@ async function main() {
     const log = journal ? ` ${journalCardHtml(journal, s.id)}` : "";
     card.show({
       title: s.name,
-      kind: `Spring · ${s.county} County`,
+      kind: `${s.snorkel ? "Spring · snorkel spot" : "Spring"} · ${s.county} County`,
       body: `${MAG_TEXT[s.mag] ?? ""}${s.mag ? "" : "FDEP hasn't rated its flow. "}${links.length ? `<span class="links">${links.join(" · ")}</span>` : ""}${log}`,
     });
+  }
+
+  function showSpot(s: Spot) {
+    const links = [s.web ? `<a href="${escapeHtml(s.web)}" rel="noopener">Website</a>` : "", `<a href="${escapeHtml(osmUrl(s))}" rel="noopener">On OpenStreetMap</a>`].filter(Boolean);
+    const log = journal ? ` ${journalCardHtml(journal, s.id)}` : "";
+    card.show({ title: s.name, kind: `Snorkel spot · ${s.county} County`, body: `${KIND_LABEL[s.kind]}.<span class="links">${links.join(" · ")}</span>${log}` });
+  }
+
+  function showLagoon(l: (typeof lagoons)[number]) {
+    const extra = l.name === "Indian River Lagoon" ? ' <span class="links"><a href="st-lucie.html">Where the St. Lucie meets it</a> · <a href="rain.html">Where its creeks come from</a></span>' : "";
+    card.show({ title: l.name, kind: "Coastal lagoon", body: `About ${Math.round(l.km2 / 2.59).toLocaleString()} square miles of shallow, brackish water behind barrier islands, open to the sea through inlets.${extra}` });
   }
 
   const probe = document.createElement("canvas").getContext("2d")!;
   function tap(x: number, y: number) {
     const seen = journal ? hitSighting(journal, X, Y, x, y) : null;
     if (seen) return card.show(sightingCard(seen));
-    let best: Spring | null = null;
+    let best: (() => void) | null = null;
     let bd = 16 * 16;
-    for (const s of shown()) {
-      const d = (X(s.xy[0]) - x) ** 2 + (Y(s.xy[1]) - y) ** 2;
+    const test = (xy: XY, f: () => void) => {
+      const d = (X(xy[0]) - x) ** 2 + (Y(xy[1]) - y) ** 2;
       if (d < bd) {
         bd = d;
-        best = s;
+        best = f;
       }
-    }
-    if (best) return showSpring(best);
+    };
+    for (const s of shown()) test(s.xy, () => showSpring(s));
+    for (const s of spots) test(s.xy, () => showSpot(s));
+    if (best) return (best as () => void)();
     const m: XY = [(x - view.cam.tx) / view.cam.s, (y - view.cam.ty) / view.cam.s];
+    const l = lagoons.find((p) => probe.isPointInPath(p.path, m[0], m[1], "evenodd"));
+    if (l) return showLagoon(l);
     const f = focus.find((p) => probe.isPointInPath(p.path, m[0], m[1], "evenodd"));
     if (f) {
       card.show({ title: f.name, kind: "Priority focus area", body: `About ${Math.round(f.km2 / 2.59).toLocaleString()} square miles where the aquifer is most vulnerable and what soaks in reaches the springs fastest. Florida's springs law focuses its protections here.` });
@@ -195,8 +265,15 @@ async function main() {
   // ---------- controls ----------
   document.getElementById("lede")!.innerHTML =
     `FDEP maps <b>${springs.length}</b> springs. Most sit in a band from the Panhandle through the Big Bend to Orlando, where the Floridan aquifer lies close to the surface. ` +
-    `The shaded areas are covered by the state's <b>${plans.length}</b> springs cleanup plans, drawn around the springsheds of its Outstanding Florida Springs. Tap a spring.`;
+    `The shaded areas are covered by the state's <b>${plans.length}</b> springs cleanup plans, drawn around the springsheds of its Outstanding Florida Springs. ` +
+    `Coral marks <b>${snorkelSprings.size + spots.length}</b> places to snorkel, springs and not, from the Panhandle to the Keys. Tap anything.`;
 
+  const bSnorkel = document.getElementById("bSnorkel")!;
+  bSnorkel.addEventListener("click", () => {
+    snorkelOnly = !snorkelOnly;
+    bSnorkel.setAttribute("aria-pressed", String(snorkelOnly));
+    view.redraw();
+  });
   const bBig = document.getElementById("bBig")!;
   bBig.addEventListener("click", () => {
     bigOnly = !bigOnly;
@@ -211,20 +288,23 @@ async function main() {
     pick.value = "";
   });
 
-  // Search: one option per spring, with its county, since names repeat ("Blue Spring").
-  const label = (s: Spring) => `${s.name} (${s.county})`;
+  // Search: one option per spring and snorkel spot, with its county, since names repeat ("Blue Spring").
+  const places = [
+    ...springs.map((s) => ({ label: `${s.name} (${s.county})`, xy: s.xy, show: () => showSpring(s) })),
+    ...spots.map((s) => ({ label: `${s.name} (${s.county})`, xy: s.xy, show: () => showSpot(s) })),
+  ];
   const list = document.getElementById("springList")!;
-  for (const s of [...springs].sort((a, b) => a.name.localeCompare(b.name))) {
+  for (const p of [...places].sort((a, b) => a.label.localeCompare(b.label))) {
     const o = document.createElement("option");
-    o.value = label(s);
+    o.value = p.label;
     list.appendChild(o);
   }
   const find = document.getElementById("find") as HTMLInputElement;
   find.addEventListener("change", () => {
-    const s = springs.find((x) => label(x) === find.value);
-    if (!s) return;
-    view.flyTo(s.xy, 9000);
-    showSpring(s);
+    const p = places.find((x) => x.label === find.value);
+    if (!p) return;
+    view.flyTo(p.xy, 9000);
+    p.show();
     find.blur();
   });
 

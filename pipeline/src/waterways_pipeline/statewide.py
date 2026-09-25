@@ -6,6 +6,9 @@ springs.json, the journal's list.
 - Plans: FDEP's springs basin management action plan (BMAP) areas, drawn around
   the springsheds of the Outstanding Florida Springs.
 - Focus areas: FDEP's Springs Priority Focus Areas inside them.
+- Lagoons: Florida's coastal lagoons, the shallow water behind its barrier islands,
+  from NHD's bulk files (bays, and Lake Worth, which NHD files as a lake). The Census
+  outlines count several of them, like the Indian River Lagoon, as land.
 
 Only names and geometry are kept: FDEP's records also carry staff contact details.
 """
@@ -18,6 +21,7 @@ from shapely.geometry import box, shape
 from shapely.ops import unary_union
 
 from . import config as C
+from . import nhd
 from .fetch import arcgis_query, log
 from .geo import ORIGIN, SCALE
 from .rivers import KM2_PER_DEG2, polygon_rings
@@ -42,6 +46,43 @@ PLAN_NAMES = {
     "SUWA": "Suwannee River springs",
     "SAFE": "Santa Fe River springs",
 }
+
+
+#: Display name → (bulk NHD layer, NHD name, 4-digit HUCs it spans). The river-mouth
+#: estuaries (Tampa Bay, Charlotte Harbor, the Panhandle's big bays) aren't lagoons.
+LAGOONS = {
+    "Indian River Lagoon": ("NHDArea", "Indian River Lagoon", ["0308", "0309"]),
+    "Mosquito Lagoon": ("NHDArea", "Mosquito Lagoon", ["0308"]),
+    "Lake Worth Lagoon": ("NHDWaterbody", "Lake Worth", ["0309"]),
+    "Biscayne Bay": ("NHDArea", "Biscayne Bay", ["0309"]),
+    "Estero Bay": ("NHDArea", "Estero Bay", ["0309"]),
+    "Pine Island Sound": ("NHDArea", "Pine Island Sound", ["0310"]),
+    "Lemon Bay": ("NHDArea", "Lemon Bay", ["0310"]),
+    "Sarasota Bay": ("NHDArea", "Sarasota Bay", ["0310"]),
+    "Boca Ciega Bay": ("NHDArea", "Boca Ciega Bay", ["0310"]),
+    "St. Joseph Bay": ("NHDArea", "Saint Joseph Bay", ["0314"]),
+    "Santa Rosa Sound": ("NHDArea", "Santa Rosa Sound", ["0314"]),
+    "Big Lagoon": ("NHDArea", "Big Lagoon", ["0314"]),
+}
+LAGOON_SIMPLIFY_DEG = 0.001
+
+
+def lagoons(refresh: bool = False) -> list[dict]:
+    out = []
+    for name, (layer, nhd_name, hu4s) in LAGOONS.items():
+        shapes = [g for hu4 in hu4s for g in nhd.named(layer, hu4, nhd_name, refresh)]
+        if not shapes:
+            raise RuntimeError(f"NHD has no {layer} named {nhd_name!r} in {hu4s}")
+        g = unary_union(shapes)
+        p = g.representative_point()
+        out.append({
+            "name": name,
+            "km2": round(g.area * KM2_PER_DEG2),
+            "rings": polygon_rings(g.simplify(LAGOON_SIMPLIFY_DEG, preserve_topology=True)),
+            # A point inside the water: a long, thin lagoon's middle can be dry land.
+            "label": [round(p.x, 4), round(p.y, 4)],
+        })
+    return sorted(out, key=lambda a: -a["km2"])
 
 
 def land(refresh: bool = False) -> list[list[int]]:
@@ -74,12 +115,13 @@ def build(refresh: bool = False) -> dict:
         raise RuntimeError(f"FDEP has springs plans with no display name: {sorted(missing)}")
     focus = areas(C.FDEP_PRIORITY_FOCUS, "1=1", "NAME", None, refresh)
     rings = land(refresh)
-    log(f"statewide: {len(rings)} land rings, {len(plans)} springs plans, {len(focus)} focus areas")
+    water = lagoons(refresh)
+    log(f"statewide: {len(rings)} land rings, {len(plans)} springs plans, {len(focus)} focus areas, {len(water)} lagoons")
     return {
         "meta": {
             "generator": "waterways-pipeline statewide",
             "generatedAt": date.today().isoformat(),
-            "sources": [C.CENSUS_STATES, bmap, C.FDEP_PRIORITY_FOCUS],
+            "sources": [C.CENSUS_STATES, bmap, C.FDEP_PRIORITY_FOCUS, C.NHD_BULK],
             "coordOrigin": list(ORIGIN),
             "coordScale": SCALE,
             "view": list(VIEW),
@@ -87,4 +129,5 @@ def build(refresh: bool = False) -> dict:
         "land": rings,
         "plans": plans,
         "focusAreas": focus,
+        "lagoons": water,
     }

@@ -133,6 +133,8 @@ export interface AreaFile {
   km2: number;
   /** Packed like lakes.json. */
   rings: number[][];
+  /** Lagoons only: a point inside the water, for the name. */
+  label?: LonLat;
 }
 
 export interface StatewideFile {
@@ -144,6 +146,33 @@ export interface StatewideFile {
   plans: AreaFile[];
   /** FDEP Springs Priority Focus Areas. */
   focusAreas: AreaFile[];
+  /** Florida's coastal lagoons (NHD), largest first. */
+  lagoons: AreaFile[];
+}
+
+// ---------- snorkel spots (config/snorkel.json) ----------
+
+/** Where a snorkel spot is, in kind: its card's label comes from src/shared/snorkel.ts. */
+export type SnorkelKind = "reef" | "offshore" | "lagoon" | "inlet" | "park" | "island" | "beach" | "cave" | "sinkhole";
+
+export interface SnorkelSpot {
+  /** name--county, like the springs' ids, and never the same as one of them. */
+  id: string;
+  name: string;
+  county: string;
+  kind: SnorkelKind;
+  lon: number;
+  lat: number;
+  /** The OpenStreetMap feature the location came from, e.g. "way/93618985". */
+  osm: string;
+  web?: string;
+}
+
+export interface SnorkelFile {
+  /** Ids of springs in springs.json that are good for snorkeling. */
+  springs: string[];
+  /** Snorkel spots that aren't springs. */
+  spots: SnorkelSpot[];
 }
 
 // ---------- gauges (config/gauges.json) and flows ----------

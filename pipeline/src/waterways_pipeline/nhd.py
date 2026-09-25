@@ -73,6 +73,15 @@ def network(hu4: str) -> dict[int, tuple[int | None, ...]]:
     return {int(i): tuple(whole(cols[k][n]) for k in VAA) for n, i in enumerate(cols["nhdplusid"])}
 
 
+def named(layer: str, hu4: str, name: str, refresh: bool = False) -> list:
+    """The 2D geometry of every feature in a bulk file's layer with this GNIS name."""
+    import pyogrio.raw
+
+    quoted = name.replace("'", "''")
+    _, _, geoms, _ = pyogrio.raw.read(gdb(hu4, refresh), layer=layer, where=f"GNIS_Name = '{quoted}'")
+    return [shapely.force_2d(g) for g in shapely.from_wkb(geoms) if g is not None]
+
+
 def bulk(layer: str, hu4: str, area: C.Bbox, where: str, fields: str, refresh: bool = False) -> list[dict]:
     import pyogrio.raw
 
