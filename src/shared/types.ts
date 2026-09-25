@@ -102,6 +102,26 @@ export interface RainbowFile {
   history: { years: number[]; Rb: (number | null)[]; WH: (number | null)[] };
 }
 
+// ---------- statewide.json (statewide springs map; the springs are springs.json) ----------
+
+export interface AreaFile {
+  name: string;
+  km2: number;
+  /** Packed like lakes.json. */
+  rings: number[][];
+}
+
+export interface StatewideFile {
+  /** view: [west, south, east, north] the data covers. */
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number; view: [number, number, number, number] };
+  /** Florida and its neighbors, clipped to the view; the page paints the sea behind them. */
+  land: number[][];
+  /** FDEP springs basin management action plan areas, largest first. */
+  plans: AreaFile[];
+  /** FDEP Springs Priority Focus Areas. */
+  focusAreas: AreaFile[];
+}
+
 // ---------- gauges (config/gauges.json) and flows ----------
 
 /** The Santa Fe map's gauges; the aquifer steps carry flows for these. */

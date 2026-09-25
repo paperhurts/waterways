@@ -1,6 +1,6 @@
 # Waterways
 
-Three canvas-animated maps of north Florida hydrology (Vite + TypeScript, no framework), plus a Python pipeline that regenerates their data. See README.md for the layout and the data method.
+Four canvas-animated maps of Florida hydrology (Vite + TypeScript, no framework), plus a Python pipeline that regenerates their data. See README.md for the layout and the data method.
 
 ## Commands
 - `npm run dev`: dev server on **5180** (preview on 4180), pinned with `strictPort`. Don't move them to 5173/4173; other local projects use those.
@@ -27,6 +27,7 @@ Three canvas-animated maps of north Florida hydrology (Vite + TypeScript, no fra
   - Keep only geometry from FDEP's BMAP/PFA layers; their records include staff contact details.
   - Below Dunnellon the US 41 gauge sits in Lake Rousseau's backwater and swings with the dam, so the model uses Holder + the Rainbow instead. At Inglis, water splits by the dam and bypass gauges: NHD routes the dam's releases into the barge canal and the river's main stem through the bypass.
   - The map's dark spring/tannin colors fail a line chart's lightness band, so the history chart uses `--chart-spring` / `--chart-tannin` (checked with the dataviz validator).
+- **The statewide springs map** (`springs.html`) draws `springs.json` (the journal's list) over `statewide.json` from `pipeline/.../statewide.py`. FDEP's first-magnitude count is inflated by vent-level entries such as "Gainer Spring #1a"–"#1i", so the page never states it. Don't "fix" that by widening the vent merge: spring ids are stored in journal visits.
 - **Live gauges.** They use `api.waterdata.usgs.gov/ogcapi/v1` (the legacy `waterservices.usgs.gov` is retired in early 2027). That API's default page size is 10, so always pass `limit`.
 - **Deploy.** Pages builds via Actions; the six-hourly deploy refreshes `snapshot.json` in the build only, without committing, and pings the journal database so it stays awake.
   - A daily watcher in the private `paperhurts/admin` repo backs this up. It pings the journal too, and emails if this deploy is disabled or the repo goes 50 days without a push (GitHub pauses scheduled workflows in public repos at 60).

@@ -1,0 +1,21 @@
+header { padding: 14px 18px 6px; max-width: 44rem; position: relative; z-index: 2; pointer-events: none }
+h1 em { font-style: italic; color: var(--spring) }
+.lede { font-size: .98rem; max-width: 38rem }
+
+#legend { position: absolute; left: 12px; top: 8px; font: 500 .82rem/1.3 var(--sans); color: var(--muted); display: flex; flex-direction: column; gap: 3px; pointer-events: none }
+#legend > span { display: flex; align-items: center; gap: 7px }
+#legend .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--spring); display: inline-block; margin: 0 2px }
+#legend .dot.mid { width: 7px; height: 7px; margin: 0 1px }
+#legend .dot.big { width: 9px; height: 9px; margin: 0 }
+#legend .area { width: 12px; height: 9px; border: 1px dashed var(--under); background: color-mix(in srgb, var(--under) 12%, transparent); display: inline-block; margin-left: -1px }
+#legend .area.focus { border-style: solid; border-color: transparent; background: color-mix(in srgb, var(--under) 30%, transparent) }
+
+.tools { position: relative; z-index: 2; background: var(--bg); align-items: center }
+.tools button, .tools a, .tools select { font-size: .82rem }
+.tools input { flex: 0 0 13rem; font: 500 .84rem var(--sans); color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px }
+.tools input:focus-visible { outline: 2px solid var(--spring); outline-offset: 2px }
+#card .links { display: block; margin-top: .45em; font: 600 .84rem var(--sans) }
+#card .links a { color: var(--spring) }
+
+@media (max-width: 600px) { #legend { font-size: .76rem } }
+@media (min-width: 900px) { #card { left: auto; right: 16px; bottom: 16px } }

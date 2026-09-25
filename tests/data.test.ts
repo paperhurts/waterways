@@ -16,6 +16,7 @@ import {
   type RiversFile,
   type Snapshot,
   type SpringsFile,
+  type StatewideFile,
   type StreamsFile,
 } from "../src/shared/types";
 
@@ -28,6 +29,7 @@ const snapshot = read<Snapshot>("public/data/snapshot.json");
 const lakes = read<LakesFile>("public/data/lakes.json");
 const statewide = read<SpringsFile>("public/data/springs.json");
 const rainbow = read<RainbowFile>("public/data/rainbow.json");
+const statewideMap = read<StatewideFile>("public/data/statewide.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 
 // The rain map's study area (a union of boxes), padded for features that cross an edge:
@@ -354,6 +356,45 @@ describe("rainbow.json", () => {
     expect(Rb.length).toBe(years.length);
     expect(WH.length).toBe(years.length);
     for (const v of Rb) expect(v).toBeGreaterThan(300);
+  });
+});
+
+describe("statewide.json", () => {
+  const [ox, oy] = statewideMap.meta.coordOrigin;
+  const k = statewideMap.meta.coordScale;
+  const inRings = (rings: number[][], lon: number, lat: number) => {
+    const [x, y] = [(lon - ox) * k, (lat - oy) * k];
+    let inside = false;
+    for (const r of rings) {
+      for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
+        if (r[i + 1] > y !== r[j + 1] > y && x < ((r[j] - r[i]) * (y - r[i + 1])) / (r[j + 1] - r[i + 1]) + r[i]) inside = !inside;
+      }
+    }
+    return inside;
+  };
+
+  it("outlines Florida's land against the sea", () => {
+    for (const [lon, lat] of [[-82.325, 29.652], [-84.28, 30.438], [-80.19, 25.77]]) expect(inRings(statewideMap.land, lon, lat)).toBe(true);
+    for (const [lon, lat] of [[-84.0, 28.5], [-79.8, 28.0]]) expect(inRings(statewideMap.land, lon, lat)).toBe(false);
+  });
+
+  it("has the springs cleanup plans and focus areas, named, around their springs", () => {
+    expect(statewideMap.plans.length).toBeGreaterThanOrEqual(13);
+    expect(statewideMap.focusAreas.length).toBeGreaterThanOrEqual(15);
+    for (const a of [...statewideMap.plans, ...statewideMap.focusAreas]) {
+      expect(a.name.length).toBeGreaterThan(0);
+      expect(a.km2).toBeGreaterThan(0);
+    }
+    const plan = (name: string) => statewideMap.plans.find((p) => p.name === name)!;
+    // Wakulla Spring and Silver Springs sit inside their own plans.
+    expect(inRings(plan("Wakulla Spring").rings, -84.3, 30.235)).toBe(true);
+    expect(inRings(plan("Silver and Rainbow Springs").rings, -82.05, 29.215)).toBe(true);
+  });
+
+  it("puts every spring in the springs list on Florida's land", () => {
+    const off = statewide.springs.filter(([, , , lon, lat]) => !inRings(statewideMap.land, lon, lat));
+    // A few springs are offshore or on the waterline (submarine springs, coastal vents).
+    expect(off.length).toBeLessThan(40);
   });
 });
 
