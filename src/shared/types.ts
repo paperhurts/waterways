@@ -275,6 +275,30 @@ export interface KissimmeeFile {
   history: { years: number[]; S65E: (number | null)[] };
 }
 
+// ---------- peace.json (Peace River map) ----------
+
+export const PEACE_RIVERS = ["Peace River", "Charlie Creek", "Horse Creek", "Joshua Creek", "Payne Creek", "Saddle Creek", "Shell Creek"] as const;
+export type PeaceRiver = (typeof PEACE_RIVERS)[number];
+
+export interface PeaceFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
+  /** Each river upstream to downstream, packed like the lakes files. */
+  rivers: Record<PeaceRiver, number[]>;
+  /** Each tributary's gauge, if it has one. */
+  tributaries: Record<Exclude<PeaceRiver, "Peace River">, PeaceKey | null>;
+  kissengen: LonLat;
+  /** FGS's swallets along the upper river. */
+  sinks: [name: string | null, lon: number, lat: number][];
+  /** How far the Upper Floridan has fallen since before development (whole feet, base64 bytes, row 0 south): `now` for the latest surface, `dry` for the dry season. */
+  aquifer: { lon0: number; lat0: number; res: number; nx: number; ny: number; now: string; dry: string; nowMax: number; dryMax: number; months: { now: string; dry: string } };
+  /** Land mined for phosphate (FDEP's mandatory reclamation map), packed rings, and its area. */
+  mines: number[][];
+  minesKm2: number;
+  water: LakesFile["bodies"];
+  /** Water-year mean flow (cfs) of the Peace at Bartow and at Arcadia. */
+  history: { years: number[]; BAR: (number | null)[]; ARC: (number | null)[] };
+}
+
 // ---------- apalachicola.json (Apalachicola River map) ----------
 
 export const AP_RIVERS = ["Chattahoochee River", "Flint River", "Apalachicola River", "Chipola River"] as const;
@@ -455,7 +479,12 @@ export const AP_KEYS = ["BUF", "ATL", "COL", "BAIN", "CHAT", "BLT", "ALT", "SUM"
 export type ApKey = (typeof AP_KEYS)[number];
 export type ApFlows = Record<ApKey, number | null>;
 
-export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey | KissKey | OckKey | ApKey;
+/** The Peace River map's gauges, upstream first: the Peace at Bartow, Clear Springs, Homeland, Fort Meade, Zolfo Springs, and Arcadia, and Charlie, Horse, and Joshua creeks. */
+export const PEACE_KEYS = ["BAR", "CLR", "HOM", "FTM", "ZOL", "ARC", "CHR", "HRS", "JOS"] as const;
+export type PeaceKey = (typeof PEACE_KEYS)[number];
+export type PeaceFlows = Record<PeaceKey, number | null>;
+
+export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey | KissKey | OckKey | ApKey | PeaceKey;
 
 export interface GaugeConfig {
   id: string;
@@ -464,7 +493,7 @@ export interface GaugeConfig {
   name?: string;
   key: GaugeKey;
   /** Which map draws it. */
-  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river" | "kissimmee" | "ocklawaha" | "apalachicola";
+  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river" | "kissimmee" | "ocklawaha" | "apalachicola" | "peace";
   /** Where its readings come from: USGS (the default, `id` is the site number) or the Corps' CWMS (`ts` names the time series). */
   source?: "cwms";
   ts?: string;
@@ -515,7 +544,7 @@ export interface Snapshot {
   /** ISO 8601 time of the newest reading. */
   time: string;
   /** Every gauge in config/gauges.json, all maps. */
-  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey | KissKey | OckKey | ApKey, number | null>;
+  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey | KissKey | OckKey | ApKey | PeaceKey, number | null>;
   /** Every station in config/salinity.json. */
   ppt: Record<SalinityKey, Salinity>;
   /** Coral Reef Watch heat stress on the reef; absent when NOAA didn't answer. */

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Peace River lost its spring</title>
+<meta name="description" content="Kissengen Spring fed the Peace River until 1950, when wells for phosphate mines and farms drew the aquifer down and it went dry, the first big spring in Florida lost to pumping. An animated map from Bartow to Charlotte Harbor: live USGS flow, the sinks the upper river leaks into, the mined land, and how far the aquifer has fallen.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The Peace River lost its spring">
+<meta property="og:description" content="Kissengen Spring fed the Peace River until 1950, when wells for phosphate mines and farms drew the aquifer down and it went dry, the first big spring in Florida lost to pumping. An animated map from Bartow to Charlotte Harbor: live USGS flow, the sinks the upper river leaks into, the mined land, and how far the aquifer has fallen.">
+<meta property="og:url" content="https://waterways.paperhurts.dev/peace.html">
+<meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="/src/peace/main.ts"></script>
+</head>
+<body>
+<div id="wrap">
+<header>
+  <!-- site-nav -->
+  <h1>The Peace River <em>lost its spring</em></h1>
+  <p class="lede" id="lede">Loading the river…</p>
+</header>
+<div id="stage" aria-label="Animated map of the Peace River from Bartow to Charlotte Harbor, shaded by how far the aquifer beneath has fallen, with dry Kissengen Spring, the sinks the upper river leaks into, and the land mined for phosphate" role="img">
+  <canvas id="base"></canvas>
+  <canvas id="fx"></canvas>
+  <div id="legend">
+    <span><i class="river"></i>The Peace and its creeks</span>
+    <span><i class="fall"></i>The aquifer's fall since before wells</span>
+    <span><i class="sink"></i>A sink the river leaks into</span>
+    <span><i class="dry"></i>Kissengen Spring, dry</span>
+    <span><i class="mine"></i>Land mined for phosphate</span>
+  </div>
+  <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
+</div>
+<section id="hist" aria-label="The Peace since the 1930s">
+  <div id="histTitle">The Peace since the 1930s</div>
+  <p id="histRead"></p>
+  <div id="histChart"></div>
+  <details class="note"><summary>About this data</summary>Yearly means for each water year (October through September), from USGS daily records for the Peace River at Bartow (02294650) and at Arcadia (02296750).</details>
+</section>
+<div class="tools">
+  <button id="bAll" type="button">The whole river</button>
+  <button id="bUpper" type="button">Kissengen and the sinks</button>
+  <button id="bMines" type="button">The mines</button>
+  <button id="bHarbor" type="button">Charlotte Harbor</button>
+  <button id="bHist" type="button" aria-pressed="false">Flow since the 1930s</button>
+  <button id="bPause" type="button" aria-pressed="false">Pause</button>
+</div>
+<div id="profile" aria-label="USGS gauges"></div>
+<div id="status"></div>
+</div>
+</body>
+</html>

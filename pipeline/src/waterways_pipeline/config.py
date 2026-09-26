@@ -151,6 +151,16 @@ AP_STRUCTURES = [
 ]
 #: FWC's statewide oyster beds.
 FWC_OYSTERS = "https://gis.myfwc.com/hosting/rest/services/Open_Data/Oyster_Beds_Statewide/MapServer/17"
+#: The Peace River map: Bartow down the river to Charlotte Harbor.
+PEACE_VIEW: Bbox = (-82.25, 26.88, -81.55, 28.12)
+PEACE_WATER: Bbox = (-82.7, 26.5, -81.1, 28.5)
+#: Where the Peace meets Charlotte Harbor, and Kissengen Spring (FDEP's point).
+PEACE_MOUTH = (-82.06, 26.94)
+KISSENGEN = (-81.81094, 27.84258)
+#: The aquifer drawdown grid, 0.01° over the view.
+PEACE_GRID = {"lon0": -82.25, "lat0": 26.88, "res": 0.01, "nx": 71, "ny": 125}
+#: Land mined for phosphate under FDEP's mandatory reclamation program (its 2021 map).
+FDEP_MINED_UNITS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/MMP_MINEDUNITS/MapServer/2"
 #: OpenStreetMap's Overpass API, for which stretches of C-38 were backfilled.
 OVERPASS = "https://overpass-api.de/api/interpreter"
 #: The Corps of Engineers' public CWMS Data API (water levels and flows at SFWMD structures).
