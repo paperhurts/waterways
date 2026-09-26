@@ -223,7 +223,7 @@ async function main() {
     };
     if (journal && showJournal) drawJournal(c, journal, X, Y, [], C.ink, glow);
     // Lake Okeechobee gets its own label, in the lake water's color.
-    drawLakeLabels(c, water.filter((l) => l.name !== LAKE.name), X, Y, view.scale, C.muted);
+    drawLakeLabels(c, water.filter((l) => l.name !== LAKE.name), X, Y, view.scale, C.muted, view.keyBoxes());
     regionLabel(LAKE.name, -80.9, 26.95, C.l);
     label("St. Lucie Canal", -80.44, 27.0, C.muted, "italic 400 13px 'Spectral',serif");
     regionLabel("Atlantic Ocean", -80.16, 27.33, C.s);

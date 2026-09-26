@@ -181,7 +181,7 @@ async function main() {
       c.fillText(n, X(p[0]) + (east ? 5 : -5), Y(p[1]) + 4);
     }
     c.textAlign = "left";
-    if (view.scale > 1600) drawLakeLabels(c, water, X, Y, view.scale, C.muted);
+    if (view.scale > 1600) drawLakeLabels(c, water, X, Y, view.scale, C.muted, view.keyBoxes());
     // The drowned springs: rings, hollow, under the water.
     c.strokeStyle = C.spring;
     c.lineWidth = 1.4;

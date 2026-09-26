@@ -200,7 +200,7 @@ async function main() {
       if (Y(p[1]) > 60) c.fillText(n, X(p[0]) + (east ? 5 : -5), Y(p[1]) + 4);
     }
     c.textAlign = "left";
-    if (view.scale > 2500) drawLakeLabels(c, water, X, Y, view.scale, C.muted);
+    if (view.scale > 2500) drawLakeLabels(c, water, X, Y, view.scale, C.muted, view.keyBoxes());
     c.font = "italic 400 14px 'Spectral',serif";
     for (const [n, lon, lat] of WATERS) {
       const p = project(lon, lat);

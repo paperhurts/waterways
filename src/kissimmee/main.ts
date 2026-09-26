@@ -169,7 +169,7 @@ async function main() {
     }
     c.textAlign = "left";
     // Lakes are named once zoomed in: the river is the story, and on a phone the names crowd the legend.
-    if (view.scale > 1600) drawLakeLabels(c, water, X, Y, view.scale, C.muted);
+    if (view.scale > 1600) drawLakeLabels(c, water, X, Y, view.scale, C.muted, view.keyBoxes());
     if (journal) drawJournal(c, journal, X, Y, [], C.ink, glow);
 
     // Structures: squares; the removed ones hollow and crossed out.

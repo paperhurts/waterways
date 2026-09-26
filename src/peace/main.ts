@@ -229,7 +229,7 @@ async function main() {
       c.fillText(n, X(p[0]) + (east ? 5 : -5), Y(p[1]) + 4);
     }
     c.textAlign = "left";
-    if (view.scale > 2000) drawLakeLabels(c, water, X, Y, view.scale, C.muted);
+    if (view.scale > 2000) drawLakeLabels(c, water, X, Y, view.scale, C.muted, view.keyBoxes());
     // The sinks, and Kissengen Spring's dry pool.
     c.fillStyle = C.under;
     for (const sk of sinks) {

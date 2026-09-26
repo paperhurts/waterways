@@ -272,7 +272,7 @@ async function main() {
       c.fillText(t, X(p[0]), Y(p[1]));
     };
     if (journal && showJournal) drawJournal(c, journal, X, Y, journalSprings, C.ink, glow);
-    drawLakeLabels(c, lakes, X, Y, view.scale, C.muted);
+    drawLakeLabels(c, lakes, X, Y, view.scale, C.muted, view.keyBoxes());
     label("Rainbow River", -82.425, 29.1, C.s);
     label("Withlacoochee River", -82.42, 28.955, C.t);
     label("Rainbow's springshed", -82.42, 29.52, C.u);

@@ -215,7 +215,7 @@ async function main() {
       }
     };
     if (journal && showJournal) drawJournal(c, journal, X, Y, [], C.ink, glow);
-    drawLakeLabels(c, water.filter((l) => l.name !== LAKE.name), X, Y, view.scale, C.muted);
+    drawLakeLabels(c, water.filter((l) => l.name !== LAKE.name), X, Y, view.scale, C.muted, view.keyBoxes());
     regionLabel(LAKE.name, LAKE.name, [[-80.93, 27.07], [-80.92, 27.02]], C.l);
     regionLabel("Gulf of Mexico", "Gulf", [[-82.15, 26.35], [-82.0, 26.3], [-81.95, 26.4]], C.gulf);
     regionLabel("Atlantic Ocean", "Atlantic", [[-80.02, 27.0], [-80.1, 27.3], [-80.0, 26.6]], C.atl);

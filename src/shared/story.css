@@ -1,5 +1,7 @@
 /* Layout for the story maps (Rainbow River, St. Lucie): header, legend, gauge strip, info card, and the flow-history panel. Each page sets its own accent on h1 em. */
 header { padding: 14px 18px 6px; max-width: 44rem; position: relative; z-index: 2; pointer-events: none }
+/* The header lets drags through to the map; links in its text still take clicks and taps. */
+.lede a { pointer-events: auto }
 h1 { margin-bottom: .35em }
 h1 em { font-style: italic }
 .lede { font-size: .98rem; max-width: 36rem }
