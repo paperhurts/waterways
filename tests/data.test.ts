@@ -244,7 +244,8 @@ describe("statewide.json", () => {
   };
 
   it("outlines Florida's land against the sea", () => {
-    for (const [lon, lat] of [[-82.325, 29.652], [-84.28, 30.438], [-80.19, 25.77]]) expect(inRings(statewideMap.land, lon, lat)).toBe(true);
+    // Gainesville, Tallahassee, and Coral Gables.
+    for (const [lon, lat] of [[-82.325, 29.652], [-84.28, 30.438], [-80.27, 25.72]]) expect(inRings(statewideMap.land, lon, lat), `${lon},${lat}`).toBe(true);
     for (const [lon, lat] of [[-84.0, 28.5], [-79.8, 28.0]]) expect(inRings(statewideMap.land, lon, lat)).toBe(false);
   });
 
@@ -272,10 +273,40 @@ describe("statewide.json", () => {
     }
   });
 
-  it("puts every spring in the springs list on Florida's land", () => {
-    const off = statewide.springs.filter(([, , , lon, lat]) => !inRings(statewideMap.land, lon, lat));
-    // A few springs are offshore or on the waterline (submarine springs, coastal vents).
-    expect(off.length).toBeLessThan(40);
+  it("leaves the bays and lagoons the Census outlines count as land out of it", () => {
+    // Choctawhatchee, Pensacola, and Tampa bays, Charlotte Harbor, and the Indian River Lagoon at Vero Beach.
+    for (const [lon, lat] of [[-86.3, 30.45], [-87.15, 30.37], [-82.55, 27.75], [-82.08, 26.88], [-80.368, 27.63]]) {
+      expect(inRings(statewideMap.land, lon, lat), `${lon},${lat}`).toBe(false);
+    }
+  });
+
+  it("has Florida's lakes and wetlands, and its big rivers", () => {
+    const names = new Set(statewideMap.water.map((w) => w.name));
+    for (const n of ["Lake Okeechobee", "Lake George", "Lake Tohopekaliga", "Lake Istokpoga", "Lake Seminole", "Newnans Lake"]) expect(names, n).toContain(n);
+    expect(statewideMap.water.some((w) => w.kind === "swamp" && w.km2 > 1000)).toBe(true);
+    for (const w of statewideMap.water) for (const r of w.rings) expect(r.length >= 8 && r.length % 2 === 0).toBe(true);
+    const rivers = new Set(statewideMap.rivers.map((r) => r.name));
+    for (const n of ["Suwannee River", "Saint Johns River", "Apalachicola River", "Kissimmee River", "Peace River", "Santa Fe River"]) expect(rivers, n).toContain(n);
+    for (const r of statewideMap.rivers) expect(r.line.length >= 4 && r.line.length % 2 === 0).toBe(true);
+  });
+
+  it("adds the springs NHD maps that FDEP doesn't, apart from FDEP's", () => {
+    expect(statewideMap.extraSprings.length).toBeGreaterThan(20);
+    const m = (a: number[], b: number[]) => Math.hypot((a[0] - b[0]) * 96_000, (a[1] - b[1]) * 110_500);
+    for (const e of statewideMap.extraSprings) {
+      const nearest = Math.min(...statewide.springs.map((s) => m([e[0], e[1]], [s[3], s[4]])));
+      expect(nearest, e[2]).toBeGreaterThan(130);
+    }
+  });
+
+  it("puts every spring in the springs list on Florida's land, or in its rivers and bays", () => {
+    // Many vents are in the rivers NHD maps as wide water (the Suwannee, Kings Bay), which
+    // is cut out of the land with the bays. None should be well out at sea.
+    const step = 0.006;
+    const nearLand = (lon: number, lat: number) => [[0, 0], [step, 0], [-step, 0], [0, step], [0, -step]].some(([dx, dy]) => inRings(statewideMap.land, lon + dx, lat + dy));
+    const atSea = statewide.springs.filter(([, , , lon, lat]) => !nearLand(lon, lat));
+    // A few are submarine springs or coastal vents.
+    expect(atSea.map((s) => s[1]).length, atSea.map((s) => s[1]).join(", ")).toBeLessThan(25);
   });
 });
 

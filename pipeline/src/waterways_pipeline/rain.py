@@ -321,22 +321,35 @@ def salt_water(land, refresh: bool):
     return unary_union([salt, *(g for g in rivers if near.intersects(g))])
 
 
-def waterbodies(keep_near) -> list[dict]:
-    """Florida's lakes and big wetlands, largest first, simplified."""
+def waterbodies(
+    keep_near,
+    *,
+    lake_km2: float = LAKE_MIN_KM2,
+    swamp_km2: float = SWAMP_MIN_KM2,
+    lake_tol: float = LAKE_SIMPLIFY_DEG,
+    swamp_tol: float = SWAMP_SIMPLIFY_DEG,
+    speck_km2: float = SWAMP_SPECK_KM2,
+    lake_speck_km2: float = 0.0,
+    rings_of=None,
+) -> list[dict]:
+    """Florida's lakes and big wetlands, largest first, simplified. Wetland islands and
+    scraps under `speck_km2` go, and lake islands under `lake_speck_km2`. `rings_of` packs
+    them (by default delta-packed, as this map's files are)."""
+    rings_of = rings_of or polygon_rings
     out = []
     for hu4 in C.FLORIDA_HU4S:
         cols, geoms = nhd.table(
-            hu4, "NHDWaterbody", ["GNIS_Name", "FType", "AreaSqKm"], where="FType IN (390, 436, 466) AND AreaSqKm >= 0.2", bbox=C.FLORIDA_BBOX, geometry=True
+            hu4, "NHDWaterbody", ["GNIS_Name", "FType", "AreaSqKm"], where=f"FType IN (390, 436, 466) AND AreaSqKm >= {min(lake_km2, swamp_km2)}", bbox=C.FLORIDA_BBOX, geometry=True
         )
         for name, ftype, km2, g in zip(cols["gnis_name"], cols["ftype"], cols["areasqkm"], geoms):
             kind = LAKE_FTYPES[int(ftype)]
-            if g is None or km2 < (SWAMP_MIN_KM2 if kind == "swamp" else LAKE_MIN_KM2) or not keep_near.intersects(g):
+            if g is None or km2 < (swamp_km2 if kind == "swamp" else lake_km2) or not keep_near.intersects(g):
                 continue
             g = make_valid(g)
-            if kind == "swamp":
-                g = drop_specks(g, SWAMP_SPECK_KM2)
-            g = g.simplify(SWAMP_SIMPLIFY_DEG if kind == "swamp" else LAKE_SIMPLIFY_DEG, preserve_topology=True)
-            if rings := polygon_rings(g):
+            if kind == "swamp" or lake_speck_km2:
+                g = drop_specks(g, speck_km2 if kind == "swamp" else lake_speck_km2)
+            g = g.simplify(swamp_tol if kind == "swamp" else lake_tol, preserve_topology=True)
+            if rings := rings_of(g):
                 c = g.envelope.centroid
                 out.append({"name": name or None, "kind": kind, "km2": round(float(km2), 2), "rings": rings, "at": (c.x, c.y)})
     out.sort(key=lambda b: -b["km2"])

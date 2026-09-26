@@ -5,6 +5,7 @@ import { InfoCard } from "../shared/card";
 import { escapeHtml, loadData, showLoadError } from "../shared/data";
 import { bounds, project, ringsPath, unpackRings, type XY } from "../shared/geo";
 import { drawJournal, hitSighting, journalCardHtml, loadJournalOverlay, sightingCard, type JournalOverlay } from "../shared/journal-overlay";
+import { marshPattern } from "../shared/lakes";
 import { MAG_TEXT } from "../shared/magnitude";
 import { KIND_LABEL, osmUrl, snorkelSprings, snorkelSpots } from "../shared/snorkel";
 import { drawBoil } from "../shared/streaks";
@@ -30,6 +31,8 @@ const CITIES: [string, number, number][] = [
 
 /** Dot radius by FDEP magnitude class (index); unknown and small springs share the smallest. */
 const RADIUS = [1.7, 4.2, 3, 2.2, 1.7, 1.7, 1.7, 1.7, 1.7];
+/** River line widths are rounded to this many pixels so they can be drawn in batches. */
+const RIVER_STEP = 0.2;
 
 interface Spring {
   id: string;
@@ -55,6 +58,28 @@ async function main() {
   const plans = state.plans.map((p) => ({ ...p, path: ringsPath(unpack(p.rings)), box: boxOf(unpack(p.rings)) }));
   const focus = state.focusAreas.map((p) => ({ ...p, path: ringsPath(unpack(p.rings)) }));
   const lagoons = state.lagoons.map((p) => ({ ...p, path: ringsPath(unpack(p.rings)) }));
+  // Lakes and wetlands as one path each, and rivers batched by width: built once in map
+  // units, since the base layer redraws on every pan and zoom frame.
+  const lakePath = new Path2D();
+  const swampPath = new Path2D();
+  const lakeLabels: { name: string; km2: number; xy: XY }[] = [];
+  for (const w of state.water) {
+    const rings = unpack(w.rings);
+    (w.kind === "lake" ? lakePath : swampPath).addPath(ringsPath(rings));
+    if (w.kind === "lake" && w.name) {
+      const [x0, y0, x1, y1] = boxOf(rings.slice(0, 1));
+      lakeLabels.push({ name: w.name, km2: w.km2, xy: [(x0 + x1) / 2, (y0 + y1) / 2] });
+    }
+  }
+  const riverPaths = new Map<number, Path2D>();
+  for (const r of state.rivers) {
+    const width = Math.round((0.3 + Math.log10(r.km) * 0.3) / RIVER_STEP) * RIVER_STEP;
+    let p = riverPaths.get(width);
+    if (!p) riverPaths.set(width, (p = new Path2D()));
+    unpack([r.line])[0].forEach((q, i) => (i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1])));
+  }
+  /** Springs NHD maps that FDEP doesn't list: drawn, but not in the journal's list. */
+  const extras = state.extraSprings.map(([lon, lat, name]) => ({ name, lon, lat, xy: project(lon, lat) }));
   const springs: Spring[] = file.springs.map(([id, name, county, lon, lat, mag, onRainMap], i) => ({
     id, name, county, lon, lat, mag, onRainMap: !!onRainMap, snorkel: snorkelSprings.has(id), xy: project(lon, lat), phase: (i * 0.618) % 1,
   }));
@@ -69,7 +94,7 @@ async function main() {
   let C: Record<string, string> = {};
   let glow = true;
   const readColors = () => {
-    C = Object.fromEntries(["bg", "ink", "muted", "spring", "under", "sea", "shore", "coral"].map((n) => [n, cssVar(`--${n}`)]));
+    C = Object.fromEntries(["bg", "ink", "muted", "spring", "under", "sea", "shore", "coral", "marsh", "stream"].map((n) => [n, cssVar(`--${n}`)]));
     glow = isDark();
   };
 
@@ -104,11 +129,21 @@ async function main() {
       c.strokeStyle = C.shore;
       c.lineWidth = 0.8 / s;
       c.stroke(land);
-      // The Census outlines count some lagoons as land; NHD's shapes put the water back.
+      // Wetlands in the marsh stipple, held to screen pixels; lakes as open water.
+      const marsh = marshPattern(c, C.marsh);
+      marsh.setTransform(new DOMMatrix().scaleSelf(1 / s, 1 / s));
+      c.fillStyle = marsh;
+      c.fill(swampPath, "evenodd");
       c.fillStyle = C.sea;
-      for (const l of lagoons) {
-        c.fill(l.path, "evenodd");
-        c.stroke(l.path);
+      c.fill(lakePath, "evenodd");
+      c.stroke(lakePath);
+      c.strokeStyle = C.stream;
+      c.lineCap = "round";
+      c.lineJoin = "round";
+      const zr = Math.min(2, Math.max(0.7, Math.sqrt(view.scale / 900)));
+      for (const [width, p] of riverPaths) {
+        c.lineWidth = (width * zr) / s;
+        c.stroke(p);
       }
       c.fillStyle = C.under;
       for (const p of plans) {
@@ -141,6 +176,20 @@ async function main() {
         if (x > 0 && x < W && y > 0 && y < H) c.fillText(p.name, x - c.measureText(p.name).width / 2, y);
       }
     }
+    // Lake names: the biggest once zoomed to a region, smaller ones closer in.
+    if (view.scale > 700) {
+      c.font = "italic 400 12px 'Spectral',serif";
+      c.fillStyle = C.muted;
+      c.textAlign = "center";
+      for (const l of lakeLabels) {
+        if (l.km2 < 25 && view.scale < 2500) continue;
+        if (l.km2 < 4 && view.scale < 6000) continue;
+        const x = X(l.xy[0]);
+        const y = Y(l.xy[1]);
+        if (x > 0 && x < W && y > 0 && y < H) c.fillText(l.name, x, y + 4);
+      }
+      c.textAlign = "left";
+    }
     // Lagoon names, once zoomed in to where they read as water.
     if (view.scale > 700) {
       c.font = "italic 400 12px 'Spectral',serif";
@@ -155,6 +204,14 @@ async function main() {
     }
     // Small springs are static; the big ones boil on the animated layer.
     c.fillStyle = C.spring;
+    if (!bigOnly && !snorkelOnly) {
+      c.globalAlpha = 0.4;
+      for (const e of extras) {
+        c.beginPath();
+        c.arc(X(e.xy[0]), Y(e.xy[1]), RADIUS[0] * 0.85, 0, 7);
+        c.fill();
+      }
+    }
     for (const s of shown()) {
       if (big(s)) continue;
       c.globalAlpha = s.mag ? 0.85 : 0.55;
@@ -226,6 +283,14 @@ async function main() {
     card.show({ title: s.name, kind: `Snorkel spot · ${s.county} County`, body: `${KIND_LABEL[s.kind]}.<span class="links">${links.join(" · ")}</span>${log}` });
   }
 
+  function showExtra(e: (typeof extras)[number]) {
+    card.show({
+      title: e.name,
+      kind: "Spring on the USGS map",
+      body: `The USGS maps a spring here that FDEP's list doesn't have, so it's unrated, and the journal can't log it. <span class="links"><a href="rain.html#${e.lon},${e.lat}">Where its creek's rain goes</a></span>`,
+    });
+  }
+
   function showLagoon(l: (typeof lagoons)[number]) {
     const extra = l.name === "Indian River Lagoon" ? ' <span class="links"><a href="st-lucie.html">Where the St. Lucie meets it</a> · <a href="rain.html">Where its creeks come from</a></span>' : "";
     card.show({ title: l.name, kind: "Coastal lagoon", body: `About ${Math.round(l.km2 / 2.59).toLocaleString()} square miles of shallow, brackish water behind barrier islands, open to the sea through inlets.${extra}` });
@@ -246,6 +311,8 @@ async function main() {
     };
     for (const s of shown()) test(s.xy, () => showSpring(s));
     for (const s of spots) test(s.xy, () => showSpot(s));
+    // FDEP's springs win a tie with the USGS's extra ones.
+    if (!bigOnly && !snorkelOnly && !best) for (const e of extras) test(e.xy, () => showExtra(e));
     if (best) return (best as () => void)();
     const m: XY = [(x - view.cam.tx) / view.cam.s, (y - view.cam.ty) / view.cam.s];
     const l = lagoons.find((p) => probe.isPointInPath(p.path, m[0], m[1], "evenodd"));
@@ -265,7 +332,7 @@ async function main() {
 
   // ---------- controls ----------
   document.getElementById("lede")!.innerHTML =
-    `FDEP maps <b>${springs.length}</b> springs. Most sit in a band from the Panhandle through the Big Bend to Orlando, where the Floridan aquifer lies close to the surface. ` +
+    `FDEP maps <b>${springs.length}</b> springs, and the USGS <b>${extras.length}</b> more that FDEP doesn't list. Most sit in a band from the Panhandle through the Big Bend to Orlando, where the Floridan aquifer lies close to the surface. ` +
     `The shaded areas are covered by the state's <b>${plans.length}</b> springs cleanup plans, drawn around the springsheds of its Outstanding Florida Springs. ` +
     `Coral marks <b>${snorkelSprings.size + spots.length}</b> places to snorkel, springs and not, from the Panhandle to the Keys. Tap anything.`;
 

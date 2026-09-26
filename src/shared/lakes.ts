@@ -57,7 +57,8 @@ export interface LakeColors {
 const STIPPLE = 7;
 let pattern: { color: string; p: CanvasPattern } | null = null;
 
-function marshPattern(c: CanvasRenderingContext2D, color: string): CanvasPattern {
+/** The swamp stipple, as a repeating pattern (cached per color). */
+export function marshPattern(c: CanvasRenderingContext2D, color: string): CanvasPattern {
   if (pattern?.color === color) return pattern.p;
   const tile = document.createElement("canvas");
   tile.width = tile.height = STIPPLE * 2;

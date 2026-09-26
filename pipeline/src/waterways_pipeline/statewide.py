@@ -1,34 +1,46 @@
 """Data for the statewide springs map (statewide.json). The springs themselves are
 springs.json, the journal's list.
 
-- Land: Census cartographic (1:500,000) state outlines around Florida; the page
-  paints sea and draws these on top.
+- Land: Census cartographic (1:500,000) state outlines around Florida, less the
+  salt water they count as land: every NHD bay and lagoon, and the wide tidal rivers
+  that open onto them (the same sea as the rain map's). The page paints sea and draws
+  the land on top.
 - Plans: FDEP's springs basin management action plan (BMAP) areas, drawn around
   the springsheds of the Outstanding Florida Springs.
 - Focus areas: FDEP's Springs Priority Focus Areas inside them.
 - Lagoons: Florida's coastal lagoons, the shallow water behind its barrier islands,
-  from NHD's bulk files (bays, and Lake Worth, which NHD files as a lake). The Census
-  outlines count several of them, like the Indian River Lagoon, as land.
+  from NHD's bulk files (bays, and Lake Worth, which NHD files as a lake), for their
+  names and cards. Their water is already cut out of the land.
+- Water: Florida's lakes and big wetlands, and its bigger rivers as lines (NHD network
+  flowlines with RIVER_KM or more upstream, joined along each level path), so the
+  state reads as the wet place it is between the springs.
+- Extra springs: NHD spring points more than 150 m from any FDEP spring. They aren't
+  in springs.json, so the journal can't log them.
 
 Only names and geometry are kept: FDEP's records also carry staff contact details.
 """
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date
 
-from shapely.geometry import box, shape
+import shapely
+from shapely.geometry import LineString, box, shape
 from shapely.ops import unary_union
+from shapely.validation import make_valid
 
 from . import config as C
-from . import nhd
+from . import nhd, rain
 from .fetch import arcgis_query, log
-from .geo import ORIGIN, SCALE
-from .rivers import KM2_PER_DEG2, polygon_rings
+from .geo import ORIGIN, SCALE, pack
+from .rivers import KM2_PER_DEG2, drop_specks, polygon_rings
 
 #: Everything the page can show: Florida and a margin of the Gulf, the Atlantic, and Georgia and Alabama.
 VIEW: C.Bbox = (-88.2, 24.2, -79.5, 31.6)
-LAND_SIMPLIFY_DEG = 0.004
+#: Fine enough to keep the lagoons and sounds cut out of the land open. Cutting the bays
+#: out leaves thousands of marsh islands (the Ten Thousand Islands); those this small go.
+LAND_SIMPLIFY_DEG, LAND_SPECK_KM2 = 0.0025, 1.0
 AREA_SIMPLIFY_DEG = 0.003
 #: FDEP's plan names are long; the map labels them by their springs.
 PLAN_NAMES = {
@@ -64,7 +76,13 @@ LAGOONS = {
     "Santa Rosa Sound": ("NHDArea", "Santa Rosa Sound", ["0314"]),
     "Big Lagoon": ("NHDArea", "Big Lagoon", ["0314"]),
 }
-LAGOON_SIMPLIFY_DEG = 0.001
+LAGOON_SIMPLIFY_DEG = 0.002
+#: Lakes and wetlands this big (km²) are drawn, simplified this much (degrees).
+LAKE_KM2, SWAMP_KM2 = 2.0, 25.0
+LAKE_SIMPLIFY_DEG, SWAMP_SIMPLIFY_DEG, SWAMP_SPECK_KM2, LAKE_SPECK_KM2 = 0.0008, 0.004, 5.0, 0.3
+#: Rivers with this much creek upstream (km) are drawn.
+RIVER_KM = 250
+RIVER_SIMPLIFY_DEG = 0.0015
 
 
 def lagoons(refresh: bool = False) -> list[dict]:
@@ -87,8 +105,66 @@ def lagoons(refresh: bool = False) -> list[dict]:
 
 def land(refresh: bool = False) -> list[list[int]]:
     states = arcgis_query(C.CENSUS_STATES, VIEW, fields="STUSAB", refresh=refresh)
-    g = unary_union([shape(f["geometry"]) for f in states if f.get("geometry")]).intersection(box(*VIEW))
+    g = unary_union([make_valid(shape(f["geometry"])) for f in states if f.get("geometry")])
+    g = drop_specks(g.difference(rain.salt_water(g, refresh)).intersection(box(*VIEW)), LAND_SPECK_KM2)
     return polygon_rings(g.simplify(LAND_SIMPLIFY_DEG, preserve_topology=True))
+
+
+def florida_near(refresh: bool):
+    fl, _ = rain.florida(refresh)
+    near = fl.buffer(rain.BORDER_DEG)
+    shapely.prepare(near)
+    return near
+
+
+def water(near) -> list[dict]:
+    """Florida's lakes and big wetlands, largest first."""
+    bodies = rain.waterbodies(
+        near, lake_km2=LAKE_KM2, swamp_km2=SWAMP_KM2, lake_tol=LAKE_SIMPLIFY_DEG, swamp_tol=SWAMP_SIMPLIFY_DEG, speck_km2=SWAMP_SPECK_KM2, lake_speck_km2=LAKE_SPECK_KM2, rings_of=polygon_rings
+    )
+    for b in bodies:
+        b.pop("at")
+    return bodies
+
+
+def rivers(near) -> list[dict]:
+    """[{name, km, line}] for Florida's bigger rivers: each level path's run of flowlines
+    with RIVER_KM or more upstream, upstream to downstream, split where it leaves Florida.
+    km is the upstream length where the run ends. Paths through lakes are left to the
+    lake fill, and underground conduits aren't drawn."""
+    dn, nid_of, acc, _, level = rain.network()
+    seq_of = {n: s for s, n in nid_of.items()}
+    lakes, _ = rain.lake_ids()
+    keep = [
+        f for f in rain.flowlines(near, acc, level, seq_of)
+        if f.acc >= RIVER_KM and f.ftype != C.FTYPE_UNDERGROUND and not (f.ftype == C.FTYPE_ARTIFICIAL and f.wbarea in lakes)
+    ]
+    by: dict[int, list[rain.Line]] = defaultdict(list)
+    for f in keep:
+        by[f.levelpath].append(f)
+    out = []
+    for fs in by.values():
+        fs.sort(key=lambda f: -f.hydroseq)
+        runs: list[list[rain.Line]] = []
+        for f in fs:
+            # NHD flowlines meet end to start; a gap means one was left out.
+            if runs and runs[-1][-1].coords[-1] == f.coords[0]:
+                runs[-1].append(f)
+            else:
+                runs.append([f])
+        for run in runs:
+            pts = [run[0].coords[0]] + [p for f in run for p in f.coords[1:]]
+            if len(pts) < 2:
+                continue
+            line = pack(list(LineString(pts).simplify(RIVER_SIMPLIFY_DEG, preserve_topology=False).coords))
+            name = next((f.name for f in reversed(run) if f.name), None)
+            out.append({"name": name, "km": round(run[-1].acc), "line": line})
+    return sorted(out, key=lambda r: r["km"])
+
+
+def extra_springs(refresh: bool) -> list[list]:
+    """[lon, lat, name] for the springs NHD maps that FDEP doesn't list."""
+    return [[lon, lat, name] for lon, lat, name, _, sid in rain.springs_list(refresh) if not sid]
 
 
 def areas(layer: str, where: str, name_field: str, names: dict[str, str] | None, refresh: bool = False) -> list[dict]:
@@ -115,13 +191,20 @@ def build(refresh: bool = False) -> dict:
         raise RuntimeError(f"FDEP has springs plans with no display name: {sorted(missing)}")
     focus = areas(C.FDEP_PRIORITY_FOCUS, "1=1", "NAME", None, refresh)
     rings = land(refresh)
-    water = lagoons(refresh)
-    log(f"statewide: {len(rings)} land rings, {len(plans)} springs plans, {len(focus)} focus areas, {len(water)} lagoons")
+    named = lagoons(refresh)
+    near = florida_near(refresh)
+    bodies = water(near)
+    lines = rivers(near)
+    extra = extra_springs(refresh)
+    log(
+        f"statewide: {len(rings)} land rings, {len(plans)} springs plans, {len(focus)} focus areas, {len(named)} lagoons, "
+        f"{len(bodies)} lakes and wetlands, {len(lines)} river runs, {len(extra)} springs FDEP doesn't list"
+    )
     return {
         "meta": {
             "generator": "waterways-pipeline statewide",
             "generatedAt": date.today().isoformat(),
-            "sources": [C.CENSUS_STATES, bmap, C.FDEP_PRIORITY_FOCUS, C.NHD_BULK],
+            "sources": [C.CENSUS_STATES, bmap, C.FDEP_PRIORITY_FOCUS, C.NHD_BULK, C.FDEP_SPRINGS],
             "coordOrigin": list(ORIGIN),
             "coordScale": SCALE,
             "view": list(VIEW),
@@ -129,5 +212,8 @@ def build(refresh: bool = False) -> dict:
         "land": rings,
         "plans": plans,
         "focusAreas": focus,
-        "lagoons": water,
+        "lagoons": named,
+        "water": bodies,
+        "rivers": lines,
+        "extraSprings": extra,
     }
