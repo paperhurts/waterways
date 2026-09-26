@@ -7,12 +7,12 @@ import json
 import shutil
 from pathlib import Path
 
-from . import aquifer, crw, irl, lakeo, parks, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
+from . import aquifer, crw, cwms, irl, kissimmee, lakeo, parks, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
 from . import config as C
 from .config import OUT
 from .fetch import log
 
-DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "statewide", "parks", "snapshot"]
+DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "kissimmee", "statewide", "parks", "snapshot"]
 
 
 def write(out: Path, name: str, data: dict, quiet: bool = False) -> None:
@@ -52,6 +52,8 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
         write(out, "indian-river.json", irl.build(refresh))
     elif dataset == "reefs":
         write(out, "reefs.json", reefs.build(refresh))
+    elif dataset == "kissimmee":
+        write(out, "kissimmee.json", kissimmee.build(refresh))
     elif dataset == "lake-o":
         write(out, "lake-o.json", lakeo.build(refresh))
     elif dataset == "statewide":
@@ -61,6 +63,12 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
     elif dataset == "snapshot":
         # Always fresh: this is the point of the snapshot.
         snap = usgs.latest()
+        # The Kissimmee's structures come from the Corps; if it's down, they're just unknown.
+        try:
+            snap["cfs"] |= cwms.latest()
+        except Exception as err:  # noqa: BLE001
+            log(f"snapshot: no CWMS readings ({err})")
+            snap["cfs"] |= {g["key"]: None for g in C.gauges() if g.get("source") == "cwms"}
         # The reef's heat stress rides along; NOAA being down mustn't lose the gauges.
         try:
             snap["reef"] = crw.latest()

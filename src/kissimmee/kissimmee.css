@@ -1,0 +1,9 @@
+/* The Kissimmee River map, over the shared story-page layout. */
+h1 em { color: var(--tannin) }
+.gauge .v small { font-size: .7em; color: var(--muted); margin-left: 2px }
+/* Legend keys drawn like the map's lines. */
+#legend i.canal { width: 16px; height: 3px; border-radius: 0; background: var(--muted) }
+#legend i.bends { width: 16px; height: 3px; border-radius: 2px; background: var(--tannin) }
+#legend i.filled { width: 16px; height: 0; border-radius: 0; border-top: 1.5px dashed var(--muted) }
+#legend i.old { width: 16px; height: 2px; border-radius: 2px; background: var(--stream) }
+#legend i.marsh { width: 12px; height: 9px; border-radius: 2px; background: var(--marsh) }
