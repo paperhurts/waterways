@@ -39,7 +39,7 @@ from .rainbow import water_years
 from .rivers import KM2_PER_DEG2, drop_specks, polygon_rings
 
 HU4 = "0309"
-#: Where the river's flowlines are read: the floodplain from Lake Kissimmee to Lake O.
+#: Where the river's flowlines are read: the floodplain from Lake Kissimmee to Lake Okeechobee.
 CORRIDOR: C.Bbox = (-81.35, 27.15, -80.85, 27.85)
 RIVER_CLASSES = ["canal", "river", "filled"]
 #: A vertex this close to one of OpenStreetMap's C-38 ways (m) is on it.
