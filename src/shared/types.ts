@@ -183,14 +183,20 @@ export interface AreaFile {
 export interface StatewideFile {
   /** view: [west, south, east, north] the data covers. */
   meta: Provenance & { coordOrigin: [number, number]; coordScale: number; view: [number, number, number, number] };
-  /** Florida and its neighbors, clipped to the view; the page paints the sea behind them. */
+  /** Florida and its neighbors, clipped to the view, less every bay, lagoon, and tidal river; the page paints the sea behind them. */
   land: number[][];
   /** FDEP springs basin management action plan areas, largest first. */
   plans: AreaFile[];
   /** FDEP Springs Priority Focus Areas. */
   focusAreas: AreaFile[];
-  /** Florida's coastal lagoons (NHD), largest first. */
+  /** Florida's coastal lagoons (NHD), largest first, for their names and cards: their water is already out of the land. */
   lagoons: AreaFile[];
+  /** Florida's lakes and big wetlands (NHD), largest first. */
+  water: { name: string | null; kind: "lake" | "swamp"; km2: number; rings: number[][] }[];
+  /** Florida's bigger rivers, packed flat like the rings; km is the upstream length where each run ends. Smallest first. */
+  rivers: { name: string | null; km: number; line: number[] }[];
+  /** Springs NHD maps that FDEP doesn't list (not in springs.json). */
+  extraSprings: NamedPoint[];
 }
 
 // ---------- snorkel spots (config/snorkel.json) ----------
