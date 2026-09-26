@@ -312,6 +312,58 @@ export interface PeaceFile {
   history: { years: number[]; BAR: (number | null)[]; ARC: (number | null)[] };
 }
 
+// ---------- panthers.json (panther map) ----------
+
+/** A collared panther from FWC's telemetry: one position a month. */
+export interface PantherCat {
+  /** FWC's id: FP… for panthers, K… for those collared as kittens, TX101–TX108 for the Texas pumas. */
+  id: string;
+  /** How many aerial fixes FWC has for it, before thinning. */
+  n: number;
+  /** Months since the file's `start` January, ascending, one per position. */
+  m: number[];
+  /** Packed [x, y] for each month, repeats kept (unlike geo.pack), rounded to ~500 m. */
+  p: number[];
+}
+
+export const PANTHER_CAUSES = ["vehicle", "fight", "disease", "illegal", "other"] as const;
+export type PantherCause = (typeof PANTHER_CAUSES)[number];
+
+/** A death in FWC's records: its month, cause (grouped, and FWC's own), sex, age in years, county, place (rounded to ~1 km), and its collar id if FWC tracked it. */
+export type PantherDeath = [month: string, cause: PantherCause, fwcCause: string, sex: "F" | "M" | null, age: number | null, county: string | null, lon: number, lat: number, cat: string | null];
+
+export const PANTHER_ZONES = ["primary", "secondary", "dispersal", "north"] as const;
+export type PantherZone = (typeof PANTHER_ZONES)[number];
+
+export interface PanthersFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
+  /** The year of the first collar fix: month 0 is its January. */
+  start: number;
+  /** Collar fixes from this date (ISO) on are left off, so no living cat's range is pinned. */
+  cutoff: string;
+  /** The last month with a death, counted from `start`: where the page's clock stops. */
+  end: number;
+  cats: PantherCat[];
+  /** Oldest first. */
+  deaths: PantherDeath[];
+  /** The USFWS MERIT panther subteam's habitat zones and the focus area north of the Caloosahatchee, packed rings. */
+  zones: { zone: PantherZone; acres: number; rings: number[][] }[];
+  /** Census TIGER primary and secondary roads, packed. */
+  roads: number[][];
+  /** The Caloosahatchee's canal and river, from the lake to the Gulf, packed. */
+  river: number[][];
+  water: LakesFile["bodies"];
+}
+
+/** snapshot.json's panther block: this year's deaths so far. */
+export interface PantherYear {
+  year: number;
+  deaths: number;
+  vehicle: number;
+  /** The newest death's date (ISO), or null if none yet this year. */
+  through: string | null;
+}
+
 // ---------- apalachicola.json (Apalachicola River map) ----------
 
 export const AP_RIVERS = ["Chattahoochee River", "Flint River", "Apalachicola River", "Chipola River"] as const;
@@ -567,6 +619,8 @@ export interface Snapshot {
   ppt: Record<SalinityKey, Salinity>;
   /** Coral Reef Watch heat stress on the reef; absent when NOAA didn't answer. */
   reef?: Record<ReefStation, ReefHeat>;
+  /** FWC's panther deaths this year; absent when FWC didn't answer. */
+  panthers?: PantherYear;
 }
 
 // ---------- aquifer.json ----------

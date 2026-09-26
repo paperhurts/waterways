@@ -28,6 +28,9 @@ import {
   type OcklawahaFile,
   type ApalachicolaFile,
   type PeaceFile,
+  type PanthersFile,
+  PANTHER_CAUSES,
+  PANTHER_ZONES,
   type StJohnsFile,
   type ReefsFile,
   type LakeOFile,
@@ -63,6 +66,7 @@ const ock = read<OcklawahaFile>("public/data/ocklawaha.json");
 const ap = read<ApalachicolaFile>("public/data/apalachicola.json");
 const peace = read<PeaceFile>("public/data/peace.json");
 const sj = read<StJohnsFile>("public/data/stjohns.json");
+const panthers = read<PanthersFile>("public/data/panthers.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
 const snorkel = read<SnorkelFile>("config/snorkel.json");
@@ -870,5 +874,76 @@ describe("gauges and snapshot", () => {
       const v = snapshot.cfs[k];
       if (v != null) expect(v).toBeGreaterThanOrEqual(0);
     }
+  });
+});
+
+describe("panthers.json", () => {
+  const { coordOrigin, coordScale: k } = panthers.meta;
+  const monthOf = (iso: string) => (+iso.slice(0, 4) - panthers.start) * 12 + +iso.slice(5, 7) - 1;
+  const sea = panthers.water.filter((b) => b.kind === "sea").flatMap((b) => b.rings);
+
+  it("has one position a month per collared cat, each rounded to ~500 m, none from the newest two years", () => {
+    const cutoff = monthOf(panthers.cutoff);
+    expect(panthers.cats.length).toBeGreaterThan(200);
+    expect(new Set(panthers.cats.map((c) => c.id)).size).toBe(panthers.cats.length);
+    for (const c of panthers.cats) {
+      expect(c.p.length, c.id).toBe(c.m.length * 2);
+      for (let i = 1; i < c.m.length; i++) expect(c.m[i], c.id).toBeGreaterThan(c.m[i - 1]);
+      expect(c.m[c.m.length - 1], c.id).toBeLessThanOrEqual(cutoff);
+      // Rounded to 0.005°: 50 packed units, since the packing origin is on whole degrees.
+      for (const v of c.p) expect(v % 50 === 0, c.id).toBe(true);
+    }
+    const newest = new Date(`${panthers.cutoff}T00:00:00Z`);
+    expect(newest.getUTCFullYear()).toBeGreaterThanOrEqual(2024);
+  });
+
+  it("has the eight Texas pumas, all between their release in 1995 and 2003", () => {
+    const tx = panthers.cats.filter((c) => c.id.startsWith("TX"));
+    expect(tx.length).toBe(8);
+    for (const c of tx) {
+      expect(panthers.start + Math.floor(c.m[0] / 12), c.id).toBeGreaterThanOrEqual(1995);
+      expect(panthers.start + Math.floor(c.m[c.m.length - 1] / 12), c.id).toBeLessThanOrEqual(2003);
+    }
+  });
+
+  it("has every death since 1972 with a cause, a place rounded to ~1 km, and no location notes", () => {
+    const ids = new Set(panthers.cats.map((c) => c.id));
+    expect(panthers.deaths.length).toBeGreaterThan(700);
+    expect(+panthers.deaths[0][0].slice(0, 4)).toBeGreaterThanOrEqual(1972);
+    for (let i = 1; i < panthers.deaths.length; i++) expect(panthers.deaths[i][0] >= panthers.deaths[i - 1][0]).toBe(true);
+    for (const d of panthers.deaths) {
+      expect(d.length).toBe(9);
+      expect(PANTHER_CAUSES).toContain(d[1]);
+      expect(Math.abs(d[6] * 100 - Math.round(d[6] * 100))).toBeLessThan(1e-6);
+      expect(Math.abs(d[7] * 100 - Math.round(d[7] * 100))).toBeLessThan(1e-6);
+      if (d[8]) expect(ids).toContain(d[8]);
+    }
+    expect(panthers.end).toBe(monthOf(panthers.deaths[panthers.deaths.length - 1][0]));
+    // Cars kill the most: the page says so.
+    const vehicle = panthers.deaths.filter((d) => d[1] === "vehicle").length;
+    expect(vehicle).toBeGreaterThan(panthers.deaths.length / 2);
+  });
+
+  it("puts the most deaths in a year in 2015-2016, as the clock's note says", () => {
+    const byYear = new Map<number, number>();
+    for (const d of panthers.deaths) byYear.set(+d[0].slice(0, 4), (byYear.get(+d[0].slice(0, 4)) ?? 0) + 1);
+    const peak = Math.max(...byYear.values());
+    const peakYears = [...byYear].filter(([, n]) => n === peak).map(([y]) => y);
+    for (const y of peakYears) expect([2015, 2016]).toContain(y);
+  });
+
+  it("has the four habitat zones, the roads, and the Caloosahatchee", () => {
+    expect(panthers.zones.map((z) => z.zone).sort()).toEqual([...PANTHER_ZONES].sort());
+    expect(panthers.roads.length).toBeGreaterThan(100);
+    expect(panthers.river.length).toBe(2);
+  });
+
+  it("fills the sea far past the view, leaving Cuba and the Bahamas land", () => {
+    expect(inPacked(sea, coordOrigin, k, -82.2, 26.0)).toBe(true); // off Naples
+    expect(inPacked(sea, coordOrigin, k, -87.5, 26.5)).toBe(true); // the open Gulf
+    expect(inPacked(sea, coordOrigin, k, -76.0, 27.0)).toBe(true); // the Atlantic past the Bahamas
+    expect(inPacked(sea, coordOrigin, k, -81.1, 26.0)).toBe(false); // the Big Cypress
+    expect(inPacked(sea, coordOrigin, k, -77.95, 24.6)).toBe(false); // Andros
+    expect(inPacked(sea, coordOrigin, k, -79.4, 22.3)).toBe(false); // Cuba
   });
 });

@@ -25,6 +25,9 @@
   /* The water a state park protects; springs and rivers are --spring and --tannin. All five pass the dataviz validator's
      color-blind checks pair by pair, in both modes (parks are named in the legend and cards too). */
   --park-lake: #d4dc68; --park-coast: #8a9ef2; --park-reef: #e86fa0;
+  /* The panther map's collared panthers and the Texas pumas released in 1995: the pair passed the dataviz validator
+     (all pairs, color-blind separation) in both modes. The Texas pumas are named in the legend and cards too. */
+  --panther: #c28733; --texas: #6f90e6;
   /* Chart lines: the water colors stepped into a line chart's lightness band (checked with the dataviz validator). */
   --chart-spring: #27a397; --chart-tannin: #b87f33; --chart-lake: #6f9a2e; --chart-estuary: #5a82de;
 
@@ -45,6 +48,7 @@
     --stream: #7fa3ab; --glint: #5f7d1f; --heat-1: #c8a531; --heat-2: #c0441c; --heat-3: #6e0a3e;
     --park-lake: #80990c; --park-coast: #2f5fa8; --park-reef: #e0508c;
     --chart-spring: #0a8f86; --chart-tannin: #9a5a12; --chart-lake: #4d7a17; --chart-estuary: #2f5fa8;
+    --panther: #8f4f0a; --texas: #2f5fa8;
     color-scheme: light;
   }
 }
@@ -60,5 +64,6 @@
   --stream: #7fa3ab; --glint: #5f7d1f; --heat-1: #c8a531; --heat-2: #c0441c; --heat-3: #6e0a3e;
   --park-lake: #80990c; --park-coast: #2f5fa8; --park-reef: #e0508c;
   --chart-spring: #0a8f86; --chart-tannin: #9a5a12; --chart-lake: #4d7a17; --chart-estuary: #2f5fa8;
+  --panther: #8f4f0a; --texas: #2f5fa8;
   color-scheme: light;
 }

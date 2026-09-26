@@ -171,6 +171,24 @@ SJ_SEA: Bbox = (-84.0, 26.0, -77.5, 32.5)
 #: None: the river's whole path in the view, from its head; the mouth at Mayport.
 SJ_HEAD = None
 SJ_MOUTH = (-81.40, 30.40)
+#: The panther map: the breeding range south of the Caloosahatchee, and Babcock Ranch north of it.
+PANTHER_VIEW: Bbox = (-82.3, 25.1, -80.3, 27.2)
+PANTHER_WATER: Bbox = (-82.7, 24.8, -79.9, 27.8)
+#: The sea reaches much wider, coarsely: the short, wide map on a desktop shows 14 degrees
+#: of longitude. The Census outlines are the US's alone, so NEIGHBORS' land is added to them.
+PANTHER_SEA: Bbox = (-92.0, 21.0, -72.0, 33.0)
+#: Esri's generalized world countries (Esri, Garmin, the CIA World Factbook, National
+#: Geographic), for the land near Florida that isn't the US's.
+WORLD_COUNTRIES = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/World_Countries_(Generalized)/FeatureServer/0"
+NEIGHBORS = ("Bahamas", "Cuba", "Mexico")
+#: FWC's panther radio telemetry (aerial fixes since 1981) and every known death since 1972.
+FWC_PANTHER_TELEMETRY = "https://gis.myfwc.com/hosting/rest/services/Open_Data/Florida_Panther_Telemetry/MapServer/6"
+FWC_PANTHER_MORTALITY = "https://gis.myfwc.com/hosting/rest/services/Open_Data/Florida_Panther_Mortality/MapServer/7"
+#: The USFWS MERIT panther subteam's zones (Primary, Secondary, Dispersal) and the north focus area, via FDEP.
+FDEP_PANTHER_ZONES = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/PANTHER_CONSULT_AREA/MapServer/1"
+#: Census TIGER roads: primary (limited access) and secondary (state and US highways, 1:578k).
+TIGER_PRIMARY_ROADS = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Transportation/MapServer/2"
+TIGER_SECONDARY_ROADS = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Transportation/MapServer/4"
 #: OpenStreetMap's Overpass API, for which stretches of C-38 were backfilled.
 OVERPASS = "https://overpass-api.de/api/interpreter"
 #: The Corps of Engineers' public CWMS Data API (water levels and flows at SFWMD structures).
