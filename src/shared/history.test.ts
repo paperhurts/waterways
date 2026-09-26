@@ -8,6 +8,11 @@ describe("ticks", () => {
     expect(ticks(4000)).toEqual([0, 1000, 2000, 3000, 4000]);
   });
 
+  it("steps small values too, like the reef's heat stress", () => {
+    expect(ticks(22.3)).toEqual([0, 5, 10, 15, 20, 25]);
+    expect(ticks(8.3)).toEqual([0, 2.5, 5, 7.5, 10]);
+  });
+
   it("reaches below zero when values do", () => {
     expect(ticks(3511, -173)).toEqual([-1000, 0, 1000, 2000, 3000, 4000]);
     expect(ticks(1200, -600)).toEqual([-1000, -500, 0, 500, 1000, 1500]);

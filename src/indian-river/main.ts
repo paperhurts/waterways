@@ -37,6 +37,18 @@ const WANDER_KMS = 0.35;
 const FRESH_LIFE = [7, 14];
 /** Seawater gets this far in (km) before the tide turns it back. */
 const SEA_REACH = [2, 9];
+/**
+ * The lagoon's own water, spread evenly through it. Near an inlet it sloshes in and out
+ * with the tide, one tide every TIDE_S seconds, at up to TIDE_KMS; the tide's pull fades
+ * over TIDE_KM from the inlet, as the real tide does within a few miles. Everywhere, the
+ * wind stirs it slowly (WIND_KMS). Water the ebb carries out an inlet is flushed: it
+ * comes back somewhere else in the lagoon.
+ */
+const RESIDENTS_PER_KM2 = 2.2;
+const TIDE_S = 14;
+const TIDE_KMS = 1.8;
+const TIDE_KM = 3.5;
+const WIND_KMS = 0.07;
 const KM_PER_DEG_LAT = 110.57;
 const MILES_PER_KM = 0.621;
 
@@ -228,6 +240,70 @@ async function main() {
     }
   }
 
+  // ---------- the lagoon's own water ----------
+  const lagoonCells: number[] = [];
+  for (let i = 0; i < grid.km.length; i++) if (grid.km[i] !== NOT_LAGOON) lagoonCells.push(i);
+  interface Resident {
+    lon: number;
+    lat: number;
+    /** Where it was a frame ago, for its streak. */
+    plon: number;
+    plat: number;
+    /** Its wind drift's heading, which wanders. */
+    heading: number;
+  }
+  const settle = (r: Resident) => {
+    const i = lagoonCells[Math.floor(Math.random() * lagoonCells.length)];
+    r.lon = grid.lon0 + ((i % grid.nx) + Math.random()) * grid.res;
+    r.lat = grid.lat0 + (Math.floor(i / grid.nx) + Math.random()) * grid.res;
+    r.plon = r.lon;
+    r.plat = r.lat;
+    r.heading = Math.random() * Math.PI * 2;
+  };
+  const cellKm2 = (grid.res * 111.32 * Math.cos((27.8 * Math.PI) / 180)) * (grid.res * KM_PER_DEG_LAT);
+  const residents: Resident[] = Array.from({ length: Math.round(lagoonCells.length * cellKm2 * RESIDENTS_PER_KM2) }, () => {
+    const r = { lon: 0, lat: 0, plon: 0, plat: 0, heading: 0 };
+    settle(r);
+    return r;
+  });
+  let tideT = 0;
+
+  function stir(dt: number) {
+    tideT += dt;
+    for (const r of residents) {
+      r.plon = r.lon;
+      r.plat = r.lat;
+      const here = grid.at(r.lon, r.lat);
+      if (here === NOT_LAGOON) {
+        settle(r);
+        continue;
+      }
+      // The tide reaches each spot a little later the farther in it is: flood carries the
+      // water away from the inlet, ebb back toward it.
+      const pull = TIDE_KMS * Math.exp(-here / TIDE_KM) * Math.cos((2 * Math.PI * tideT) / TIDE_S - here * 0.25);
+      const down = grid.downhill(r.lon, r.lat);
+      r.heading += (Math.random() - 0.5) * 1.2 * dt;
+      let ex = Math.cos(r.heading) * WIND_KMS;
+      let ey = Math.sin(r.heading) * WIND_KMS;
+      if (down) {
+        ex -= down[0] * pull;
+        ey -= down[1] * pull;
+      }
+      const [sx, sy] = kmToDeg(dt, r.lat);
+      const lon = r.lon + ex * sx;
+      const lat = r.lat + ey * sy;
+      const there = grid.at(lon, lat);
+      if (there === NOT_LAGOON) {
+        // Out an inlet on the ebb: flushed to sea. Anywhere else it's the shore: turn.
+        if (here <= 1 && pull < 0) settle(r);
+        else r.heading += Math.PI * (0.5 + Math.random());
+        continue;
+      }
+      r.lon = lon;
+      r.lat = lat;
+    }
+  }
+
   // ---------- drops ----------
   const drops: Drop[] = [];
   const acc: Record<string, number> = {};
@@ -311,18 +387,32 @@ async function main() {
   }
 
   const streaks = new StreakLayer();
-  const GROUP = { fresh: 0, sea: 1, haul: 2 } as const;
+  const GROUP = { fresh: 0, sea: 1, haul: 2, lagoon: 3 } as const;
   function draw() {
     const c = view.fctx;
     const { W, H } = view;
     const sc = view.scale;
     c.setTransform(view.DPR, 0, 0, view.DPR, 0, 0);
-    fadeLayer(c, W, H, Math.min(0.55, Math.max(0.2, 0.2 * Math.sqrt(sc / 1000))));
+    const fade = Math.min(0.55, Math.max(0.2, 0.2 * Math.sqrt(sc / 1000)));
+    fadeLayer(c, W, H, fade);
     const z = Math.min(2.4, Math.max(1, sc / 1500));
     streaks.style(GROUP.fresh, C.tannin, glow ? 0.45 : 0.85, z);
     streaks.style(GROUP.sea, C.atl, glow ? 0.35 : 0.7, z);
     streaks.style(GROUP.haul, C.ink, glow ? 0.25 : 0.5, z);
+    // Still water repaints the same pixel every frame, and a dot painted at alpha a under a
+    // fade of f settles at about a / f: tie a to the fade so still water holds steady. It's
+    // thinned out when zoomed far out too, or the narrow lagoon turns solid white.
+    streaks.style(GROUP.lagoon, C.ink, (glow ? 0.4 : 0.55) * fade, Math.min(2, 1.3 * z));
     streaks.begin();
+    const every = Math.max(1, Math.round(1500 / sc));
+    for (let n = 0; n < residents.length; n += every) {
+      const r = residents[n];
+      const a = project(r.plon, r.plat);
+      const b = project(r.lon, r.lat);
+      const [x, y] = [X(b[0]), Y(b[1])];
+      if (x < -4 || y < -4 || x > W + 4 || y > H + 4) continue;
+      streaks.add(GROUP.lagoon, X(a[0]), Y(a[1]), x, y);
+    }
     for (const p of drops) {
       let x: number;
       let y: number;
@@ -347,7 +437,10 @@ async function main() {
 
   function refill(seconds: number, dt: number) {
     drops.length = 0;
-    for (let t = 0; t < seconds; t += dt) step(dt);
+    for (let t = 0; t < seconds; t += dt) {
+      step(dt);
+      stir(dt);
+    }
     view.clearFx();
   }
 
@@ -437,7 +530,7 @@ async function main() {
     const canals = into.filter((g) => CANAL_KEYS.includes(g.key)).reduce((a, g) => a + g.cfs!, 0);
     document.getElementById("lede")!.innerHTML =
       `The lagoon runs ${LAGOON.length} miles behind the barrier islands, about ${LAGOON.depthFt} feet deep, and trades water with the Atlantic through just five inlets. ` +
-      `Near an inlet the tide flushes it. Far from one the water sits: half of the northern lagoon's is still there after about ${LAGOON.northDays} days, and at its far north end after ${LAGOON.farNorthDays}. ` +
+      `Near an inlet the tide swaps it out quickly. Far from one the water sits: half of the northern lagoon's is still there after about ${LAGOON.northDays} days, and at its far north end after ${LAGOON.farNorthDays}. ` +
       (total > 0 ? `Right now the gauged creeks and canals are pouring in <b>${fmtCfs(total)} cfs</b>, <b>${Math.round((canals / total) * 100)}%</b> of it from drainage canals. ` : "") +
       "Tap anything on the map.";
     const tail = "Flow is in cubic feet per second (cfs).";
@@ -528,6 +621,7 @@ async function main() {
     view.tick(t);
     if (!paused) {
       step(dt);
+      stir(dt);
       draw();
     }
   });

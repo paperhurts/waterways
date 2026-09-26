@@ -3,3 +3,4 @@ h1 em { color: var(--atl) }
 .gauge .v small { font-size: .7em; color: var(--muted); margin-left: 2px }
 /* The flushing key: the near-an-inlet color fading out with distance. */
 #legend i.far { width: 26px; height: 9px; border-radius: 2px; background: linear-gradient(90deg, var(--atl), transparent) }
+#legend i.still { background: var(--ink); opacity: .55; width: 5px; height: 5px; margin: 0 2px }

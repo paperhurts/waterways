@@ -1,9 +1,23 @@
-// The story pages' flow history: water-year mean discharge as a line chart with a
-// snapping crosshair, a tooltip listing every series, and a table view. Line colors
-// are CSS custom properties (--chart-*): the map's water colors stepped into a line
-// chart's lightness band. Values can be negative, for flow that runs backward.
+// The story pages' history charts: a yearly value per series (water-year mean flow by
+// default; the reef page's peak heat stress) as a line chart with a snapping
+// crosshair, a tooltip listing every series, and a table view. Line colors are CSS
+// custom properties (--chart-*): the map's water colors stepped into a line chart's
+// lightness band. Values can be negative, for flow that runs backward.
 
 import { fmtCfs } from "../shared/live";
+
+/** What the chart measures. The default is flow: water-year means in cfs. */
+export interface Measure {
+  /** Unit after a value in the tooltip and the table's headers. */
+  unit: string;
+  format: (v: number | null) => string;
+  /** What a year is called in the tooltip and table. */
+  year: string;
+  /** What the lines are, for the chart's accessible label. */
+  what: string;
+}
+
+export const FLOW: Measure = { unit: "cfs", format: fmtCfs, year: "Water year", what: "yearly mean flow" };
 
 export interface Series {
   name: string;
@@ -23,9 +37,17 @@ function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, 
   return e;
 }
 
-/** Clean y-axis ticks: 0, 500, 1,000... or 0, 1,000, 2,000... depending on range, reaching below 0 for negative values. */
+/** Clean y-axis ticks, at most five steps of 1, 2.5, or 5 times a power of ten (0, 250, 500... or 0, 5, 10...), reaching below 0 for negative values. */
 export function ticks(max: number, min = 0): number[] {
-  const step = [250, 500, 1000, 2000, 5000].find((s) => (max - Math.min(0, min)) / s <= 5) ?? 10000;
+  const range = Math.max(max - Math.min(0, min), 1e-9);
+  let step = 1;
+  for (let p = 10 ** Math.floor(Math.log10(range / 5)); ; p *= 10) {
+    const s = [1, 2.5, 5].map((m) => m * p).find((s) => range / s <= 5);
+    if (s) {
+      step = s;
+      break;
+    }
+  }
   const out = [];
   for (let v = Math.min(0, Math.floor(min / step) * step); v <= max; v += step) out.push(v);
   if (out[out.length - 1] < max) out.push(out[out.length - 1] + step);
@@ -33,7 +55,7 @@ export function ticks(max: number, min = 0): number[] {
 }
 
 /** Draw into `host` (replacing its contents) at its current width. */
-export function renderHistory(host: HTMLElement, years: number[], series: Series[]): void {
+export function renderHistory(host: HTMLElement, years: number[], series: Series[], measure: Measure = FLOW): void {
   host.replaceChildren();
   const W = Math.max(260, host.clientWidth);
   const all = series.flatMap((s) => s.values.filter((v): v is number => v != null));
@@ -56,7 +78,7 @@ export function renderHistory(host: HTMLElement, years: number[], series: Series
   const wrap = document.createElement("div");
   wrap.className = "plot";
   host.appendChild(wrap);
-  const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img", tabindex: 0, "aria-label": `${series.map((s) => s.name).join(" and ")}, yearly mean flow ${years[0]}–${years[years.length - 1]}. Use the arrow keys to read each year.` });
+  const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img", tabindex: 0, "aria-label": `${series.map((s) => s.name).join(" and ")}, ${measure.what} ${years[0]}–${years[years.length - 1]}. Use the arrow keys to read each year.` });
   wrap.appendChild(svg);
 
   for (const v of yt) {
@@ -84,7 +106,7 @@ export function renderHistory(host: HTMLElement, years: number[], series: Series
   }
   // Value labels at the line ends, in ink; skipped if they'd collide.
   if (ends.every((a, i) => ends.every((b, j) => i === j || Math.abs(a.y - b.y) > 14))) {
-    for (const e of ends) el("text", { x: x(years.length - 1) + 8, y: e.y + 4, class: "end" }, svg).textContent = fmtCfs(e.v);
+    for (const e of ends) el("text", { x: x(years.length - 1) + 8, y: e.y + 4, class: "end" }, svg).textContent = measure.format(e.v);
   }
 
   const hair = el("line", { y1: PAD.t, y2: H - PAD.b, class: "hair", visibility: "hidden" }, svg);
@@ -104,7 +126,7 @@ export function renderHistory(host: HTMLElement, years: number[], series: Series
     tip.replaceChildren();
     const head = document.createElement("div");
     head.className = "yr";
-    head.textContent = `Water year ${years[at]}`;
+    head.textContent = `${measure.year} ${years[at]}`;
     tip.appendChild(head);
     series.forEach((s, k) => {
       const v = s.values[at];
@@ -117,7 +139,7 @@ export function renderHistory(host: HTMLElement, years: number[], series: Series
       const key = document.createElement("i");
       key.style.background = `var(${s.color})`;
       const val = document.createElement("b");
-      val.textContent = v == null ? "—" : `${fmtCfs(v)} cfs`;
+      val.textContent = v == null ? "—" : `${measure.format(v)} ${measure.unit}`;
       row.append(key, val, document.createTextNode(` ${s.name}`));
       tip.appendChild(row);
     });
@@ -148,12 +170,12 @@ export function renderHistory(host: HTMLElement, years: number[], series: Series
   sum.textContent = "Table";
   const t = document.createElement("table");
   const hr = t.createTHead().insertRow();
-  for (const h of ["Water year", ...series.map((s) => `${s.name} (cfs)`)]) hr.appendChild(document.createElement("th")).textContent = h;
+  for (const h of [measure.year, ...series.map((s) => `${s.name} (${measure.unit})`)]) hr.appendChild(document.createElement("th")).textContent = h;
   const body = t.createTBody();
   years.forEach((yr, i) => {
     const row = body.insertRow();
     row.insertCell().textContent = String(yr);
-    for (const s of series) row.insertCell().textContent = fmtCfs(s.values[i]);
+    for (const s of series) row.insertCell().textContent = measure.format(s.values[i]);
   });
   table.append(sum, t);
   host.appendChild(table);
