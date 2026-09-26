@@ -107,6 +107,25 @@ STLUCIE_RIVERS = ["Saint Lucie Canal", "South Fork Saint Lucie River", "North Fo
 #: Everything it draws: the lake with the Kissimmee's mouth and Fisheating Creek, the
 #: Caloosahatchee west to its estuary at Fort Myers, the St. Lucie Canal east to Stuart,
 #: and the farm canals south toward the Everglades.
+#: The Kissimmee River map: Lake Kissimmee down the river to Lake Okeechobee.
+KISS_VIEW: Bbox = (-81.42, 27.12, -80.78, 27.98)
+#: Lakes and wetlands reach past the view so panning doesn't find their edge.
+KISS_WATER: Bbox = (-81.75, 26.85, -80.45, 28.25)
+#: The river's structures, from the Corps' CWMS locations. S-65B and S-65C were removed
+#: by the restoration (S-65C in 2021); S-65B's site isn't in CWMS, so it isn't drawn.
+KISS_STRUCTURES = [
+    {"name": "S-65", "lon": -81.1983, "lat": 27.8036, "role": "outlet"},
+    {"name": "S-65A", "lon": -81.1344, "lat": 27.6597, "role": "pool"},
+    {"name": "S-65C", "lon": -81.1150, "lat": 27.4008, "role": "removed"},
+    {"name": "S-65D", "lon": -81.0228, "lat": 27.3144, "role": "pool"},
+    {"name": "S-65E", "lon": -80.9628, "lat": 27.2250, "role": "mouth"},
+    {"name": "S-68", "lon": -81.2544, "lat": 27.3297, "role": "istokpoga"},
+]
+#: OpenStreetMap's Overpass API, for which stretches of C-38 were backfilled.
+OVERPASS = "https://overpass-api.de/api/interpreter"
+#: The Corps of Engineers' public CWMS Data API (water levels and flows at SFWMD structures).
+CWMS = "https://cwms-data.usace.army.mil/cwms-data"
+
 LAKEO_VIEW: Bbox = (-81.95, 26.3, -80.15, 27.45)
 #: Lakes, marshes, and estuaries reach past the view so panning doesn't find their edge.
 LAKEO_WATER: Bbox = (-82.2, 26.0, -79.95, 27.7)

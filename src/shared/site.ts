@@ -19,6 +19,7 @@ export const SITE_MAPS: SitePage[] = [
   { href: "santa-fe.html", name: "Santa Fe", title: "The Santa Fe breathes groundwater" },
   { href: "rainbow.html", name: "Rainbow River", title: "Rainbow River starts full grown" },
   { href: "indian-river.html", name: "Indian River Lagoon", title: "The Indian River Lagoon barely trades with the sea" },
+  { href: "kissimmee.html", name: "Kissimmee", title: "The Kissimmee got its bends back" },
   { href: "lake-o.html", name: "Lake O", title: "Lake Okeechobee used to drain south" },
   { href: "st-lucie.html", name: "St. Lucie", title: "The St. Lucie was plumbed to a lake" },
   { href: "reefs.html", name: "Coral Reef", title: "Florida's Coral Reef lost its builders" },

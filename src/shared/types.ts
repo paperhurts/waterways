@@ -241,6 +241,40 @@ export interface StatewideFile {
   extraSprings: NamedPoint[];
 }
 
+// ---------- kissimmee.json (Kissimmee River map) ----------
+
+/** What the river is along its path, in kissimmee.json's order. */
+export const KISS_CLASSES = ["canal", "river", "filled"] as const;
+export type KissClass = (typeof KISS_CLASSES)[number];
+
+export interface KissStructure {
+  name: string;
+  lon: number;
+  lat: number;
+  /** outlet: Lake Kissimmee's; pool: divides the river's pools; removed: taken out by the restoration; mouth: into Lake Okeechobee; istokpoga: Lake Istokpoga's outlet. */
+  role: "outlet" | "pool" | "removed" | "mouth" | "istokpoga";
+}
+
+export interface KissimmeeFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number; classes: string[] };
+  /** NHD's main path from S-65 to S-65E, packed like the lakes files, with each vertex's class (index into KISS_CLASSES) and the miles of each. */
+  river: { p: number[]; c: number[]; miles: Record<KissClass, number> };
+  /** Canal backfilled in the last phase (2021), from OpenStreetMap, packed. */
+  filled: number[][];
+  /** NHD's other river channels in the floodplain: the old bends, packed. */
+  oldChannel: number[][];
+  /** Canal C-41A from Lake Istokpoga's outlet (S-68) to the river, packed. */
+  istokpoga: number[];
+  /** Lakes and the wetlands off the floodplain; same shape as a lakes file's bodies. */
+  water: LakesFile["bodies"];
+  /** The floodplain's wetlands, packed rings, and their area. */
+  floodplain: number[][];
+  floodplainKm2: number;
+  structures: KissStructure[];
+  /** Water-year mean flow at S-65E (cfs), from USGS then the Corps. */
+  history: { years: number[]; S65E: (number | null)[] };
+}
+
 // ---------- parks.json (state parks map) ----------
 
 /** The water a park protects, in parks.json's order. */
@@ -348,7 +382,12 @@ export const IRL_KEYS = ["HAUL", "EG", "CRANE", "TURKEY", "SEBN", "FELL", "SEBS"
 export type IrlKey = (typeof IRL_KEYS)[number];
 export type IrlFlows = Record<IrlKey, number | null>;
 
-export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey;
+/** The Kissimmee map's structures, from the Corps' CWMS: S-65E into Lake Okeechobee, and S-68 out of Lake Istokpoga. */
+export const KISS_KEYS = ["S65E", "S68"] as const;
+export type KissKey = (typeof KISS_KEYS)[number];
+export type KissFlows = Record<KissKey, number | null>;
+
+export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey | KissKey;
 
 export interface GaugeConfig {
   id: string;
@@ -357,7 +396,10 @@ export interface GaugeConfig {
   name?: string;
   key: GaugeKey;
   /** Which map draws it. */
-  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river";
+  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river" | "kissimmee";
+  /** Where its readings come from: USGS (the default, `id` is the site number) or the Corps' CWMS (`ts` names the time series). */
+  source?: "cwms";
+  ts?: string;
   /** Flow can run backward here, and USGS reports it as negative. */
   signed?: boolean;
   river?: string;
@@ -405,7 +447,7 @@ export interface Snapshot {
   /** ISO 8601 time of the newest reading. */
   time: string;
   /** Every gauge in config/gauges.json, all maps. */
-  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey, number | null>;
+  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey | KissKey, number | null>;
   /** Every station in config/salinity.json. */
   ppt: Record<SalinityKey, Salinity>;
   /** Coral Reef Watch heat stress on the reef; absent when NOAA didn't answer. */

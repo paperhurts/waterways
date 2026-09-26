@@ -36,9 +36,9 @@ def reading(value: object, signed: bool = False) -> float | None:
 
 
 def latest(refresh: bool = True) -> dict:
-    """snapshot.json: the newest discharge reading at every gauge, and the newest salinity
-    at each estuary station."""
-    gauges = C.gauges()
+    """snapshot.json: the newest discharge reading at every USGS gauge, and the newest
+    salinity at each estuary station. The CWMS gauges are cwms.latest's."""
+    gauges = [g for g in C.gauges() if g.get("source", "usgs") == "usgs"]
     signed = {g["id"] for g in gauges if g.get("signed")}
     body = get_json(
         f"{C.USGS_API}/latest-continuous/items",

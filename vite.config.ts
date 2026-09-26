@@ -27,6 +27,7 @@ export default defineConfig({
         santaFe: resolve(import.meta.dirname, "santa-fe.html"),
         rainbow: resolve(import.meta.dirname, "rainbow.html"),
         stLucie: resolve(import.meta.dirname, "st-lucie.html"),
+        kissimmee: resolve(import.meta.dirname, "kissimmee.html"),
         lakeO: resolve(import.meta.dirname, "lake-o.html"),
         indianRiver: resolve(import.meta.dirname, "indian-river.html"),
         reefs: resolve(import.meta.dirname, "reefs.html"),

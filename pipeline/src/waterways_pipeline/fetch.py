@@ -33,7 +33,7 @@ def cache_path(url: str, params: dict[str, Any] | None = None) -> Path:
     return CACHE / f"{hashlib.sha1(full.encode()).hexdigest()[:16]}.json"
 
 
-def get_json(url: str, params: dict[str, Any] | None = None, *, refresh: bool = False, cache: bool = True) -> Any:
+def get_json(url: str, params: dict[str, Any] | None = None, *, refresh: bool = False, cache: bool = True, headers: dict[str, str] | None = None) -> Any:
     full = f"{url}?{urlencode(params)}" if params else url
     path = cache_path(url, params)
     if cache and path.exists() and not refresh:
@@ -41,7 +41,7 @@ def get_json(url: str, params: dict[str, Any] | None = None, *, refresh: bool = 
     log(f"GET {full[:140]}{'…' if len(full) > 140 else ''}")
     t0 = time.monotonic()
     # NHD's server can think for several minutes before it sends a big page back.
-    res = _session.get(full, timeout=(30, 600))
+    res = _session.get(full, timeout=(30, 600), headers=headers)
     res.raise_for_status()
     body = res.json()
     if isinstance(body, dict) and "error" in body:

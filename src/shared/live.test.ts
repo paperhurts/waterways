@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import gauges from "../../config/gauges.json";
-import { depthOf, fmtCfs, latestUrl, parseLatest, parseSalinity } from "./live";
+import { cwmsUrl, depthOf, fmtCfs, latestUrl, parseCwms, parseLatest, parseSalinity } from "./live";
 
 describe("latestUrl", () => {
   it("asks for every site in one request, with room for all of them", () => {
@@ -69,5 +69,24 @@ describe("fmtCfs", () => {
     expect(fmtCfs(1140)).toBe((1140).toLocaleString());
     expect(fmtCfs(-648)).toBe("-648");
     expect(fmtCfs(-1310)).toBe((-1310).toLocaleString());
+  });
+});
+
+describe("parseCwms", () => {
+  it("takes the newest reading that isn't missing", () => {
+    const r = parseCwms({ values: [[1790398800000, 1130.6, 0], [1790406000000, 1132.5, 0], [1790409600000, null, 0]] });
+    expect(r).toEqual({ cfs: 1132.5, time: new Date(1790406000000) });
+  });
+
+  it("returns null when there's nothing", () => {
+    expect(parseCwms({ values: [[1790409600000, null, 0]] })).toBeNull();
+    expect(parseCwms({})).toBeNull();
+  });
+
+  it("asks for the series by name, from the Jacksonville District", () => {
+    const u = new URL(cwmsUrl("S65E.Flow.Inst.1Hour.0.SFWMD-WM", new Date("2026-09-23T07:00:00.123Z")));
+    expect(u.searchParams.get("name")).toBe("S65E.Flow.Inst.1Hour.0.SFWMD-WM");
+    expect(u.searchParams.get("office")).toBe("SAJ");
+    expect(u.searchParams.get("begin")).toBe("2026-09-23T07:00:00Z");
   });
 });

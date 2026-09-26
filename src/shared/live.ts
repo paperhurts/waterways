@@ -66,6 +66,43 @@ export interface LatestResponse {
   features: { properties: { time_series_id?: string; monitoring_location_id: string; time: string; value: string | null } }[];
 }
 
+// ---------- the Corps' CWMS (structures USGS doesn't gauge) ----------
+
+const CWMS = "https://cwms-data.usace.army.mil/cwms-data";
+
+export interface CwmsResponse {
+  /** [epoch ms, value, quality]; missing values are null. */
+  values?: [number, number | null, number][];
+}
+
+export function cwmsUrl(ts: string, since: Date): string {
+  const q = new URLSearchParams({ name: ts, office: "SAJ", begin: since.toISOString().replace(/\.\d+Z$/, "Z") });
+  return `${CWMS}/timeseries?${q}`;
+}
+
+/** The newest non-missing reading in a CWMS timeseries response, or null. */
+export function parseCwms(body: CwmsResponse): Reading | null {
+  const rows = (body.values ?? []).filter((r) => r[1] != null && Number.isFinite(r[1]));
+  if (!rows.length) return null;
+  const [t, v] = rows.reduce((a, b) => (b[0] > a[0] ? b : a));
+  return { cfs: v!, time: new Date(t) };
+}
+
+/** Newest reading per gauge id for gauges whose readings come from CWMS, over the last three days. */
+export async function fetchCwms(series: { id: string; ts: string }[], timeoutMs = 8000): Promise<Map<string, Reading>> {
+  const since = new Date(Date.now() - 3 * 86400e3);
+  const out = new Map<string, Reading>();
+  await Promise.all(
+    series.map(async ({ id, ts }) => {
+      const res = await fetch(cwmsUrl(ts, since), { headers: { Accept: "application/json;version=2" }, signal: AbortSignal.timeout(timeoutMs) });
+      if (!res.ok) throw new Error(`CWMS returned HTTP ${res.status}`);
+      const r = parseCwms((await res.json()) as CwmsResponse);
+      if (r) out.set(id, r);
+    }),
+  );
+  return out;
+}
+
 // ---------- salinity ----------
 
 export interface SalinityReading extends Salinity {

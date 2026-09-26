@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
 import {
   FLOW_KEYS,
   IRL_KEYS,
+  KISS_CLASSES,
+  KISS_KEYS,
   LAKEO_KEYS,
   PARK_WATER,
   RAINBOW_KEYS,
@@ -16,6 +18,7 @@ import {
   type ContoursFile,
   type GaugeConfig,
   type IndianRiverFile,
+  type KissimmeeFile,
   type ReefsFile,
   type LakeOFile,
   type LakesFile,
@@ -45,6 +48,7 @@ const lakeO = read<LakeOFile>("public/data/lake-o.json");
 const irl = read<IndianRiverFile>("public/data/indian-river.json");
 const reefs = read<ReefsFile>("public/data/reefs.json");
 const parks = read<ParksFile>("public/data/parks.json");
+const kiss = read<KissimmeeFile>("public/data/kissimmee.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
 const snorkel = read<SnorkelFile>("config/snorkel.json");
@@ -584,19 +588,75 @@ describe("parks.json", () => {
   });
 });
 
+describe("kissimmee.json", () => {
+  const [ox, oy] = kiss.meta.coordOrigin;
+  const k = kiss.meta.coordScale;
+  const lonlat = (flat: number[], i: number): [number, number] => [flat[i * 2] / k + ox, flat[i * 2 + 1] / k + oy];
+  const km = (a: [number, number], b: [number, number]) => Math.hypot((a[0] - b[0]) * 98.7, (a[1] - b[1]) * 110.5);
+  const at = (name: string): [number, number] => {
+    const s = kiss.structures.find((q) => q.name === name)!;
+    return [s.lon, s.lat];
+  };
+
+  it("runs the river from S-65 to S-65E, every vertex classed", () => {
+    const { p, c } = kiss.river;
+    expect(kiss.meta.classes).toEqual([...KISS_CLASSES]);
+    expect(c.length).toBe(p.length / 2);
+    expect(new Set(c)).toEqual(new Set([0, 1, 2]));
+    expect(km(lonlat(p, 0), at("S-65"))).toBeLessThan(1);
+    expect(km(lonlat(p, c.length - 1), at("S-65E"))).toBeLessThan(1);
+    // It starts and ends as canal, with the bends between.
+    expect([c[0], c[c.length - 1]]).toEqual([0, 0]);
+  });
+
+  it("measures the canal, the bends, and the filled stretch about right", () => {
+    const { canal, river, filled } = kiss.river.miles;
+    expect(canal + river + filled).toBeGreaterThan(50);
+    expect(canal + river + filled).toBeLessThan(62);
+    expect(river).toBeGreaterThan(15);
+    expect(filled).toBeGreaterThan(3);
+    expect(canal).toBeGreaterThan(15);
+  });
+
+  it("has the filled canal, the old channel, C-41A, and the floodplain", () => {
+    expect(kiss.filled.length).toBeGreaterThanOrEqual(2);
+    expect(kiss.oldChannel.length).toBeGreaterThan(50);
+    expect(kiss.istokpoga.length).toBeGreaterThanOrEqual(8);
+    expect(kiss.floodplain.length).toBeGreaterThan(0);
+    expect(kiss.floodplainKm2).toBeGreaterThan(50);
+    const lakes = new Set(kiss.water.map((b) => b.name));
+    for (const n of ["Lake Kissimmee", "Lake Istokpoga", "Lake Okeechobee"]) expect(lakes, n).toContain(n);
+    for (const r of [...kiss.filled, ...kiss.oldChannel, kiss.istokpoga]) expect(r.length % 2).toBe(0);
+  });
+
+  it("has the river's flow into the lake since 1929, from both sources", () => {
+    const { years, S65E } = kiss.history;
+    expect(years[0]).toBe(1929);
+    expect(S65E.length).toBe(years.length);
+    for (const v of S65E) if (v != null) expect(v).toBeGreaterThan(0);
+    expect(S65E.slice(0, years.indexOf(2004) + 1).filter((v) => v != null).length).toBeGreaterThan(60);
+    expect(S65E.slice(years.indexOf(2015)).filter((v) => v != null).length).toBeGreaterThan(5);
+  });
+});
+
 describe("gauges and snapshot", () => {
-  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS];
+  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS, ...KISS_KEYS];
 
   it("has one gauge per flow key with unique site ids", () => {
     expect(gauges.map((g) => g.key).sort()).toEqual([...keys].sort());
-    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river"]).toContain(g.page);
+    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river", "kissimmee"]).toContain(g.page);
+    expect(gauges.filter((g) => g.page === "kissimmee").map((g) => g.key).sort()).toEqual([...KISS_KEYS].sort());
     expect(gauges.filter((g) => g.page === "indian-river").map((g) => g.key).sort()).toEqual([...IRL_KEYS].sort());
     expect(gauges.filter((g) => g.page === "rainbow").map((g) => g.key).sort()).toEqual([...RAINBOW_KEYS].sort());
     expect(gauges.filter((g) => g.page === "st-lucie").map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS].sort());
     // Only the canals' structures and Haulover Canal, which the wind and tide push either way, run backward.
     expect(gauges.filter((g) => g.signed).map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS, ...LAKEO_KEYS.filter((k) => k !== "FEC"), "HAUL"].sort());
     expect(new Set(gauges.map((g) => g.id)).size).toBe(gauges.length);
-    for (const g of gauges) expect(g.id).toMatch(/^\d{8,15}$/);
+    // USGS gauges go by site number; the Corps' CWMS ones by structure, with a flow series.
+    for (const g of gauges) {
+      if (g.source === "cwms") expect(g.ts?.startsWith(`${g.id}.Flow.`), g.key).toBe(true);
+      else expect(g.id).toMatch(/^\d{8,15}$/);
+    }
   });
 
   it("has one salinity station per key", () => {
@@ -622,7 +682,7 @@ describe("gauges and snapshot", () => {
       for (const v of [snapshot.ppt[k].top, snapshot.ppt[k].bottom]) if (v != null) expect(v >= 0 && v <= 45).toBe(true);
     }
     // Only the canals' structures can read below zero.
-    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL")]) {
+    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL"), ...KISS_KEYS]) {
       const v = snapshot.cfs[k];
       if (v != null) expect(v).toBeGreaterThanOrEqual(0);
     }
