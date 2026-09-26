@@ -530,7 +530,7 @@ async function main() {
     const canals = into.filter((g) => CANAL_KEYS.includes(g.key)).reduce((a, g) => a + g.cfs!, 0);
     document.getElementById("lede")!.innerHTML =
       `The lagoon runs ${LAGOON.length} miles behind the barrier islands, about ${LAGOON.depthFt} feet deep, and trades water with the Atlantic through just five inlets. ` +
-      `Near an inlet the tide flushes it. Far from one the water sits: half of the northern lagoon's is still there after about ${LAGOON.northDays} days, and at its far north end after ${LAGOON.farNorthDays}. ` +
+      `Near an inlet the tide swaps it out quickly. Far from one the water sits: half of the northern lagoon's is still there after about ${LAGOON.northDays} days, and at its far north end after ${LAGOON.farNorthDays}. ` +
       (total > 0 ? `Right now the gauged creeks and canals are pouring in <b>${fmtCfs(total)} cfs</b>, <b>${Math.round((canals / total) * 100)}%</b> of it from drainage canals. ` : "") +
       "Tap anything on the map.";
     const tail = "Flow is in cubic feet per second (cfs).";
