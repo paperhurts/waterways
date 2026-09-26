@@ -280,14 +280,11 @@ describe("statewide.json", () => {
     }
   });
 
-  it("has Florida's lakes and wetlands, and its big rivers", () => {
+  it("has Florida's lakes and wetlands", () => {
     const names = new Set(statewideMap.water.map((w) => w.name));
     for (const n of ["Lake Okeechobee", "Lake George", "Lake Tohopekaliga", "Lake Istokpoga", "Lake Seminole", "Newnans Lake"]) expect(names, n).toContain(n);
     expect(statewideMap.water.some((w) => w.kind === "swamp" && w.km2 > 1000)).toBe(true);
     for (const w of statewideMap.water) for (const r of w.rings) expect(r.length >= 8 && r.length % 2 === 0).toBe(true);
-    const rivers = new Set(statewideMap.rivers.map((r) => r.name));
-    for (const n of ["Suwannee River", "Saint Johns River", "Apalachicola River", "Kissimmee River", "Peace River", "Santa Fe River"]) expect(rivers, n).toContain(n);
-    for (const r of statewideMap.rivers) expect(r.line.length >= 4 && r.line.length % 2 === 0).toBe(true);
   });
 
   it("adds the springs NHD maps that FDEP doesn't, apart from FDEP's", () => {

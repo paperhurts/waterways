@@ -193,8 +193,6 @@ export interface StatewideFile {
   lagoons: AreaFile[];
   /** Florida's lakes and big wetlands (NHD), largest first. */
   water: { name: string | null; kind: "lake" | "swamp"; km2: number; rings: number[][] }[];
-  /** Florida's bigger rivers, packed flat like the rings; km is the upstream length where each run ends. Smallest first. */
-  rivers: { name: string | null; km: number; line: number[] }[];
   /** Springs NHD maps that FDEP doesn't list (not in springs.json). */
   extraSprings: NamedPoint[];
 }

@@ -12,6 +12,7 @@ import { drawBoil } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
 import type { SnorkelSpot, SpringsFile, StatewideFile } from "../shared/types";
 import { Viewport, startLoop } from "../shared/viewport";
+import { CreekLayer } from "../rain/creeks";
 import { glintAlpha, placeGlints } from "./glints";
 
 const VIEWS = {
@@ -32,8 +33,6 @@ const CITIES: [string, number, number][] = [
 
 /** Dot radius by FDEP magnitude class (index); unknown and small springs share the smallest. */
 const RADIUS = [1.7, 4.2, 3, 2.2, 1.7, 1.7, 1.7, 1.7, 1.7];
-/** River line widths are rounded to this many pixels so they can be drawn in batches. */
-const RIVER_STEP = 0.2;
 
 interface Spring {
   id: string;
@@ -59,8 +58,8 @@ async function main() {
   const plans = state.plans.map((p) => ({ ...p, path: ringsPath(unpack(p.rings)), box: boxOf(unpack(p.rings)) }));
   const focus = state.focusAreas.map((p) => ({ ...p, path: ringsPath(unpack(p.rings)) }));
   const lagoons = state.lagoons.map((p) => ({ ...p, path: ringsPath(unpack(p.rings)) }));
-  // Lakes and wetlands as one path each, and rivers batched by width: built once in map
-  // units, since the base layer redraws on every pan and zoom frame.
+  // Lakes and wetlands as one path each, built once in map units, since the base layer
+  // redraws on every pan and zoom frame.
   const lakePath = new Path2D();
   const swampPath = new Path2D();
   const lakeLabels: { name: string; km2: number; xy: XY }[] = [];
@@ -73,13 +72,6 @@ async function main() {
       const [x0, y0, x1, y1] = boxOf(rings.slice(0, 1));
       lakeLabels.push({ name: w.name, km2: w.km2, xy: [(x0 + x1) / 2, (y0 + y1) / 2] });
     }
-  }
-  const riverPaths = new Map<number, Path2D>();
-  for (const r of state.rivers) {
-    const width = Math.round((0.3 + Math.log10(r.km) * 0.3) / RIVER_STEP) * RIVER_STEP;
-    let p = riverPaths.get(width);
-    if (!p) riverPaths.set(width, (p = new Path2D()));
-    unpack([r.line])[0].forEach((q, i) => (i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1])));
   }
   const glints = placeGlints(wetlands);
   /** Springs NHD maps that FDEP doesn't list: drawn, but not in the journal's list. */
@@ -112,6 +104,7 @@ async function main() {
     onTap: tap,
   });
   const { X, Y } = view;
+  const creeks = new CreekLayer(() => view.redraw());
   const inMap = (c: CanvasRenderingContext2D, draw: (s: number) => void) => {
     const { s, tx, ty } = view.cam;
     c.save();
@@ -146,14 +139,10 @@ async function main() {
       c.fillStyle = C.sea;
       c.fill(lakePath, "evenodd");
       c.stroke(lakePath);
+      // The rain map's creeks, quiet under the springs; smaller ones fill in as you zoom.
+      creeks.update([-view.cam.tx / s, -view.cam.ty / s, (W - view.cam.tx) / s, (H - view.cam.ty) / s], s);
       c.strokeStyle = C.stream;
-      c.lineCap = "round";
-      c.lineJoin = "round";
-      const zr = Math.min(2, Math.max(0.7, Math.sqrt(view.scale / 900)));
-      for (const [width, p] of riverPaths) {
-        c.lineWidth = (width * zr) / s;
-        c.stroke(p);
-      }
+      creeks.draw(c, s);
       c.fillStyle = C.under;
       for (const p of plans) {
         c.globalAlpha = glow ? 0.08 : 0.1;
@@ -425,6 +414,8 @@ async function main() {
     readColors();
     view.redraw();
   });
+  // Creeks come after the springs are up: the rain map's base file is the bigger download.
+  void creeks.load().catch((err) => console.warn("Creeks unavailable", err));
   void loadJournalOverlay().then((o) => {
     if (!o) return;
     journal = o;
