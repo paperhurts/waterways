@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Indian River Lagoon barely flushes</title>
+<meta name="description" content="The Indian River Lagoon runs 156 miles behind Florida's barrier islands, four feet deep, with five inlets to the sea. An animated map of how far its water sits from an inlet, with live flow from the creeks and drainage canals that feed it.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The Indian River Lagoon barely flushes">
+<meta property="og:description" content="The Indian River Lagoon runs 156 miles behind Florida's barrier islands, four feet deep, with five inlets to the sea. An animated map of how far its water sits from an inlet, with live flow from the creeks and drainage canals that feed it.">
+<meta property="og:url" content="https://waterways.paperhurts.dev/indian-river.html">
+<meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="/src/indian-river/main.ts"></script>
+</head>
+<body>
+<div id="wrap">
+<header>
+  <!-- site-nav -->
+  <h1>The Indian River Lagoon <em>barely flushes</em></h1>
+  <p class="lede" id="lede">Loading flows…</p>
+</header>
+<div id="stage" aria-label="Animated map of the Indian River Lagoon from Ponce de Leon Inlet to Jupiter Inlet, shaded by how far its water is from an inlet, with the creeks and drainage canals that feed it" role="img">
+  <canvas id="base"></canvas>
+  <canvas id="fx"></canvas>
+  <div id="legend">
+    <span><i class="far"></i>Near an inlet, fading with miles by water</span>
+    <span><i style="background:var(--atl)"></i>Seawater in through the inlets</span>
+    <span><i style="background:var(--tannin)"></i>Fresh water from creeks and canals</span>
+  </div>
+  <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
+</div>
+<section id="hist" aria-label="Freshwater into the lagoon">
+  <div id="histTitle">Freshwater into the lagoon</div>
+  <p id="histRead"></p>
+  <div id="histChart"></div>
+  <details class="note"><summary>About this data</summary>Yearly means for each water year (October through September), from USGS daily records, summed over the gauges in each group and only in years every one of them reports. Drainage canals: the Fellsmere Canal near Micco (02251767) and Vero Beach's North (02252500), Main (02253000), and South (02253500) canals. Creeks and rivers: the Eau Gallie River (02249007), Crane Creek (02249500), Turkey Creek (02250030), and the St. Sebastian River's North (02251500) and South (02251000) prongs. Plenty more water reaches the lagoon ungauged.</details>
+</section>
+<div class="tools">
+  <button id="bAll" type="button">The whole lagoon</button>
+  <button id="bNorth" type="button">The north</button>
+  <button id="bMiddle" type="button">The middle</button>
+  <button id="bSouth" type="button">The south</button>
+  <button id="bHist" type="button" aria-pressed="false">Freshwater since 1993</button>
+  <button id="bPause" type="button" aria-pressed="false">Pause</button>
+</div>
+<div id="profile" aria-label="USGS gauges"></div>
+<div id="status"></div>
+</div>
+</body>
+</html>

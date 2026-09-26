@@ -23,5 +23,15 @@
   {"id": "02280500", "short": "Hillsboro Canal (S-351)", "name": "Hillsboro Canal below S-351, near South Bay", "key": "S351H", "page": "lake-o", "signed": true, "lon": -80.709, "lat": 26.7},
   {"id": "02283500", "short": "North New River (S-351)", "name": "North New River Canal below S-351, near South Bay", "key": "S351N", "page": "lake-o", "signed": true, "lon": -80.713, "lat": 26.698},
   {"id": "02286400", "short": "Miami Canal (S-354)", "name": "Miami Canal at S-354, Lake Harbor", "key": "S354", "page": "lake-o", "signed": true, "lon": -80.807, "lat": 26.695},
-  {"id": "02256500", "short": "Fisheating Creek", "name": "Fisheating Creek at Palmdale", "key": "FEC", "page": "lake-o", "river": "Fisheating Creek", "lon": -81.315, "lat": 26.933}
+  {"id": "02256500", "short": "Fisheating Creek", "name": "Fisheating Creek at Palmdale", "key": "FEC", "page": "lake-o", "river": "Fisheating Creek", "lon": -81.315, "lat": 26.933},
+  {"id": "02248380", "short": "Haulover Canal", "name": "Haulover Canal near Mims", "key": "HAUL", "page": "indian-river", "signed": true, "lon": -80.755, "lat": 28.736},
+  {"id": "02249007", "short": "Eau Gallie River", "name": "Eau Gallie River at Melbourne", "key": "EG", "page": "indian-river", "river": "Eau Gallie River", "lon": -80.647, "lat": 28.127},
+  {"id": "02249500", "short": "Crane Creek", "name": "Crane Creek at Melbourne", "key": "CRANE", "page": "indian-river", "river": "Crane Creek", "lon": -80.63, "lat": 28.079},
+  {"id": "02250030", "short": "Turkey Creek", "name": "Turkey Creek at Palm Bay", "key": "TURKEY", "page": "indian-river", "river": "Turkey Creek", "lon": -80.596, "lat": 28.017},
+  {"id": "02251500", "short": "St. Sebastian, N. Prong", "name": "North Prong St. Sebastian River near Micco", "key": "SEBN", "page": "indian-river", "lon": -80.524, "lat": 27.856},
+  {"id": "02251767", "short": "Fellsmere Canal", "name": "Fellsmere Canal near Micco", "key": "FELL", "page": "indian-river", "lon": -80.534, "lat": 27.831},
+  {"id": "02251000", "short": "St. Sebastian, S. Prong", "name": "South Prong St. Sebastian River near Sebastian", "key": "SEBS", "page": "indian-river", "lon": -80.506, "lat": 27.769},
+  {"id": "02252500", "short": "North Canal", "name": "North Canal near Vero Beach", "key": "NCAN", "page": "indian-river", "lon": -80.42, "lat": 27.693},
+  {"id": "02253000", "short": "Main Canal", "name": "Main Canal at Vero Beach", "key": "MCAN", "page": "indian-river", "lon": -80.406, "lat": 27.648},
+  {"id": "02253500", "short": "South Canal", "name": "South Canal near Vero Beach", "key": "SCAN", "page": "indian-river", "lon": -80.387, "lat": 27.604}
 ]

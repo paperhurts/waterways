@@ -31,6 +31,28 @@ BULK_AREAS: dict[Bbox, list[str]] = {
 #: The sea in those files is everything in this box that isn't land. It reaches past both
 #: maps' widest views, so its edge only shows zoomed far out.
 LAKES_SEA_CLIP: Bbox = (-84.4, 28.1, -80.8, 30.8)
+# ---- Indian River Lagoon map ----
+#: What the map shows: the lagoon from Ponce de Leon Inlet to Jupiter Inlet, with the
+#: creeks and canals that feed it.
+IRL_VIEW: Bbox = (-81.05, 26.9, -80.0, 29.1)
+#: Water is clipped much wider, so the sea runs off even a wide screen's edges around this tall map.
+IRL_WATER: Bbox = (-82.3, 25.9, -77.6, 30.2)
+#: The lagoon's flushing grid: 0.004° cells (about 400 m) over the view.
+IRL_GRID = {"lon0": -81.05, "lat0": 26.9, "res": 0.004, "nx": 263, "ny": 550}
+#: Its five inlets to the Atlantic, north to south. `cut`: the year a channel was dug
+#: through the barrier island to make it; the other two are natural.
+IRL_INLETS: list[dict] = [
+    {"name": "Ponce de Leon Inlet", "lon": -80.9148, "lat": 29.0636},
+    {"name": "Sebastian Inlet", "lon": -80.4459, "lat": 27.8606, "cut": 1948},
+    {"name": "Fort Pierce Inlet", "lon": -80.2962, "lat": 27.4706, "cut": 1921},
+    {"name": "St. Lucie Inlet", "lon": -80.154, "lat": 27.1665, "cut": 1892},
+    {"name": "Jupiter Inlet", "lon": -80.0725, "lat": 26.9447},
+]
+#: Groups of gauges for the lagoon's freshwater history: canals dug to drain groves and
+#: farms, and the creeks and rivers.
+IRL_CANALS = ["FELL", "NCAN", "MCAN", "SCAN"]
+IRL_CREEKS = ["EG", "CRANE", "TURKEY", "SEBN", "SEBS"]
+
 # ---- statewide rain map ----
 #: The 4-digit HUCs that drain Florida: the St. Marys, St. Johns, south Florida, Peace-Tampa
 #: Bay, Suwannee, Ochlockonee, Apalachicola, and Choctawhatchee-Escambia.
