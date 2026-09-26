@@ -275,6 +275,33 @@ export interface KissimmeeFile {
   history: { years: number[]; S65E: (number | null)[] };
 }
 
+// ---------- ocklawaha.json (Ocklawaha River map) ----------
+
+export interface OckStructure {
+  name: string;
+  lon: number;
+  lat: number;
+  /** dam: the Kirkpatrick (Rodman) Dam; unfinished: Eureka, never closed; lock: Buckman Lock, to the St. Johns. */
+  role: "dam" | "unfinished" | "lock";
+}
+
+export interface OcklawahaFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
+  /** Packed like the lakes files. The Ocklawaha's `res` flags each vertex that's in the reservoir. */
+  rivers: { "Ocklawaha River": { p: number[]; res: number[] }; "Silver River": { p: number[] }; "Orange Creek": { p: number[] } };
+  /** The Cross Florida Barge Canal's cut from the reservoir to the St. Johns. */
+  canal: number[][];
+  /** Rodman Reservoir (NHD's Lake Ocklawaha), packed rings, and its area. */
+  reservoir: number[][];
+  reservoirKm2: number;
+  /** FDEP springs in the reservoir. */
+  drowned: [id: string, name: string, lon: number, lat: number, magnitude: number][];
+  water: LakesFile["bodies"];
+  structures: OckStructure[];
+  /** Water-year mean flow (cfs): the Silver River, and the Ocklawaha at Eureka. */
+  history: { years: number[]; SILV: (number | null)[]; EUR: (number | null)[] };
+}
+
 // ---------- parks.json (state parks map) ----------
 
 /** The water a park protects, in parks.json's order. */
@@ -387,7 +414,12 @@ export const KISS_KEYS = ["S65E", "S68"] as const;
 export type KissKey = (typeof KISS_KEYS)[number];
 export type KissFlows = Record<KissKey, number | null>;
 
-export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey | KissKey;
+/** The Ocklawaha map's gauges: Moss Bluff, the Silver River, Conner, Eureka, Orange Creek, and Rodman Dam. */
+export const OCK_KEYS = ["MB", "SILV", "CON", "EUR", "ORC", "ROD"] as const;
+export type OckKey = (typeof OCK_KEYS)[number];
+export type OckFlows = Record<OckKey, number | null>;
+
+export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey | KissKey | OckKey;
 
 export interface GaugeConfig {
   id: string;
@@ -396,7 +428,7 @@ export interface GaugeConfig {
   name?: string;
   key: GaugeKey;
   /** Which map draws it. */
-  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river" | "kissimmee";
+  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river" | "kissimmee" | "ocklawaha";
   /** Where its readings come from: USGS (the default, `id` is the site number) or the Corps' CWMS (`ts` names the time series). */
   source?: "cwms";
   ts?: string;
@@ -447,7 +479,7 @@ export interface Snapshot {
   /** ISO 8601 time of the newest reading. */
   time: string;
   /** Every gauge in config/gauges.json, all maps. */
-  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey | KissKey, number | null>;
+  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey | KissKey | OckKey, number | null>;
   /** Every station in config/salinity.json. */
   ppt: Record<SalinityKey, Salinity>;
   /** Coral Reef Watch heat stress on the reef; absent when NOAA didn't answer. */

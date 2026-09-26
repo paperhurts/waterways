@@ -124,3 +124,31 @@ def to_features(names, data, geoms, area: C.Bbox, fields: str, vaa: dict[int, tu
                 props[k] = int(v) if k == "nhdplusid" else v.item() if hasattr(v, "item") else v
         out.append({"type": "Feature", "geometry": mapping(shapely.force_2d(g)), "properties": props})
     return out
+
+
+def level_path(hu4: str, bbox: C.Bbox, name: str, start: tuple[float, float], end: tuple[float, float]) -> list[tuple[float, float]]:
+    """The level path carrying most of a bulk file's flowlines with this name in the box,
+    upstream to downstream, cut between its vertices nearest `start` and `end`."""
+    cols, geoms = table(hu4, "NHDFlowline", ["NHDPlusID", "GNIS_Name", "LengthKM"], bbox=bbox, geometry=True)
+    ids = [int(i) for i in cols["nhdplusid"]]
+    vaa, _ = table(hu4, "NHDPlusFlowlineVAA", ["NHDPlusID", "HydroSeq", "LevelPathI"])
+    seq = {int(i): (int(h), int(lp)) for i, h, lp in zip(vaa["nhdplusid"], vaa["hydroseq"], vaa["levelpathi"]) if h == h}
+    length: dict[int, float] = {}
+    for i, n, km in zip(ids, cols["gnis_name"], cols["lengthkm"]):
+        if n == name and i in seq:
+            length[seq[i][1]] = length.get(seq[i][1], 0.0) + float(km)
+    if not length:
+        raise RuntimeError(f"no NHD flowlines named {name!r}")
+    lp = max(length, key=length.__getitem__)
+    pts: list[tuple[float, float]] = []
+    for _, g in sorted(((seq[i][0], g) for i, g in zip(ids, geoms) if i in seq and seq[i][1] == lp), key=lambda s: -s[0]):
+        for part in shapely.get_parts(g):
+            for c in part.coords:
+                if not pts or c != pts[-1]:
+                    pts.append(c)
+
+    def nearest(q: tuple[float, float]) -> int:
+        return min(range(len(pts)), key=lambda k: (pts[k][0] - q[0]) ** 2 + (pts[k][1] - q[1]) ** 2)
+
+    a, b = nearest(start), nearest(end)
+    return pts[a : b + 1]

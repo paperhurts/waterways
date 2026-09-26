@@ -80,34 +80,6 @@ def c38(refresh: bool = False) -> tuple[list[list[tuple[float, float]]], list[li
     return open_, filled
 
 
-def level_path(name: str, start: tuple[float, float], end: tuple[float, float]) -> list[tuple[float, float]]:
-    """The level path carrying most of the named flowlines, upstream to downstream,
-    cut between its vertices nearest `start` and `end`."""
-    cols, geoms = nhd.table(HU4, "NHDFlowline", ["NHDPlusID", "GNIS_Name", "LengthKM"], bbox=CORRIDOR, geometry=True)
-    ids = [int(i) for i in cols["nhdplusid"]]
-    vaa, _ = nhd.table(HU4, "NHDPlusFlowlineVAA", ["NHDPlusID", "HydroSeq", "LevelPathI"])
-    seq = {int(i): (int(h), int(lp)) for i, h, lp in zip(vaa["nhdplusid"], vaa["hydroseq"], vaa["levelpathi"]) if h == h}
-    length: dict[int, float] = {}
-    for i, n, km in zip(ids, cols["gnis_name"], cols["lengthkm"]):
-        if n == name and i in seq:
-            length[seq[i][1]] = length.get(seq[i][1], 0.0) + float(km)
-    if not length:
-        raise RuntimeError(f"no NHD flowlines named {name!r}")
-    lp = max(length, key=length.__getitem__)
-    pts: list[tuple[float, float]] = []
-    for _, g in sorted(((seq[i][0], g) for i, g in zip(ids, geoms) if i in seq and seq[i][1] == lp), key=lambda s: -s[0]):
-        for part in shapely.get_parts(g):
-            for c in part.coords:
-                if not pts or c != pts[-1]:
-                    pts.append(c)
-
-    def nearest(q: tuple[float, float]) -> int:
-        return min(range(len(pts)), key=lambda k: (pts[k][0] - q[0]) ** 2 + (pts[k][1] - q[1]) ** 2)
-
-    a, b = nearest(start), nearest(end)
-    return pts[a : b + 1]
-
-
 def sinuosity(path: list[tuple[float, float]]) -> list[float]:
     """Path length over straight distance across WINDOW_M of path around each vertex."""
     cum = [0.0]
@@ -232,12 +204,12 @@ def history(refresh: bool = False) -> dict:
 
 def build(refresh: bool = False) -> dict:
     s = {st["name"]: (st["lon"], st["lat"]) for st in C.KISS_STRUCTURES}
-    path = level_path("Kissimmee River", s["S-65"], s["S-65E"])
+    path = nhd.level_path(HU4, CORRIDOR, "Kissimmee River", s["S-65"], s["S-65E"])
     open_, filled = c38(refresh)
     classes = classify(path, open_, filled)
     miles = run_miles(path, classes)
     pts, cls = simplify(path, classes)
-    istokpoga = level_path("Canal C-41A", s["S-68"], s["S-65E"])
+    istokpoga = nhd.level_path(HU4, CORRIDOR, "Canal C-41A", s["S-68"], s["S-65E"])
     bodies, floodplain, floodplain_km2 = water(path)
     hist = history(refresh)
     log(f"kissimmee: river {len(pts)} vertices, miles {miles}; C-41A {len(istokpoga)} vertices; flow for water years {hist['years'][0]}-{hist['years'][-1]}")
