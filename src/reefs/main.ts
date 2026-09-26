@@ -6,7 +6,7 @@ import { unpackDelta } from "../rain/network";
 import { InfoCard } from "../shared/card";
 import { escapeHtml, loadData, showLoadError } from "../shared/data";
 import { project, ringsPath, type XY } from "../shared/geo";
-import { renderHistory } from "../shared/history";
+import { renderHistory, type Measure } from "../shared/history";
 import { drawJournal, hitSighting, loadJournalOverlay, sightingCard, type JournalOverlay } from "../shared/journal-overlay";
 import { KIND_LABEL, osmUrl, snorkelSpots } from "../shared/snorkel";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
@@ -22,6 +22,8 @@ const REEF_KINDS = new Set(["reef", "offshore", "park", "island", "beach", "inle
 const SHARPNESS = [60, 26, 14, 8];
 /** One glint per this many km² of reef polygon, on top of one per patch reef. */
 const KM2_PER_REEF_GLINT = 0.25;
+/** The history chart measures each year's peak Degree Heating Weeks, not flow. */
+const HEAT: Measure = { unit: "°C-weeks", format: (v) => (v == null ? "—" : v.toFixed(1)), year: "Year", what: "each year's peak heat stress" };
 
 interface Glint {
   xy: XY;
@@ -295,7 +297,7 @@ async function main() {
     renderHistory(document.getElementById("histChart")!, hist.years, [
       { name: "Florida Keys", color: "--chart-tannin", values: hist.keys },
       { name: "Southeast Florida", color: "--chart-estuary", values: hist.southeast },
-    ]);
+    ], HEAT);
   }
   const bHist = document.getElementById("bHist")!;
   bHist.addEventListener("click", () => {

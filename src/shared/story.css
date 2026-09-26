@@ -11,7 +11,7 @@ h1 em { font-style: italic }
 .tools { position: relative; z-index: 2; background: var(--bg) }
 .tools button, .tools a, .chip { font-size: .82rem }
 
-#profile { position: relative; z-index: 2; display: flex; overflow-x: auto; padding: 8px 12px 10px; border-top: 1px solid var(--line); background: var(--bg); scrollbar-width: none }
+#profile { position: relative; z-index: 2; display: flex; flex-shrink: 0; overflow-x: auto; padding: 8px 12px 10px; border-top: 1px solid var(--line); background: var(--bg); scrollbar-width: none }
 #profile::-webkit-scrollbar { display: none }
 .gauge { flex: 0 0 auto; background: none; border: 0; color: var(--ink); text-align: left; padding: 4px 10px 2px; cursor: pointer; border-left: 1px solid var(--line); font-family: var(--sans) }
 .gauge:first-child { border-left: 0 }
@@ -26,6 +26,8 @@ h1 em { font-style: italic }
 /* Flow-history panel */
 #hist { position: relative; z-index: 3; margin: 0 10px; max-width: 40rem; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 10px; display: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px) }
 #hist.on { display: block }
+/* On a phone the panel takes what the map and the chips leave, and scrolls inside. */
+#hist { min-height: 0; overflow-y: auto }
 #histTitle { font: 600 1.2rem/1 var(--sans) }
 #histRead { font-size: .92rem; line-height: 1.4; margin: .45em 0 .5em }
 #histRead b { font-weight: 600 }
@@ -52,6 +54,7 @@ h1 em { font-style: italic }
 
 @media (max-width: 700px) {
   body.hist .lede, body.hist #legend { display: none }
+  body.hist #stage { min-height: 150px }
   #histRead { font-size: .86rem }
 }
 @media (min-width: 900px) {
