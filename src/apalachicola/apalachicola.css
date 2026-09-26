@@ -1,0 +1,8 @@
+/* The Apalachicola River map, over the shared story-page layout. */
+h1 em { color: var(--tannin) }
+.gauge .v small { font-size: .7em; color: var(--muted); margin-left: 2px }
+#legend i.river { width: 16px; height: 3px; border-radius: 2px; background: var(--tannin) }
+#legend i.stream { width: 16px; height: 2px; border-radius: 2px; background: var(--stream) }
+#legend i.dam { width: 9px; height: 9px; border-radius: 1px; background: var(--ink) }
+#legend i.line { width: 16px; height: 0; border-radius: 0; border-top: 1.5px dashed var(--muted) }
+#legend i.oyster { width: 12px; height: 9px; border-radius: 2px; background: var(--ink); opacity: .55 }

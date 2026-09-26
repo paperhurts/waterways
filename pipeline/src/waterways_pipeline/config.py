@@ -133,6 +133,24 @@ OCK_STRUCTURES = [
     {"name": "Eureka Dam", "lon": -81.8943, "lat": 29.3774, "role": "unfinished"},
     {"name": "Buckman Lock", "lon": -81.7286, "lat": 29.5457, "role": "lock"},
 ]
+#: The Apalachicola River map: the whole basin, from Lake Lanier to Apalachicola Bay.
+AP_VIEW: Bbox = (-85.45, 29.55, -83.75, 34.3)
+AP_WATER: Bbox = (-86.2, 29.2, -83.2, 34.6)
+#: The sea reaches much wider: the whole basin on a phone-shaped screen shows several degrees either side.
+AP_SEA: Bbox = (-89.0, 27.0, -80.5, 31.5)
+#: The Apalachicola's mouth, the Flint's head, and where the Chipola joins the Apalachicola.
+AP_MOUTH = (-84.98, 29.725)
+FLINT_HEAD = (-84.44, 33.62)
+CHIPOLA_MOUTH = (-85.05, 29.9)
+#: The Corps' dams on the rivers (from OpenStreetMap), upstream first.
+AP_STRUCTURES = [
+    {"name": "Buford Dam", "lake": "Lake Lanier", "lon": -84.0746, "lat": 34.1605, "built": 1956},
+    {"name": "West Point Dam", "lake": "West Point Lake", "lon": -85.1901, "lat": 32.9209, "built": 1975},
+    {"name": "Walter F. George Dam", "lake": "Lake Eufaula", "lon": -85.0628, "lat": 31.6219, "built": 1963},
+    {"name": "Jim Woodruff Dam", "lake": "Lake Seminole", "lon": -84.8613, "lat": 30.7093, "built": 1957},
+]
+#: FWC's statewide oyster beds.
+FWC_OYSTERS = "https://gis.myfwc.com/hosting/rest/services/Open_Data/Oyster_Beds_Statewide/MapServer/17"
 #: OpenStreetMap's Overpass API, for which stretches of C-38 were backfilled.
 OVERPASS = "https://overpass-api.de/api/interpreter"
 #: The Corps of Engineers' public CWMS Data API (water levels and flows at SFWMD structures).
