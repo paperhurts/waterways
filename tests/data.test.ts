@@ -14,6 +14,7 @@ import {
   AP_RIVERS,
   PEACE_KEYS,
   PEACE_RIVERS,
+  SJ_KEYS,
   LAKEO_KEYS,
   PARK_WATER,
   RAINBOW_KEYS,
@@ -27,6 +28,7 @@ import {
   type OcklawahaFile,
   type ApalachicolaFile,
   type PeaceFile,
+  type StJohnsFile,
   type ReefsFile,
   type LakeOFile,
   type LakesFile,
@@ -60,6 +62,7 @@ const kiss = read<KissimmeeFile>("public/data/kissimmee.json");
 const ock = read<OcklawahaFile>("public/data/ocklawaha.json");
 const ap = read<ApalachicolaFile>("public/data/apalachicola.json");
 const peace = read<PeaceFile>("public/data/peace.json");
+const sj = read<StJohnsFile>("public/data/stjohns.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
 const snorkel = read<SnorkelFile>("config/snorkel.json");
@@ -783,12 +786,46 @@ describe("peace.json", () => {
   });
 });
 
+describe("stjohns.json", () => {
+  const [ox, oy] = sj.meta.coordOrigin;
+  const k = sj.meta.coordScale;
+  const p = sj.river.p;
+
+  it("runs the St. Johns north from its head to the Atlantic at Mayport", () => {
+    const lat0 = p[1] / k + oy;
+    const [lon1, lat1] = [p[p.length - 2] / k + ox, p[p.length - 1] / k + oy];
+    expect(lat0).toBeLessThan(28.2);
+    expect(lat1).toBeGreaterThan(30.35);
+    expect(lon1).toBeGreaterThan(-81.45);
+    expect(sj.river.miles).toBeGreaterThan(250);
+    expect(sj.river.miles).toBeLessThan(320);
+  });
+
+  it("falls a few dozen feet at most, to sea level at the mouth, never rising", () => {
+    const { profile } = sj;
+    expect(profile[0][0]).toBeGreaterThan(profile[profile.length - 1][0]);
+    expect(profile[0][1]).toBeGreaterThan(5);
+    expect(profile[0][1]).toBeLessThan(35);
+    expect(profile[profile.length - 1]).toEqual([0, 0]);
+    for (let i = 1; i < profile.length; i++) expect(profile[i][1]).toBeLessThanOrEqual(profile[i - 1][1]);
+  });
+
+  it("has the big springs that feed it, from springs.json", () => {
+    const ids = new Set(statewide.springs.map((s) => s[0]));
+    expect(sj.springs.map((s) => s[1])).toContain("Volusia Blue Spring");
+    for (const [id] of sj.springs) expect(ids).toContain(id);
+    expect(sj.water.filter((b) => b.kind === "sea").length).toBeGreaterThan(0);
+    expect(sj.water.map((b) => b.name)).toContain("Lake George");
+  });
+});
+
 describe("gauges and snapshot", () => {
-  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS, ...KISS_KEYS, ...OCK_KEYS, ...AP_KEYS, ...PEACE_KEYS];
+  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS, ...KISS_KEYS, ...OCK_KEYS, ...AP_KEYS, ...PEACE_KEYS, ...SJ_KEYS];
 
   it("has one gauge per flow key with unique site ids", () => {
     expect(gauges.map((g) => g.key).sort()).toEqual([...keys].sort());
-    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river", "kissimmee", "ocklawaha", "apalachicola", "peace"]).toContain(g.page);
+    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river", "kissimmee", "ocklawaha", "apalachicola", "peace", "stjohns"]).toContain(g.page);
+    expect(gauges.filter((g) => g.page === "stjohns").map((g) => g.key).sort()).toEqual([...SJ_KEYS].sort());
     expect(gauges.filter((g) => g.page === "peace").map((g) => g.key).sort()).toEqual([...PEACE_KEYS].sort());
     expect(gauges.filter((g) => g.page === "apalachicola").map((g) => g.key).sort()).toEqual([...AP_KEYS].sort());
     expect(gauges.filter((g) => g.page === "ocklawaha").map((g) => g.key).sort()).toEqual([...OCK_KEYS].sort());
@@ -796,8 +833,8 @@ describe("gauges and snapshot", () => {
     expect(gauges.filter((g) => g.page === "indian-river").map((g) => g.key).sort()).toEqual([...IRL_KEYS].sort());
     expect(gauges.filter((g) => g.page === "rainbow").map((g) => g.key).sort()).toEqual([...RAINBOW_KEYS].sort());
     expect(gauges.filter((g) => g.page === "st-lucie").map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS].sort());
-    // Only the canals' structures and Haulover Canal, which the wind and tide push either way, run backward.
-    expect(gauges.filter((g) => g.signed).map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS, ...LAKEO_KEYS.filter((k) => k !== "FEC"), "HAUL"].sort());
+    // Only the canals' structures, Haulover Canal (the wind and tide push it either way), and the tidal St. Johns run backward.
+    expect(gauges.filter((g) => g.signed).map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS, ...LAKEO_KEYS.filter((k) => k !== "FEC"), "HAUL", "SJBUF", "SJJAX"].sort());
     expect(new Set(gauges.map((g) => g.id)).size).toBe(gauges.length);
     // USGS gauges go by site number; the Corps' CWMS ones by structure, with a flow series.
     for (const g of gauges) {
@@ -829,7 +866,7 @@ describe("gauges and snapshot", () => {
       for (const v of [snapshot.ppt[k].top, snapshot.ppt[k].bottom]) if (v != null) expect(v >= 0 && v <= 45).toBe(true);
     }
     // Only the canals' structures can read below zero.
-    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL"), ...KISS_KEYS, ...OCK_KEYS, ...AP_KEYS, ...PEACE_KEYS]) {
+    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL"), ...KISS_KEYS, ...OCK_KEYS, ...AP_KEYS, ...PEACE_KEYS, ...SJ_KEYS.filter((k) => k !== "SJBUF" && k !== "SJJAX")]) {
       const v = snapshot.cfs[k];
       if (v != null) expect(v).toBeGreaterThanOrEqual(0);
     }

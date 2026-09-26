@@ -58,5 +58,14 @@
   {"id": "02296750", "short": "Arcadia", "name": "Peace River at Arcadia", "key": "ARC", "page": "peace", "river": "Peace River", "lon": -81.876195, "lat": 27.220882},
   {"id": "02296500", "short": "Charlie Creek", "name": "Charlie Creek near Gardner", "key": "CHR", "page": "peace", "river": "Charlie Creek", "lon": -81.796471, "lat": 27.375043},
   {"id": "02297310", "short": "Horse Creek", "name": "Horse Creek near Arcadia", "key": "HRS", "page": "peace", "river": "Horse Creek", "lon": -81.988419, "lat": 27.199495},
-  {"id": "02297100", "short": "Joshua Creek", "name": "Joshua Creek at Nocatee", "key": "JOS", "page": "peace", "river": "Joshua Creek", "lon": -81.879528, "lat": 27.166718}
+  {"id": "02297100", "short": "Joshua Creek", "name": "Joshua Creek at Nocatee", "key": "JOS", "page": "peace", "river": "Joshua Creek", "lon": -81.879528, "lat": 27.166718},
+  {"id": "02232000", "short": "Melbourne", "name": "St. Johns River near Melbourne", "key": "SJMEL", "page": "stjohns", "river": "St. Johns River", "lon": -80.752, "lat": 28.08474},
+  {"id": "02232400", "short": "Cocoa", "name": "St. Johns River near Cocoa", "key": "SJCOC", "page": "stjohns", "river": "St. Johns River", "lon": -80.87256, "lat": 28.36973},
+  {"id": "02232500", "short": "Christmas", "name": "St. Johns River near Christmas", "key": "SJCHR", "page": "stjohns", "river": "St. Johns River", "lon": -80.94339, "lat": 28.54306},
+  {"id": "02234000", "short": "Lake Harney", "name": "St. Johns River above Lake Harney", "key": "SJGEN", "page": "stjohns", "river": "St. Johns River", "lon": -81.03534, "lat": 28.71416},
+  {"id": "02234500", "short": "Sanford", "name": "St. Johns River near Sanford", "key": "SJSAN", "page": "stjohns", "river": "St. Johns River", "lon": -81.32423, "lat": 28.83805},
+  {"id": "02236000", "short": "DeLand", "name": "St. Johns River near DeLand", "key": "SJDEL", "page": "stjohns", "river": "St. Johns River", "lon": -81.38257, "lat": 29.00832},
+  {"id": "02236125", "short": "Astor", "name": "St. Johns River at Astor", "key": "SJAST", "page": "stjohns", "river": "St. Johns River", "lon": -81.52206, "lat": 29.16693},
+  {"id": "02244040", "short": "Buffalo Bluff", "name": "St. Johns River at Buffalo Bluff", "key": "SJBUF", "page": "stjohns", "river": "St. Johns River", "signed": true, "lon": -81.68318, "lat": 29.59636},
+  {"id": "02246500", "short": "Jacksonville", "name": "St. Johns River at Jacksonville", "key": "SJJAX", "page": "stjohns", "river": "St. Johns River", "signed": true, "lon": -81.66537, "lat": 30.32246}
 ]

@@ -275,6 +275,19 @@ export interface KissimmeeFile {
   history: { years: number[]; S65E: (number | null)[] };
 }
 
+// ---------- stjohns.json (St. Johns River map) ----------
+
+export interface StJohnsFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
+  /** NHD's main path from its head to Mayport, packed like the lakes files, and its length in miles. */
+  river: { p: number[]; miles: number };
+  /** [miles from the sea, feet above it] every 5 miles, upstream first, from NHD's smoothed elevations. */
+  profile: [miles: number, feet: number][];
+  /** FDEP's first- and second-magnitude springs near the river: [id, name, lon, lat, magnitude]. */
+  springs: [id: string, name: string, lon: number, lat: number, magnitude: number][];
+  water: LakesFile["bodies"];
+}
+
 // ---------- peace.json (Peace River map) ----------
 
 export const PEACE_RIVERS = ["Peace River", "Charlie Creek", "Horse Creek", "Joshua Creek", "Payne Creek", "Saddle Creek", "Shell Creek"] as const;
@@ -484,7 +497,12 @@ export const PEACE_KEYS = ["BAR", "CLR", "HOM", "FTM", "ZOL", "ARC", "CHR", "HRS
 export type PeaceKey = (typeof PEACE_KEYS)[number];
 export type PeaceFlows = Record<PeaceKey, number | null>;
 
-export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey | KissKey | OckKey | ApKey | PeaceKey;
+/** The St. Johns map's gauges, upstream first; Buffalo Bluff and Jacksonville are tidal. */
+export const SJ_KEYS = ["SJMEL", "SJCOC", "SJCHR", "SJGEN", "SJSAN", "SJDEL", "SJAST", "SJBUF", "SJJAX"] as const;
+export type SjKey = (typeof SJ_KEYS)[number];
+export type SjFlows = Record<SjKey, number | null>;
+
+export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey | KissKey | OckKey | ApKey | PeaceKey | SjKey;
 
 export interface GaugeConfig {
   id: string;
@@ -493,7 +511,7 @@ export interface GaugeConfig {
   name?: string;
   key: GaugeKey;
   /** Which map draws it. */
-  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river" | "kissimmee" | "ocklawaha" | "apalachicola" | "peace";
+  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river" | "kissimmee" | "ocklawaha" | "apalachicola" | "peace" | "stjohns";
   /** Where its readings come from: USGS (the default, `id` is the site number) or the Corps' CWMS (`ts` names the time series). */
   source?: "cwms";
   ts?: string;
@@ -544,7 +562,7 @@ export interface Snapshot {
   /** ISO 8601 time of the newest reading. */
   time: string;
   /** Every gauge in config/gauges.json, all maps. */
-  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey | KissKey | OckKey | ApKey | PeaceKey, number | null>;
+  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey | KissKey | OckKey | ApKey | PeaceKey | SjKey, number | null>;
   /** Every station in config/salinity.json. */
   ppt: Record<SalinityKey, Salinity>;
   /** Coral Reef Watch heat stress on the reef; absent when NOAA didn't answer. */
