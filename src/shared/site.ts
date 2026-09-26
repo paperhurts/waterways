@@ -26,6 +26,7 @@ export const SITE_MAPS: SitePage[] = [
   { href: "kissimmee.html", name: "Kissimmee", title: "The Kissimmee got its bends back" },
   { href: "lake-o.html", name: "Lake Okeechobee", title: "Lake Okeechobee used to drain south" },
   { href: "st-lucie.html", name: "St. Lucie", title: "The St. Lucie was plumbed to a lake" },
+  { href: "panthers.html", name: "Panthers", title: "The Florida panther came back with help from Texas" },
   { href: "reefs.html", name: "Coral Reef", title: "Florida's Coral Reef lost its builders" },
 ];
 

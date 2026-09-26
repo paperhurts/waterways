@@ -34,6 +34,7 @@ export default defineConfig({
         kissimmee: resolve(import.meta.dirname, "kissimmee.html"),
         lakeO: resolve(import.meta.dirname, "lake-o.html"),
         indianRiver: resolve(import.meta.dirname, "indian-river.html"),
+        panthers: resolve(import.meta.dirname, "panthers.html"),
         reefs: resolve(import.meta.dirname, "reefs.html"),
         springs: resolve(import.meta.dirname, "springs.html"),
         parks: resolve(import.meta.dirname, "parks.html"),

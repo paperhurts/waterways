@@ -7,12 +7,12 @@ import json
 import shutil
 from pathlib import Path
 
-from . import apalachicola, aquifer, crw, cwms, irl, kissimmee, lakeo, ocklawaha, parks, peace, stjohns, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
+from . import apalachicola, aquifer, crw, cwms, irl, kissimmee, lakeo, ocklawaha, panthers, parks, peace, stjohns, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
 from . import config as C
 from .config import OUT
 from .fetch import log
 
-DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "kissimmee", "ocklawaha", "apalachicola", "peace", "stjohns", "statewide", "parks", "snapshot"]
+DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "kissimmee", "ocklawaha", "apalachicola", "peace", "stjohns", "panthers", "statewide", "parks", "snapshot"]
 
 
 def write(out: Path, name: str, data: dict, quiet: bool = False) -> None:
@@ -62,6 +62,8 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
         write(out, "peace.json", peace.build(refresh))
     elif dataset == "stjohns":
         write(out, "stjohns.json", stjohns.build(refresh))
+    elif dataset == "panthers":
+        write(out, "panthers.json", panthers.build(refresh))
     elif dataset == "lake-o":
         write(out, "lake-o.json", lakeo.build(refresh))
     elif dataset == "statewide":
@@ -82,6 +84,11 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
             snap["reef"] = crw.latest()
         except Exception as err:  # noqa: BLE001
             log(f"snapshot: no reef heat stress ({err})")
+        # So do this year's panther deaths, from FWC.
+        try:
+            snap["panthers"] = panthers.latest()
+        except Exception as err:  # noqa: BLE001
+            log(f"snapshot: no panther deaths ({err})")
         write(out, "snapshot.json", snap)
 
 

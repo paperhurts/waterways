@@ -74,16 +74,18 @@ def arcgis_query(
     page_size: int = 2000,
     refresh: bool = False,
     generalize: float | None = None,
+    order: str = "OBJECTID",
 ) -> list[dict]:
     """All GeoJSON features matching a query, following ArcGIS result paging.
     `generalize` (degrees) has the server simplify geometry first, which keeps big
-    polygons like the Everglades' marshes from timing out."""
+    polygons like the Everglades' marshes from timing out. `order` is the layer's id
+    field, which paging sorts by."""
     base = {
         "where": where,
         "outFields": fields,
         "outSR": 4326,
         "f": "geojson",
-        "orderByFields": "OBJECTID",
+        "orderByFields": order,
         "resultRecordCount": page_size,
     }
     if generalize:
