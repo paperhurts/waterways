@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 
 from . import aquifer, lakeo, rain, rainbow, rivers, springs, statewide, stlucie, usgs
+from . import config as C
 from .config import OUT
 from .fetch import log
 
@@ -37,7 +38,8 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
     elif dataset == "rivers":
         write(out, "rivers.json", rivers.build_rivers(refresh))
     elif dataset == "lakes":
-        write(out, "lakes.json", rivers.build_lakes(refresh))
+        for name, area in C.LAKE_MAPS.items():
+            write(out, f"lakes-{name}.json", rivers.build_lakes(area, refresh))
     elif dataset == "aquifer":
         aq, contours = aquifer.build(refresh)
         write(out, "aquifer.json", aq)

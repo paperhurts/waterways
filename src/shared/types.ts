@@ -105,7 +105,7 @@ export interface RainTile {
   water: RainWater[];
 }
 
-// ---------- lakes.json (both maps) ----------
+// ---------- lakes-santa-fe.json, lakes-rainbow.json ----------
 
 export interface LakesFile {
   meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
@@ -137,7 +137,7 @@ export interface RainbowFile {
   rivers: Record<string, { p: LonLat[]; u: (0 | 1)[] }>;
   /** FDEP spring vents on the upper Rainbow and Indian Creek, north to south. */
   vents: [name: string, lon: number, lat: number][];
-  /** Rings are packed like lakes.json (coordOrigin, coordScale). */
+  /** Rings are packed like the lakes files (coordOrigin, coordScale). */
   springshed: { km2: number; rings: number[][] };
   focusArea: { km2: number; rings: number[][] };
   contours: { v: number; p: LonLat[] }[];
@@ -151,7 +151,7 @@ export interface StLucieFile {
   meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
   /** Main stems, upstream to downstream, by NHD name: Saint Lucie Canal, the South and North Forks, Saint Lucie River (the estuary), County Line Canal (C-23), Indian River. */
   rivers: Record<string, { p: LonLat[]; u: (0 | 1)[] }>;
-  /** The sea (with the estuary and lagoon) first, then lakes; the same shape as lakes.json's bodies. */
+  /** The sea (with the estuary and lagoon) first, then lakes; the same shape as a lakes file's bodies. */
   water: LakesFile["bodies"];
   /** Water-year mean flow (cfs) out of Lake Okeechobee at S-308 and into the estuary at S-80; negative is flow back toward the lake. */
   history: { years: number[]; S308: (number | null)[]; S80: (number | null)[] };
@@ -163,7 +163,7 @@ export interface LakeOFile {
   meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
   /** Main stems by NHD name, upstream to downstream (config LAKEO_RIVERS). */
   rivers: Record<string, { p: LonLat[]; u: (0 | 1)[] }>;
-  /** The sea, then lakes and marshes; the same shape as lakes.json's bodies. */
+  /** The sea, then lakes and marshes; the same shape as a lakes file's bodies. */
   water: LakesFile["bodies"];
   /** Water-year mean flow (cfs) out of the lake each way; negative is flow into it. South is S-351 and S-354 together. */
   history: { years: number[]; east: (number | null)[]; west: (number | null)[]; south: (number | null)[] };
@@ -174,7 +174,7 @@ export interface LakeOFile {
 export interface AreaFile {
   name: string;
   km2: number;
-  /** Packed like lakes.json. */
+  /** Packed like the lakes files. */
   rings: number[][];
   /** Lagoons only: a point inside the water, for the name. */
   label?: LonLat;

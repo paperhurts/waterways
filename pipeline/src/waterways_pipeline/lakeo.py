@@ -7,7 +7,7 @@
   and out the St. Lucie Canal), so every path is cut at the shore: an inflow keeps
   what's above the lake, an outlet what's below it.
 - Water: the sea (with NHD's bays), then the lake, the other lakes, and the marshes,
-  packed like lakes.json. The Everglades draw as marsh.
+  packed like the lakes files. The Everglades draw as marsh.
 - History: water-year mean flow out of the lake three ways, from USGS daily records.
   East: the St. Lucie Canal at Port Mayaca (S-308). West: the Caloosahatchee at Moore
   Haven (S-77), joined from the old gauge (1938-2003) and the new one (2008 on). South:
@@ -84,10 +84,10 @@ def cut_at_shore(rivers: dict[str, dict], lake, inflows: tuple[str, ...] = INFLO
 
 
 def water(refresh: bool = False) -> list[dict]:
-    """The sea and NHD's bays, then lakes and marshes largest first, like lakes.json."""
+    """The sea and NHD's bays, then lakes and marshes largest first, like the lakes files."""
     # NHD's bays (San Carlos Bay, the lagoons) join the sea: the Census outlines count them as land.
     bays = arcgis_query(C.NHD_AREAS, C.LAKEO_WATER, where=f"ftype = {C.FTYPE_BAY_INLET}", fields="nhdplusid", refresh=refresh, generalize=GENERALIZE_DEG)
-    sea = unary_union([coast.sea(refresh, C.LAKEO_SEA, lagoons=[]), *(make_valid(shape(f["geometry"])).intersection(box(*C.LAKEO_WATER)) for f in bays if f.get("geometry"))])
+    sea = unary_union([coast.sea(refresh, C.LAKEO_SEA), *(make_valid(shape(f["geometry"])).intersection(box(*C.LAKEO_WATER)) for f in bays if f.get("geometry"))])
     sea = drop_specks(sea, SEA_SPECK_KM2).simplify(SEA_SIMPLIFY_DEG, preserve_topology=True)
     bodies = waterbodies([C.LAKEO_WATER], refresh, clip=C.LAKEO_WATER, generalize=GENERALIZE_DEG, min_km2=MIN_KM2)
     log(f"lake-o: sea in {len(polygon_rings(sea))} rings, {len(bodies)} lakes and marshes")

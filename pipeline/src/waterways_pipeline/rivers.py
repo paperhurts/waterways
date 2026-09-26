@@ -1,4 +1,4 @@
-"""Main-stem rivers for the Santa Fe map, and lakes/wetlands/seas for both maps."""
+"""Main-stem rivers for the Santa Fe map, and lakes/wetlands/seas for it and the Rainbow map."""
 
 from __future__ import annotations
 
@@ -22,8 +22,6 @@ SWAMP_SIMPLIFY_DEG = 0.001
 #: Big swamps are riddled with upland islands (one has 1,500 rings); under the stipple,
 #: islands and scraps this small don't show.
 SWAMP_SPECK_KM2 = 0.5
-#: The Santa Fe map's box and the rest of lakes.json's area.
-WATER_AREAS: list[C.Bbox] = [(-83.08, 29.54, -82.01, 30.09), *C.LAKES_AREAS]
 LAKE_FTYPES = {390: "lake", 436: "lake", 466: "swamp"}
 SEA_SIMPLIFY_DEG = 0.0003
 #: Sea pieces and islands smaller than this vanish at map scale.
@@ -119,8 +117,8 @@ def drop_specks(g, min_km2: float):
 
 
 def seas(refresh: bool = False) -> list[dict]:
-    """The Gulf and the Atlantic around the map, as one simplified shape."""
-    sea = drop_specks(coast.sea(refresh), SEA_SPECK_KM2).simplify(SEA_SIMPLIFY_DEG, preserve_topology=True)
+    """The Gulf and the Atlantic around the maps, as one simplified shape."""
+    sea = drop_specks(coast.sea(refresh, C.LAKES_SEA_CLIP), SEA_SPECK_KM2).simplify(SEA_SIMPLIFY_DEG, preserve_topology=True)
     rings = polygon_rings(sea)
     return [{"name": None, "kind": "sea", "km2": round(sea.area * KM2_PER_DEG2), "rings": rings}] if rings else []
 
@@ -169,8 +167,9 @@ def waterbodies(
     return bodies
 
 
-def build_lakes(refresh: bool = False) -> dict:
-    bodies = waterbodies(WATER_AREAS, refresh)
+def build_lakes(area: C.Bbox, refresh: bool = False) -> dict:
+    """lakes-<map>.json: one map's lakes, wetlands, and sea."""
+    bodies = waterbodies([area], refresh)
     log(f"lakes: {len(bodies)} waterbodies ≥ {LAKE_MIN_KM2} km²")
     sea = seas(refresh)
     log(f"lakes: sea in {sum(len(s['rings']) for s in sea)} rings")

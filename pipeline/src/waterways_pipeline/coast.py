@@ -1,10 +1,10 @@
-"""The sea around the rain map, for drawing it and for telling which creeks reach it.
+"""The sea, for drawing it and for telling which creeks reach it.
 
-The sea is everything in C.SEA_CLIP that isn't land in the Census Bureau's
+The sea is everything in a clip box that isn't land in the Census Bureau's
 shoreline-clipped state outlines. (NHD's sea polygons end offshore in
 watershed-boundary staircases, so they can't draw a coast.) Those outlines count
-the Indian River Lagoon as land, so in C.LAGOON_AREAS NHD's bays join the sea, and so
-do the wide rivers that open onto it, like the St. Lucie's estuary.
+the Indian River Lagoon as land; the rain map adds NHD's bays to fix that
+(rain.salt_water).
 """
 
 from __future__ import annotations
@@ -16,7 +16,6 @@ from shapely.ops import unary_union
 from shapely.prepared import prep
 
 from . import config as C
-from . import nhd
 from .fetch import arcgis_query
 from .geo import LonLat
 
@@ -38,39 +37,15 @@ def sea_side(p: LonLat) -> Literal["gulf", "atl"]:
     return "atl" if _atlantic.contains(Point(p)) else "gulf"
 
 
-def sea(refresh: bool = False, clip: C.Bbox = C.SEA_CLIP, lagoons: list[C.Bbox] | None = None):
-    """Everything in `clip` that isn't land, and NHD's bays in the `lagoons` boxes
-    (by default the rain map's, C.LAGOON_AREAS)."""
+def sea(refresh: bool, clip: C.Bbox):
+    """Everything in `clip` that isn't land."""
     states = arcgis_query(C.CENSUS_STATES, clip, fields="STUSAB", refresh=refresh)
     land = unary_union([shape(f["geometry"]) for f in states if f.get("geometry")])
-    water = box(*clip).difference(land)
-    boxes = C.LAGOON_AREAS if lagoons is None else lagoons
-    if not boxes:
-        return water
-    salt = unary_union([water, areas(boxes, C.FTYPE_BAY_INLET, refresh)])
-    # Wide rivers only count where they open onto that water: the tidal St. Lucie, not the
-    # St. Johns' marshes upstream.
-    rivers = areas(boxes, C.FTYPE_STREAM_AREA, refresh)
-    rivers = [g for g in getattr(rivers, "geoms", [rivers]) if g.intersects(salt.buffer(TIDAL_DEG))]
-    return unary_union([salt, *rivers])
+    return box(*clip).difference(land)
 
 
 #: A wide river counts as tidal when it comes this close (degrees, ~100 m) to the sea or a lagoon.
 TIDAL_DEG = 0.001
-
-
-def areas(boxes: list[C.Bbox], ftype: int, refresh: bool = False):
-    """NHD's areas of one type (BayInlet: lagoons, coves, inlets; StreamRiver: wide rivers)
-    touching the boxes, clipped to them."""
-    seen: set = set()
-    parts = []
-    for a in boxes:
-        for f in nhd.query(C.NHD_AREAS, a, where=f"ftype = {ftype}", fields="nhdplusid", refresh=refresh):
-            key = f["properties"].get("nhdplusid")
-            if f.get("geometry") and key not in seen:
-                seen.add(key)
-                parts.append(shape(f["geometry"]).intersection(box(*a)))
-    return unary_union(parts)
 
 
 class Coast:
