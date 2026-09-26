@@ -339,7 +339,7 @@ async function main() {
       c.fillText(t, X(p[0]), Y(p[1]));
     };
     if (journal && showJournal) drawJournal(c, journal, X, Y, journalSprings, C.ink, glow);
-    drawLakeLabels(c, lakes, X, Y, view.scale, C.muted);
+    drawLakeLabels(c, lakes, X, Y, view.scale, C.muted, view.keyBoxes());
     label("Santa Fe River", -82.5, 29.965, C.t);
     label("Ichetucknee", -82.86, 30.0, C.s);
     label("Suwannee River", -83.0, 29.7, C.t);

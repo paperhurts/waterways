@@ -195,7 +195,7 @@ async function main() {
       c.fillText(n, X(p[0]) + (east ? 5 : -5), Y(p[1]) + 4);
     }
     c.textAlign = "left";
-    if (view.scale > 900) drawLakeLabels(c, water, X, Y, view.scale, C.muted);
+    if (view.scale > 900) drawLakeLabels(c, water, X, Y, view.scale, C.muted, view.keyBoxes());
     if (journal) drawJournal(c, journal, X, Y, [], C.ink, glow);
     // Dams, and the gauges with their readings once zoomed in.
     c.font = "600 12px 'Barlow Semi Condensed',sans-serif";

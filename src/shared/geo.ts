@@ -7,6 +7,13 @@
 export type XY = [number, number];
 /** Map-unit rectangle: [x0, y0, x1, y1] with y0 the northern edge. */
 export type Bounds = [number, number, number, number];
+/** A box on screen, in CSS px from the stage's corner. */
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
 export const LAT0 = 29.8;
 const LON0 = -82.6;

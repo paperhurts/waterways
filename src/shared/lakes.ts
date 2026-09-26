@@ -1,7 +1,7 @@
 // Seas, lakes, and wetlands under the streams: seas and lakes as still water,
 // swamps as the cartographer's marsh stipple.
 
-import { project, type XY } from "./geo";
+import { project, type Rect, type XY } from "./geo";
 import type { LakesFile } from "./types";
 
 export interface Lake {
@@ -55,6 +55,8 @@ export interface LakeColors {
 }
 
 const STIPPLE = 7;
+/** Room (px) a lake's name keeps around it from boxes it avoids. */
+const PAD = 4;
 let pattern: { color: string; p: CanvasPattern } | null = null;
 
 /** The swamp stipple, as a repeating pattern (cached per color). */
@@ -120,6 +122,8 @@ export function drawLakeLabels(
   Y: (y: number) => number,
   scale: number,
   color: string,
+  /** Boxes to keep clear of, like the map's key (CSS px). */
+  avoid: Rect[] = [],
 ): void {
   c.save();
   c.font = "italic 12px 'Spectral',serif";
@@ -130,7 +134,10 @@ export function drawLakeLabels(
     if (l.kind !== "lake" || !l.name) continue;
     if (l.km2 < 8 && scale < 2400) continue;
     if (l.km2 < 2 && scale < 6000) continue;
-    c.fillText(l.name, X(l.label[0]), Y(l.label[1]) + 4);
+    const [x, y] = [X(l.label[0]), Y(l.label[1]) + 4];
+    const half = c.measureText(l.name).width / 2 + PAD;
+    if (avoid.some((b) => x + half > b.x && x - half < b.x + b.w && y + PAD > b.y && y - 12 - PAD < b.y + b.h)) continue;
+    c.fillText(l.name, x, y);
   }
   c.restore();
 }

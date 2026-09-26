@@ -192,7 +192,7 @@ async function main() {
         const p = project(lon, lat);
         c.fillText(n, X(p[0]), Y(p[1]));
       }
-      drawLakeLabels(c, water, X, Y, view.scale, C.muted);
+      drawLakeLabels(c, water, X, Y, view.scale, C.muted, view.keyBoxes());
     }
     if (journal) drawJournal(c, journal, X, Y, [], C.ink, glow);
   }

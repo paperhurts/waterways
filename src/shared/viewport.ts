@@ -1,7 +1,7 @@
 // Two stacked canvases (a static base layer and a fading particle layer) with
 // pan, pinch, wheel zoom, tap, and eased camera moves.
 
-import type { Bounds, XY } from "./geo";
+import type { Bounds, Rect, XY } from "./geo";
 import { prefersReducedMotion } from "./theme";
 
 export interface Padding {
@@ -50,6 +50,15 @@ export class Viewport {
   /** Map units to screen pixels. */
   X = (x: number): number => x * this.cam.s + this.cam.tx;
   Y = (y: number): number => y * this.cam.s + this.cam.ty;
+
+  /** Where the map's key (#legend) sits over the canvas, so labels can keep clear of it; empty when there's none or it's hidden. */
+  keyBoxes(): Rect[] {
+    const el = document.getElementById("legend");
+    const r = el?.getBoundingClientRect();
+    if (!r?.width || !r.height) return [];
+    const s = this.stage.getBoundingClientRect();
+    return [{ x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height }];
+  }
 
   get scale(): number {
     return this.cam.s;

@@ -137,7 +137,7 @@ async function main() {
       c.fillText(n, X(p[0]) + (east ? 5 : -5), Y(p[1]) + 4);
     }
     c.textAlign = "left";
-    if (view.scale > 700) drawLakeLabels(c, water, X, Y, view.scale, C.muted);
+    if (view.scale > 700) drawLakeLabels(c, water, X, Y, view.scale, C.muted, view.keyBoxes());
     // How far the tide reaches, and the springs that feed the river.
     const tideAt = pointAt(river, river.len * (1 - FACTS.tideMiles / data.river.miles));
     const [tx0, ty0] = [X(tideAt[0]), Y(tideAt[1])];
