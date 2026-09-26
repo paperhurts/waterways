@@ -7,6 +7,7 @@ import { bounds, project, ringsPath, unpackRings, type XY } from "../shared/geo"
 import { drawJournal, hitSighting, journalCardHtml, loadJournalOverlay, sightingCard, type JournalOverlay } from "../shared/journal-overlay";
 import { marshPattern } from "../shared/lakes";
 import { MAG_TEXT } from "../shared/magnitude";
+import { parkLine } from "../shared/parks";
 import { KIND_LABEL, osmUrl, snorkelSprings, snorkelSpots } from "../shared/snorkel";
 import { drawBoil } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
@@ -43,6 +44,8 @@ interface Spring {
   mag: number;
   onRainMap: boolean;
   snorkel: boolean;
+  /** The state park it's in, or "". */
+  park: string;
   xy: XY;
   phase: number;
 }
@@ -76,8 +79,8 @@ async function main() {
   const glints = placeGlints(wetlands);
   /** Springs NHD maps that FDEP doesn't list: drawn, but not in the journal's list. */
   const extras = state.extraSprings.map(([lon, lat, name]) => ({ name, lon, lat, xy: project(lon, lat) }));
-  const springs: Spring[] = file.springs.map(([id, name, county, lon, lat, mag, onRainMap], i) => ({
-    id, name, county, lon, lat, mag, onRainMap: !!onRainMap, snorkel: snorkelSprings.has(id), xy: project(lon, lat), phase: (i * 0.618) % 1,
+  const springs: Spring[] = file.springs.map(([id, name, county, lon, lat, mag, onRainMap, park], i) => ({
+    id, name, county, lon, lat, mag, onRainMap: !!onRainMap, snorkel: snorkelSprings.has(id), park, xy: project(lon, lat), phase: (i * 0.618) % 1,
   }));
   const spots: Spot[] = snorkelSpots.map((s) => ({ ...s, xy: project(s.lon, s.lat) }));
   // Big springs last, so they draw on top of their smaller neighbors.
@@ -294,7 +297,7 @@ async function main() {
     card.show({
       title: s.name,
       kind: `${s.snorkel ? "Spring · snorkel spot" : "Spring"} · ${s.county} County`,
-      body: `${MAG_TEXT[s.mag] ?? ""}${s.mag ? "" : "FDEP hasn't rated its flow. "}${links.length ? `<span class="links">${links.join(" · ")}</span>` : ""}${log}`,
+      body: `${parkLine(s.park)}${MAG_TEXT[s.mag] ?? ""}${s.mag ? "" : "FDEP hasn't rated its flow. "}${links.length ? `<span class="links">${links.join(" · ")}</span>` : ""}${log}`,
     });
   }
 

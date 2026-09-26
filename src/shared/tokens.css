@@ -22,6 +22,9 @@
   --heat-1: #f2d45c; --heat-2: #f0843c; --heat-3: #d8306e;
   /* Glints over the springs map's wetlands: sun on the water in the sawgrass. */
   --glint: #e4efc0;
+  /* The water a state park protects; springs and rivers are --spring and --tannin. All five pass the dataviz validator's
+     color-blind checks pair by pair, in both modes (parks are named in the legend and cards too). */
+  --park-lake: #d4dc68; --park-coast: #8a9ef2; --park-reef: #e86fa0;
   /* Chart lines: the water colors stepped into a line chart's lightness band (checked with the dataviz validator). */
   --chart-spring: #27a397; --chart-tannin: #b87f33; --chart-lake: #6f9a2e; --chart-estuary: #5a82de;
 
@@ -40,6 +43,7 @@
     --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
     --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c; --sea: #c2d0d1;
     --stream: #7fa3ab; --glint: #5f7d1f; --heat-1: #c8a531; --heat-2: #c0441c; --heat-3: #6e0a3e;
+    --park-lake: #80990c; --park-coast: #2f5fa8; --park-reef: #e0508c;
     --chart-spring: #0a8f86; --chart-tannin: #9a5a12; --chart-lake: #4d7a17; --chart-estuary: #2f5fa8;
     color-scheme: light;
   }
@@ -54,6 +58,7 @@
   --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
   --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c; --sea: #c2d0d1;
   --stream: #7fa3ab; --glint: #5f7d1f; --heat-1: #c8a531; --heat-2: #c0441c; --heat-3: #6e0a3e;
+  --park-lake: #80990c; --park-coast: #2f5fa8; --park-reef: #e0508c;
   --chart-spring: #0a8f86; --chart-tannin: #9a5a12; --chart-lake: #4d7a17; --chart-estuary: #2f5fa8;
   color-scheme: light;
 }

@@ -31,6 +31,7 @@ export default defineConfig({
         indianRiver: resolve(import.meta.dirname, "indian-river.html"),
         reefs: resolve(import.meta.dirname, "reefs.html"),
         springs: resolve(import.meta.dirname, "springs.html"),
+        parks: resolve(import.meta.dirname, "parks.html"),
         journal: resolve(import.meta.dirname, "journal.html"),
       },
     },

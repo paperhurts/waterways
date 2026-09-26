@@ -11,10 +11,11 @@ export interface SitePage {
   title: string;
 }
 
-/** The maps: the two statewide ones, then the stories north to south. The homepage lists them in this order too. */
+/** The maps: the three statewide ones, then the stories north to south. The homepage lists them in this order too. */
 export const SITE_MAPS: SitePage[] = [
   { href: "rain.html", name: "Rain", title: "Where does the rain go?" },
   { href: "springs.html", name: "Springs", title: "Every spring, and places to snorkel" },
+  { href: "parks.html", name: "State Parks", title: "Florida's state parks keep its water" },
   { href: "santa-fe.html", name: "Santa Fe", title: "The Santa Fe breathes groundwater" },
   { href: "rainbow.html", name: "Rainbow River", title: "Rainbow River starts full grown" },
   { href: "indian-river.html", name: "Indian River Lagoon", title: "The Indian River Lagoon barely flushes" },

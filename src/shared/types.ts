@@ -22,7 +22,8 @@ export type SpringSite = [lon: number, lat: number, name: string, magnitude: num
 
 // ---------- springs.json (the journal's statewide list) ----------
 
-export type StatewideSpring = [id: string, name: string, county: string, lon: number, lat: number, magnitude: number, onRainMap: 0 | 1];
+/** park: the state park it's in (a ParksFile park's name), or "". */
+export type StatewideSpring = [id: string, name: string, county: string, lon: number, lat: number, magnitude: number, onRainMap: 0 | 1, park: string];
 
 export interface SpringsFile {
   meta: Provenance & { fields: string[] };
@@ -238,6 +239,41 @@ export interface StatewideFile {
   water: { name: string | null; kind: "lake" | "swamp"; km2: number; rings: number[][] }[];
   /** Springs NHD maps that FDEP doesn't list (not in springs.json). */
   extraSprings: NamedPoint[];
+}
+
+// ---------- parks.json (state parks map) ----------
+
+/** The water a park protects, in parks.json's order. */
+export const PARK_WATER = ["springs", "rivers", "lakes", "coast", "reef", "land"] as const;
+export type ParkWater = (typeof PARK_WATER)[number];
+
+export interface StatePark {
+  name: string;
+  /** FDEP's county list, comma-separated. */
+  county: string;
+  acres: number;
+  /** Its page on floridastateparks.org, if FDEP lists one. */
+  url: string | null;
+  /** Index into PARK_WATER. */
+  water: number;
+  /** Its biggest water communities on FDEP's natural community map: [plain name, acres], largest first. */
+  kinds: [string, number][];
+  /** FDEP springs in it (their springs.json `park`). */
+  springs: number;
+  /** First-magnitude springs in it, with a spring's vents counted once. */
+  big: number;
+  /** A point inside its biggest piece, for its marker. */
+  at: LonLat;
+  /** Delta-packed like the rain map's; holes are extra rings (draw with evenodd). */
+  rings: number[][];
+}
+
+export interface ParksFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number; classes: string[] };
+  /** First-magnitude springs on FDEP's list, with a spring's vents counted once. */
+  firstMagnitude: number;
+  /** By name. */
+  parks: StatePark[];
 }
 
 // ---------- snorkel spots (config/snorkel.json) ----------
