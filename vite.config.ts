@@ -16,8 +16,8 @@ export default defineConfig({
   base: "./",
   plugins: [siteNav()],
   // 5173/4173 belong to another local project; stay off them.
-  server: { port: 5180, strictPort: true },
-  preview: { port: 4180, strictPort: true },
+  server: { port: 5190, strictPort: true },
+  preview: { port: 4190, strictPort: true },
   build: {
     target: "es2022",
     rollupOptions: {

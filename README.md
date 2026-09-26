@@ -54,7 +54,7 @@ npm install
 npm run dev
 ```
 
-The dev server runs at http://localhost:5180 (preview at 4180). Both ports are pinned with `strictPort`, so Vite fails loudly instead of drifting onto another project's port.
+The dev server runs at http://localhost:5190 (preview at 4190). Both ports are pinned with `strictPort`, so Vite fails loudly instead of drifting onto another project's port.
 
 ```bash
 npm test          # unit tests + data-integrity checks
@@ -97,11 +97,11 @@ Then run `npm test` from the repo root to check the output before committing it.
 
 The journal runs on a free Supabase project. `config/supabase.json` holds its URL and publishable key. Both are public by design: every table and the photo bucket use row-level security, and all access requires a signed-in email on the `members` list. Members can read everything. Each person can edit or delete only their own entries. Photos are resized and re-encoded in the browser before upload, which strips their EXIF GPS tags.
 
-- **Sign in:** members get an emailed link. In Supabase → Authentication → URL Configuration, set the Site URL to `https://waterways.paperhurts.dev/journal.html` and add `http://localhost:5180/journal.html` as a redirect URL.
+- **Sign in:** members get an emailed link. In Supabase → Authentication → URL Configuration, set the Site URL to `https://waterways.paperhurts.dev/journal.html` and add `http://localhost:5190/journal.html` as a redirect URL.
 - **Invite people:** add them under People in the journal; they sign in from the journal page with that email. Sign-in links go out through a custom SMTP sender (Resend), because Supabase's built-in email only reaches its own team. A "Before User Created" auth hook refuses accounts for anyone not on the list, so the form can't email strangers.
 - **Schema:** SQL lives in `supabase/migrations/`. The first member is seeded by hand, so no personal email is committed.
 - **Staying awake:** Supabase pauses free projects after a week without activity. The six-hourly deploy calls a no-op `ping()` to prevent that. If the journal ever says it can't load, restore the project from the Supabase dashboard.
-- **Developing without an account:** `http://localhost:5180/journal.html?demo` shows sample data and saves nothing. It's dev-only and stripped from production builds.
+- **Developing without an account:** `http://localhost:5190/journal.html?demo` shows sample data and saves nothing. It's dev-only and stripped from production builds.
 
 ## Deploy
 

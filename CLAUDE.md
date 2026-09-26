@@ -3,7 +3,7 @@
 Canvas-animated maps of Florida hydrology (Vite + TypeScript, no framework), plus a Python pipeline that regenerates their data. See README.md for the layout and the data method.
 
 ## Commands
-- `npm run dev`: dev server on **5180** (preview on 4180), pinned with `strictPort`. Don't move them to 5173/4173; other local projects use those.
+- `npm run dev`: dev server on **5190** (preview on 4190), pinned with `strictPort`. Other local projects use 5173/4173 and 5180. `strictPort` doesn't catch every clash: Vite here binds IPv6 loopback, and a server bound to all addresses on the same port starts without an error while `localhost` still reaches this one.
 - `npm test`: Vitest, which covers unit tests in `src/**` plus data-integrity checks in `tests/data.test.ts`.
 - `npm run build`: runs `tsc`, then `vite build`.
 - `cd pipeline && uv run waterways <dataset|all>` writes to `public/data/` (the datasets are `cli.DATASETS`). Tests: `uv run --group dev pytest`.
