@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from shapely.geometry import Point, box, shape
+from shapely.geometry import Point, Polygon, box, shape
 from shapely.ops import unary_union
 from shapely.prepared import prep
 
@@ -23,8 +23,19 @@ from .geo import LonLat
 #: A creek that ends this close to the sea (degrees, about 1.5 km) empties into it. The
 #: Census coastline is generalized, and NHD often ends coastal creeks at the marsh edge.
 COAST_DEG = 0.015
-#: West of this longitude the coast is the Gulf's; east of it, the Atlantic's.
-PENINSULA_SPINE = -82.0
+#: The Atlantic side of Florida: east of a line down the peninsula's spine to Biscayne
+#: Bay, then outside the Keys. Florida Bay and everything west of it is the Gulf's. Only
+#: coastal points are ever tested, so the line can cut across land freely.
+ATLANTIC_SIDE = Polygon([
+    (-82.05, 32.5), (-82.05, 30.0), (-81.6, 28.5), (-81.1, 27.0), (-80.85, 25.9), (-80.55, 25.35),
+    (-80.62, 24.97), (-81.1, 24.66), (-81.8, 24.52), (-82.2, 24.42), (-82.2, 23.0), (-78.0, 23.0), (-78.0, 32.5),
+])
+_atlantic = prep(ATLANTIC_SIDE)
+
+
+def sea_side(p: LonLat) -> Literal["gulf", "atl"]:
+    """Which sea a coastal point faces."""
+    return "atl" if _atlantic.contains(Point(p)) else "gulf"
 
 
 def sea(refresh: bool = False, clip: C.Bbox = C.SEA_CLIP, lagoons: list[C.Bbox] | None = None):
@@ -70,4 +81,4 @@ class Coast:
         """Which sea a creek ending at `p` empties into, or None if it ends inland."""
         if not self._near.contains(Point(p)):
             return None
-        return "gulf" if p[0] < PENINSULA_SPINE else "atl"
+        return sea_side(p)

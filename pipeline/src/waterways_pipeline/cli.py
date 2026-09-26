@@ -4,27 +4,36 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from pathlib import Path
 
-from . import aquifer, lakeo, rainbow, rivers, springs, statewide, stlucie, streams, usgs
+from . import aquifer, lakeo, rain, rainbow, rivers, springs, statewide, stlucie, usgs
 from .config import OUT
 from .fetch import log
 
-DATASETS = ["springs", "streams", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "statewide", "snapshot"]
+DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "statewide", "snapshot"]
 
 
-def write(out: Path, name: str, data: dict) -> None:
+def write(out: Path, name: str, data: dict, quiet: bool = False) -> None:
     out.mkdir(parents=True, exist_ok=True)
     text = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
     (out / name).write_text(text + "\n", encoding="utf-8")
-    log(f"wrote {out / name} ({len(text) / 1024:.0f} KB)")
+    if not quiet:
+        log(f"wrote {out / name} ({len(text) / 1024:.0f} KB)")
 
 
 def run(dataset: str, out: Path, refresh: bool) -> None:
     if dataset == "springs":
         write(out, "springs.json", springs.build(refresh))
-    elif dataset == "streams":
-        write(out, "streams.json", streams.build(refresh))
+    elif dataset == "rain":
+        base, tiles = rain.build(refresh)
+        # Tiles are regenerated whole, so clear out any left from an older cut.
+        shutil.rmtree(out / "rain", ignore_errors=True)
+        write(out / "rain", "base.json", base)
+        for path, tile in tiles.items():
+            level, name = path.split("/")
+            write(out / "rain" / level, name, tile, quiet=True)
+        log(f"wrote {len(tiles)} tiles")
     elif dataset == "rivers":
         write(out, "rivers.json", rivers.build_rivers(refresh))
     elif dataset == "lakes":

@@ -10,7 +10,6 @@ import {
   RAINBOW_KEYS,
   SALINITY_KEYS,
   STLUCIE_KEYS,
-  Fate,
   type AquiferFile,
   type ContoursFile,
   type GaugeConfig,
@@ -24,11 +23,9 @@ import {
   type SpringsFile,
   type StatewideFile,
   type StLucieFile,
-  type StreamsFile,
 } from "../src/shared/types";
 
 const read = <T>(path: string): T => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), "utf8"));
-const streams = read<StreamsFile>("public/data/streams.json");
 const rivers = read<RiversFile>("public/data/rivers.json");
 const contours = read<ContoursFile>("public/data/contours.json");
 const aquifer = read<AquiferFile>("public/data/aquifer.json");
@@ -54,183 +51,6 @@ function inPacked(rings: number[][], [ox, oy]: [number, number], k: number, lon:
   }
   return inside;
 }
-
-// The rain map's study area (a union of boxes), padded for features that cross an edge:
-// a whole flowline is kept when it touches a box, and the longest reach about 0.13°.
-const PAD = 0.15;
-const inBox = (lon: number, lat: number) =>
-  streams.meta.areas.some(([w, s, e, n]) => lon >= w - PAD && lon <= e + PAD && lat >= s - PAD && lat <= n + PAD);
-
-describe("streams.json", () => {
-  const { segs, names } = streams;
-  const [ox, oy] = streams.meta.coordOrigin;
-  const k = streams.meta.coordScale;
-
-  it("has thousands of segments and valid field ranges", () => {
-    expect(segs.length).toBeGreaterThan(5000);
-    for (const [coords, fate, next, acc, name, sink, ug, art, route] of segs) {
-      expect(coords.length % 2).toBe(0);
-      expect(coords.length).toBeGreaterThanOrEqual(4);
-      expect(fate).toBeGreaterThanOrEqual(Fate.Gulf);
-      expect(fate).toBeLessThanOrEqual(Fate.OffMap);
-      expect(next).toBeGreaterThanOrEqual(-1);
-      expect(next).toBeLessThan(segs.length);
-      expect(acc).toBeGreaterThanOrEqual(0);
-      expect(name).toBeLessThan(names.length);
-      expect(sink).toBeLessThan(names.length);
-      expect([0, 1]).toContain(ug);
-      expect([0, 1]).toContain(art);
-      expect([0, 1]).toContain(route);
-    }
-  });
-
-  it("keeps every vertex inside the study area, except the route to the sea", () => {
-    for (const [coords, , , , , , , , route] of segs) {
-      if (route) continue;
-      for (let i = 0; i < coords.length; i += 2) expect(inBox(coords[i] / k + ox, coords[i + 1] / k + oy)).toBe(true);
-    }
-  });
-
-  it("follows the Suwannee to the Gulf and the St. Johns to the Atlantic", () => {
-    const end = (i: number) => {
-      const c = segs[i][0];
-      return [c[c.length - 2] / k + ox, c[c.length - 1] / k + oy];
-    };
-    // Coastal creeks all have mouths; each sea's biggest is its big river.
-    const biggestMouth = (fate: Fate) => streams.mouths.filter((i) => segs[i][1] === fate).reduce((a, b) => (segs[b][3] > segs[a][3] ? b : a));
-    const gulf = biggestMouth(Fate.Gulf);
-    const atl = biggestMouth(Fate.Atlantic);
-    expect(names[segs[gulf][4]]).toBe("Suwannee River");
-    expect(names[segs[atl][4]]).toBe("Saint Johns River");
-    // Suwannee Sound and Mayport.
-    expect(end(gulf)[0]).toBeCloseTo(-83.16, 1);
-    expect(end(gulf)[1]).toBeCloseTo(29.29, 1);
-    expect(end(atl)[0]).toBeCloseTo(-81.4, 1);
-    expect(end(atl)[1]).toBeCloseTo(30.4, 1);
-    for (const i of streams.mouths) {
-      expect(segs[i][2]).toBe(-1);
-      expect([Fate.Gulf, Fate.Atlantic]).toContain(segs[i][1]);
-    }
-    // The route is a continuation of the map, not its own network: every route segment
-    // drains to a mouth, and so do the map's biggest Gulf and Atlantic rivers.
-    const mouthOf = (i: number) => {
-      while (segs[i][2] >= 0) i = segs[i][2];
-      return i;
-    };
-    for (let i = 0; i < segs.length; i++) if (segs[i][8]) expect(streams.mouths).toContain(mouthOf(i));
-    for (const fate of [Fate.Gulf, Fate.Atlantic]) {
-      let biggest = -1;
-      segs.forEach((s, i) => {
-        if (s[1] === fate && !s[8] && (biggest < 0 || s[3] > segs[biggest][3])) biggest = i;
-      });
-      expect(streams.mouths).toContain(mouthOf(biggest));
-    }
-  });
-
-  it("sends the springs belt's own coastal rivers to the Gulf", () => {
-    const fatesOf = (name: string) => new Set(segs.filter((s) => names[s[4]] === name).map((s) => s[1]));
-    for (const river of ["Withlacoochee River", "Rainbow River", "Crystal River", "Homosassa River", "Waccasassa River"]) {
-      expect(fatesOf(river)).toEqual(new Set([Fate.Gulf]));
-    }
-    expect(fatesOf("Ocklawaha River")).toEqual(new Set([Fate.Atlantic]));
-  });
-
-  it("follows the St. Johns up to its headwaters", () => {
-    // East of -81.8: Levy County has a Wekiva River of its own, which runs to the Gulf.
-    const east = (c: number[]) => c[0] / k + ox > -81.8;
-    const fatesOf = (name: string) => new Set(segs.filter((s) => names[s[4]] === name && east(s[0])).map((s) => s[1]));
-    for (const river of ["Wekiva River", "Econlockhatchee River"]) expect(fatesOf(river), river).toEqual(new Set([Fate.Atlantic]));
-    // NHD names the river's channel up to Lake Hell 'n' Blazes, its traditional head, and
-    // Blue Cypress Creek carries on into the marshes around Blue Cypress Lake.
-    const lat = (c: number[]) => Math.min(...c.filter((_, i) => i % 2).map((y) => y / k + oy));
-    const south = (name: string) => Math.min(...segs.filter((s) => names[s[4]] === name && !s[8]).map((s) => lat(s[0])));
-    expect(south("Saint Johns River")).toBeLessThan(28.0);
-    expect(south("Blue Cypress Creek")).toBeLessThan(27.75);
-    expect(new Set(segs.filter((s) => names[s[4]] === "Blue Cypress Creek").map((s) => s[1]))).toEqual(new Set([Fate.Atlantic]));
-    // Blue Spring, where the manatees winter, and the Wekiva's head spring.
-    const near = (name: string, lon: number, lat: number) => streams.springs.find(([x, y, n]) => n === name && Math.abs(x - lon) < 0.05 && Math.abs(y - lat) < 0.05);
-    expect(near("Volusia Blue Spring", -81.34, 28.95)?.[3]).toBe(1);
-    expect(near("Wekiwa Spring (Orange)", -81.46, 28.71)).toBeDefined();
-    for (const n of ["Lake Monroe", "Lake Harney", "Lake Jesup", "Lake Poinsett", "Lake Washington", "Blue Cypress Lake"]) expect(lakes.bodies.map((b) => b.name), n).toContain(n);
-  });
-
-  it("sends the Treasure Coast's rivers to the Atlantic", () => {
-    const fatesOf = (name: string) => new Set(segs.filter((s) => names[s[4]] === name).map((s) => s[1]));
-    for (const river of ["Saint Lucie Canal", "North Fork Saint Lucie River", "Saint Lucie River", "Loxahatchee River", "Saint Sebastian River"]) {
-      expect(fatesOf(river), river).toEqual(new Set([Fate.Atlantic]));
-    }
-    expect(lakes.bodies.map((b) => b.name)).toContain("Lake Okeechobee");
-  });
-
-  it("forms a network without cycles", () => {
-    // Every walk downstream must end within segs.length steps.
-    const depth = new Int32Array(segs.length).fill(-1);
-    const walk = (i: number): number => {
-      const path: number[] = [];
-      while (i >= 0 && depth[i] < 0) {
-        if (path.length > segs.length) throw new Error(`cycle through segment ${i}`);
-        path.push(i);
-        i = segs[i][2];
-      }
-      let d = i < 0 ? 0 : depth[i];
-      for (let p = path.length - 1; p >= 0; p--) depth[path[p]] = ++d;
-      return d;
-    };
-    for (let i = 0; i < segs.length; i++) expect(walk(i)).toBeGreaterThan(0);
-  });
-
-  it("gives each segment the same fate as the segment it drains into", () => {
-    const bad = segs.filter(([, fate, next]) => next >= 0 && segs[next][1] !== fate);
-    expect(bad).toHaveLength(0);
-  });
-
-  it("gives sink names only to creeks that end in a sink", () => {
-    const stray = segs.filter(([, fate, , , , sink]) => sink >= 0 && fate !== Fate.Sink);
-    expect(stray).toHaveLength(0);
-    const named = new Set(segs.filter((s) => s[5] >= 0).map((s) => names[s[5]]));
-    for (const n of ["Alachua Sink", "Haile Sink", "Mill Creek Swallet"]) expect(named).toContain(n);
-  });
-
-  it("labels the swallets where creeks go underground", () => {
-    const names = streams.swallets.map(([, , n]) => n);
-    expect(names).toContain("Santa Fe River Sink");
-    for (const [lon, lat] of streams.swallets) expect(inBox(lon, lat)).toBe(true);
-  });
-
-  it("accumulates upstream length: acc never shrinks going downstream", () => {
-    // acc is rounded to 0.1 km, so allow a rounding step.
-    const shrinking = segs.filter(([, , next, acc]) => next >= 0 && segs[next][3] + 0.11 < acc);
-    expect(shrinking).toHaveLength(0);
-  });
-
-  it("covers every fate the map explains", () => {
-    const seen = new Set(segs.map((s) => s[1]));
-    for (const f of Object.values(Fate)) expect(seen.has(f)).toBe(true);
-  });
-
-  it("places springs inside the study area, with a magnitude class", () => {
-    expect(streams.springs.length).toBeGreaterThan(100);
-    for (const [lon, lat, name, mag] of streams.springs) {
-      expect(inBox(lon, lat)).toBe(true);
-      expect(name.length).toBeGreaterThan(0);
-      expect(Number.isInteger(mag) && mag >= 0 && mag <= 8).toBe(true);
-    }
-  });
-
-  it("links map springs to the journal's statewide list", () => {
-    const ids = new Set(statewide.springs.map((s) => s[0]));
-    const linked = streams.springs.filter((s) => s[4]);
-    expect(linked.length).toBeGreaterThan(150);
-    for (const s of linked) expect(ids.has(s[4]), s[2]).toBe(true);
-  });
-
-  it("follows the Atlantic route to Silver Springs and Lake George", () => {
-    const silver = streams.springs.find(([, , n]) => n === "Silver Springs");
-    expect(silver?.[3]).toBe(1);
-    expect(lakes.bodies.map((b) => b.name)).toContain("Lake George");
-    expect(streams.meta.areas.length).toBeGreaterThan(1);
-  });
-});
 
 describe("rivers.json", () => {
   it("has the rivers the Santa Fe map wires together", () => {

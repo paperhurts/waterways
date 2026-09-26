@@ -89,8 +89,8 @@ export class Viewport {
   }
 
   /** Center a map point a little above the middle, leaving room for the card. */
-  flyTo(xy: XY, s: number): void {
-    this.moveTo({ s, tx: this.W / 2 - xy[0] * s, ty: this.H * 0.45 - xy[1] * s }, true);
+  flyTo(xy: XY, s: number, animate = true): void {
+    this.moveTo({ s, tx: this.W / 2 - xy[0] * s, ty: this.H * 0.45 - xy[1] * s }, animate);
   }
 
   private moveTo(to: Camera, animate: boolean): void {

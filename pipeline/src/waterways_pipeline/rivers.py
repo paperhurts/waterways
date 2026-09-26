@@ -22,8 +22,8 @@ SWAMP_SIMPLIFY_DEG = 0.001
 #: Big swamps are riddled with upland islands (one has 1,500 rings); under the stipple,
 #: islands and scraps this small don't show.
 SWAMP_SPECK_KM2 = 0.5
-#: Covers both maps: the Santa Fe map's box and all of the rain map's.
-WATER_AREAS: list[C.Bbox] = [(-83.08, 29.54, -82.01, 30.09), *C.STREAMS_AREAS]
+#: The Santa Fe map's box and the rest of lakes.json's area.
+WATER_AREAS: list[C.Bbox] = [(-83.08, 29.54, -82.01, 30.09), *C.LAKES_AREAS]
 LAKE_FTYPES = {390: "lake", 436: "lake", 466: "swamp"}
 SEA_SIMPLIFY_DEG = 0.0003
 #: Sea pieces and islands smaller than this vanish at map scale.
