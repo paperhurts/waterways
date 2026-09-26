@@ -24,7 +24,7 @@ export const SITE_MAPS: SitePage[] = [
   { href: "indian-river.html", name: "Indian River Lagoon", title: "The Indian River Lagoon barely trades with the sea" },
   { href: "peace.html", name: "Peace River", title: "The Peace River lost its spring" },
   { href: "kissimmee.html", name: "Kissimmee", title: "The Kissimmee got its bends back" },
-  { href: "lake-o.html", name: "Lake O", title: "Lake Okeechobee used to drain south" },
+  { href: "lake-o.html", name: "Lake Okeechobee", title: "Lake Okeechobee used to drain south" },
   { href: "st-lucie.html", name: "St. Lucie", title: "The St. Lucie was plumbed to a lake" },
   { href: "reefs.html", name: "Coral Reef", title: "Florida's Coral Reef lost its builders" },
 ];

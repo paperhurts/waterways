@@ -34,7 +34,7 @@
   {"id": "02252500", "short": "North Canal", "name": "North Canal near Vero Beach", "key": "NCAN", "page": "indian-river", "lon": -80.42, "lat": 27.693},
   {"id": "02253000", "short": "Main Canal", "name": "Main Canal at Vero Beach", "key": "MCAN", "page": "indian-river", "lon": -80.406, "lat": 27.648},
   {"id": "02253500", "short": "South Canal", "name": "South Canal near Vero Beach", "key": "SCAN", "page": "indian-river", "lon": -80.387, "lat": 27.604},
-  {"id": "S65E", "source": "cwms", "ts": "S65E.Flow.Inst.1Hour.0.SFWMD-WM", "short": "S-65E, into Lake O", "name": "Kissimmee River at S-65E", "key": "S65E", "page": "kissimmee", "river": "Kissimmee River", "lon": -80.9628, "lat": 27.225},
+  {"id": "S65E", "source": "cwms", "ts": "S65E.Flow.Inst.1Hour.0.SFWMD-WM", "short": "S-65E, into Lake Okeechobee", "name": "Kissimmee River at S-65E", "key": "S65E", "page": "kissimmee", "river": "Kissimmee River", "lon": -80.9628, "lat": 27.225},
   {"id": "S68", "source": "cwms", "ts": "S68.Flow.Ave.~1Day.1Day.SFWMD-WM-Computed", "short": "S-68, from Istokpoga", "name": "Lake Istokpoga outlet at S-68", "key": "S68", "page": "kissimmee", "river": "Istokpoga Canal", "lon": -81.2544, "lat": 27.3297},
   {"id": "02238500", "short": "Moss Bluff", "name": "Ocklawaha River at Moss Bluff", "key": "MB", "page": "ocklawaha", "river": "Ocklawaha River", "lon": -81.8808333, "lat": 29.0811111},
   {"id": "02239501", "short": "Silver River", "name": "Silver River near Ocala", "key": "SILV", "page": "ocklawaha", "river": "Silver River", "spring": true, "lon": -82.0412, "lat": 29.214976},
