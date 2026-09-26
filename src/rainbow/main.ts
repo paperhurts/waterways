@@ -89,7 +89,7 @@ const LABEL_AT: Record<RainbowKey, [number, number, CanvasTextAlign]> = {
 const timeFmt = (d: Date) => d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 async function main() {
-  const [data, snapshot, lakesFile] = await Promise.all([loadData<RainbowFile>("rainbow.json"), loadData<Snapshot>("snapshot.json"), loadData<LakesFile>("lakes.json"), fontsReady()]);
+  const [data, snapshot, lakesFile] = await Promise.all([loadData<RainbowFile>("rainbow.json"), loadData<Snapshot>("snapshot.json"), loadData<LakesFile>("lakes-rainbow.json"), fontsReady()]);
   const lakes = decodeLakes(lakesFile);
   const decodeRings = (rings: number[][]) => unpackRings(rings, data.meta.coordOrigin, data.meta.coordScale);
 

@@ -13,54 +13,24 @@ CACHE = REPO / "pipeline" / "cache"
 # (west, south, east, north) in WGS84 degrees.
 Bbox = tuple[float, float, float, float]
 
-# ---- lakes.json ----
-# The Santa Fe and Rainbow maps draw their lakes and sea from lakes.json, which covers
-# the union of these boxes: the springs belt and the St. Johns, the rain map's study area
-# before it went statewide.
-#: Between the Suwannee and Gainesville.
-SANTA_FE_BASIN: Bbox = (-82.99, 29.56, -82.01, 30.09)
-#: The Atlantic route out of it: Orange Lake, Silver Springs, the Ocklawaha,
-#: and the St. Johns through Lake George to Welaka.
-ATLANTIC_CORRIDOR: Bbox = (-82.30, 29.12, -81.50, 29.60)
-#: The springs belt around them. West of the Suwannee is karst with few surface
-#: streams (Troy, Royal, Peacock, Lafayette Blue); north are Suwannee Springs and
-#: White Springs; the south box runs from Manatee Springs through Rainbow River
-#: and Dunnellon to Crystal River and Homosassa on the Gulf; the upper Ocklawaha
-#: box has Lake Weir, the Harris Chain, and Alexander Springs.
-SUWANNEE_WEST: Bbox = (-83.30, 29.56, -82.99, 30.50)
-SUWANNEE_NORTH: Bbox = (-82.99, 30.09, -82.60, 30.50)
-SOUTH_BELT: Bbox = (-83.20, 28.75, -82.30, 29.56)
-UPPER_OCKLAWAHA: Bbox = (-82.30, 28.75, -81.50, 29.12)
-#: Up the St. Johns, which flows north: the middle river from Astor past DeLeon and Blue
-#: Springs to Lake Monroe and Lake Harney, with the Wekiva and its springs.
-MIDDLE_ST_JOHNS: Bbox = (-81.75, 28.55, -80.95, 29.20)
-#: Then the upper river's marshes and chain of lakes to its headwaters at Blue Cypress
-#: Lake, in two boxes that step east with the basin's divide from the Kissimmee. They
-#: reach the Indian River Lagoon, which the basin's east edge runs close to.
-UPPER_ST_JOHNS: Bbox = (-81.20, 28.20, -80.50, 28.55)
-ST_JOHNS_MARSH: Bbox = (-81.00, 27.60, -80.30, 28.20)
-#: The Treasure Coast: the lagoon from Vero Beach south, the St. Lucie basin from Lake
-#: Okeechobee's east shore to the St. Lucie Inlet, and the Loxahatchee at Jupiter.
-TREASURE_COAST: Bbox = (-80.75, 26.85, -80.05, 27.60)
-LAKES_AREAS: list[Bbox] = [
-    SANTA_FE_BASIN, ATLANTIC_CORRIDOR, SUWANNEE_WEST, SUWANNEE_NORTH, SOUTH_BELT, UPPER_OCKLAWAHA,
-    MIDDLE_ST_JOHNS, UPPER_ST_JOHNS, ST_JOHNS_MARSH, TREASURE_COAST,
-]
+# ---- lakes-<map>.json ----
+# The Santa Fe and Rainbow maps each draw their lakes and sea from a file of their own,
+# covering what the map shows at its whole-map view on a very wide screen (about 2.5 times
+# as wide as tall), with room to pan: Gainesville to the Suwannee, and the Rainbow's
+# springshed from the Gulf to Lake George and the Harris Chain.
+SANTA_FE_LAKES: Bbox = (-83.45, 29.35, -81.85, 30.25)
+RAINBOW_LAKES: Bbox = (-83.60, 28.60, -81.25, 29.95)
+LAKE_MAPS: dict[str, Bbox] = {"santa-fe": SANTA_FE_LAKES, "rainbow": RAINBOW_LAKES}
 #: NHD for these boxes comes from USGS's bulk NHDPlus HR files, one per 4-digit HUC (the
 #: files each box needs are listed), instead of the map server, which times out on big
-#: queries. Both serve the same release, so the older boxes, whose map server responses
-#: are cached, match them exactly.
+#: queries. Both serve the same release.
 BULK_AREAS: dict[Bbox, list[str]] = {
-    MIDDLE_ST_JOHNS: ["0308"],
-    UPPER_ST_JOHNS: ["0308", "0309"],
-    ST_JOHNS_MARSH: ["0308", "0309"],
-    TREASURE_COAST: ["0309", "0308"],
+    SANTA_FE_LAKES: ["0311", "0308"],
+    RAINBOW_LAKES: ["0310", "0311", "0308"],
 }
-#: The sea in lakes.json is everything in this box that isn't land.
-SEA_CLIP: Bbox = (-85.2, 26.4, -79.6, 31.6)
-#: Boxes where the Census outlines count the Indian River Lagoon as land. NHD's bays
-#: (BayInlet areas) there join the sea.
-LAGOON_AREAS: list[Bbox] = [UPPER_ST_JOHNS, ST_JOHNS_MARSH, TREASURE_COAST]
+#: The sea in those files is everything in this box that isn't land. It reaches past both
+#: maps' widest views, so its edge only shows zoomed far out.
+LAKES_SEA_CLIP: Bbox = (-84.4, 28.1, -80.8, 30.8)
 # ---- statewide rain map ----
 #: The 4-digit HUCs that drain Florida: the St. Marys, St. Johns, south Florida, Peace-Tampa
 #: Bay, Suwannee, Ochlockonee, Apalachicola, and Choctawhatchee-Escambia.

@@ -30,7 +30,7 @@ const rivers = read<RiversFile>("public/data/rivers.json");
 const contours = read<ContoursFile>("public/data/contours.json");
 const aquifer = read<AquiferFile>("public/data/aquifer.json");
 const snapshot = read<Snapshot>("public/data/snapshot.json");
-const lakes = read<LakesFile>("public/data/lakes.json");
+const lakeFiles = { "santa-fe": read<LakesFile>("public/data/lakes-santa-fe.json"), rainbow: read<LakesFile>("public/data/lakes-rainbow.json") };
 const statewide = read<SpringsFile>("public/data/springs.json");
 const rainbow = read<RainbowFile>("public/data/rainbow.json");
 const statewideMap = read<StatewideFile>("public/data/statewide.json");
@@ -132,43 +132,39 @@ describe("springs.json", () => {
   });
 });
 
-describe("lakes.json", () => {
-  it("has the big named lakes as closed rings", () => {
-    const named = new Set(lakes.bodies.map((b) => b.name));
-    for (const n of ["Newnans Lake", "Santa Fe Lake", "Lochloosa Lake"]) expect(named).toContain(n);
-    for (const b of lakes.bodies) {
-      expect(["sea", "lake", "swamp"]).toContain(b.kind);
-      for (const r of b.rings) {
-        expect(r.length % 2).toBe(0);
-        expect(r.length).toBeGreaterThanOrEqual(6);
-      }
-    }
-  });
+describe("lakes-<map>.json", () => {
+  // Each map's lakes, a point that must be sea, and points that must not be.
+  const cases = {
+    // Newnans, Santa Fe, and Lochloosa lakes; the Gulf off Suwannee Sound and near Cedar Key;
+    // Gainesville, Palatka, and the Suwannee at Branford.
+    "santa-fe": { lakes: ["Newnans Lake", "Santa Fe Lake", "Lochloosa Lake", "Orange Lake"], sea: [[-83.3, 29.25], [-83.05, 29.12]], land: [[-82.325, 29.652], [-81.637, 29.648], [-82.93, 29.96]] },
+    // Lake Rousseau below Dunnellon, Tsala Apopka, Lake Weir, and the Harris Chain; the Gulf
+    // off the Withlacoochee's mouth and Crystal River; Ocala, Dunnellon, and Lake George.
+    rainbow: { lakes: ["Lake Rousseau", "Lake Weir", "Lake Harris", "Lake George", "Orange Lake"], sea: [[-82.8, 29.0], [-82.75, 28.88]], land: [[-82.14, 29.187], [-82.461, 29.049], [-81.6, 29.28]] },
+  };
 
-  it("has sea off both river mouths and none over land", () => {
-    const [ox, oy] = lakes.meta.coordOrigin;
-    const k = lakes.meta.coordScale;
-    const rings = lakes.bodies.filter((b) => b.kind === "sea").flatMap((b) => b.rings);
-    // Even-odd ray casting, the same rule the map fills with.
-    const inSea = (lon: number, lat: number) => {
-      const [x, y] = [(lon - ox) * k, (lat - oy) * k];
-      let inside = false;
-      for (const r of rings) {
-        for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
-          if (r[i + 1] > y !== r[j + 1] > y && x < ((r[j] - r[i]) * (y - r[i + 1])) / (r[j + 1] - r[i + 1]) + r[i]) inside = !inside;
+  for (const [map, c] of Object.entries(cases)) {
+    const file = lakeFiles[map as keyof typeof lakeFiles];
+
+    it(`has ${map}'s named lakes as closed rings`, () => {
+      const named = new Set(file.bodies.map((b) => b.name));
+      for (const n of c.lakes) expect(named, n).toContain(n);
+      for (const b of file.bodies) {
+        expect(["sea", "lake", "swamp"]).toContain(b.kind);
+        for (const r of b.rings) {
+          expect(r.length % 2).toBe(0);
+          expect(r.length).toBeGreaterThanOrEqual(6);
         }
       }
-      return inside;
-    };
-    // Off Suwannee Sound, off Mayport, near Cedar Key; the Indian River Lagoon at Vero Beach and
-    // Sebastian, which the Census outlines count as land; and the St. Lucie estuary at Stuart.
-    for (const [lon, lat] of [[-83.3, 29.25], [-81.3, 30.4], [-83.05, 29.12], [-80.368, 27.63], [-80.44, 27.8], [-80.207, 27.199]]) expect(inSea(lon, lat), `${lon},${lat}`).toBe(true);
-    // Gainesville, Palatka, Lake George, the St. Johns at downtown Jacksonville and in its
-    // headwater marshes, and downtown Stuart and Vero Beach.
-    for (const [lon, lat] of [[-82.325, 29.652], [-81.637, 29.648], [-81.6, 29.28], [-81.656, 30.325], [-80.75, 27.9], [-80.245, 27.19], [-80.4, 27.64]]) {
-      expect(inSea(lon, lat), `${lon},${lat}`).toBe(false);
-    }
-  });
+    });
+
+    it(`has sea off ${map}'s coast and none over land`, () => {
+      const rings = file.bodies.filter((b) => b.kind === "sea").flatMap((b) => b.rings);
+      const inSea = (lon: number, lat: number) => inPacked(rings, file.meta.coordOrigin, file.meta.coordScale, lon, lat);
+      for (const [lon, lat] of c.sea) expect(inSea(lon, lat), `${lon},${lat}`).toBe(true);
+      for (const [lon, lat] of c.land) expect(inSea(lon, lat), `${lon},${lat}`).toBe(false);
+    });
+  }
 });
 
 describe("rainbow.json", () => {

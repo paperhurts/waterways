@@ -6,7 +6,7 @@
   River Lagoon. NHD runs the South Fork and the estuary as one level path, so it's
   split where the North Fork joins.
 - Water: the Atlantic, the estuary and lagoon, Lake Okeechobee, and the other lakes,
-  packed like lakes.json. The Census outlines that give the sea its coast count the
+  packed like the lakes files. The Census outlines that give the sea its coast count the
   estuary and the lagoon as land, so NHD's estuary and wide-river polygons join the sea.
 - History: water-year mean flow where the canal leaves the lake (S-308 at Port Mayaca)
   and where it reaches the estuary (S-80, the St. Lucie Lock). USGS reports flow back
@@ -44,7 +44,7 @@ def history(refresh: bool = False) -> dict:
 
 
 def water(refresh: bool = False) -> list[dict]:
-    """The sea (with the estuary and lagoon), then lakes largest first, like lakes.json."""
+    """The sea (with the estuary and lagoon), then lakes largest first, like the lakes files."""
     areas = [
         f
         # Wide rivers (the estuary and the lower forks) and bays (the lagoon, its coves, and the inlet).

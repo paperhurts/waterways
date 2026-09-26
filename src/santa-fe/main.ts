@@ -92,7 +92,7 @@ async function main() {
     loadData<ContoursFile>("contours.json"),
     loadData<AquiferFile>("aquifer.json"),
     loadData<Snapshot>("snapshot.json"),
-    loadData<LakesFile>("lakes.json"),
+    loadData<LakesFile>("lakes-santa-fe.json"),
     fontsReady(),
   ]);
   const lakes = decodeLakes(lakesFile);
