@@ -12,6 +12,7 @@ import { drawBoil } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
 import type { SnorkelSpot, SpringsFile, StatewideFile } from "../shared/types";
 import { Viewport, startLoop } from "../shared/viewport";
+import { glintAlpha, placeGlints } from "./glints";
 
 const VIEWS = {
   all: bounds(-87.6, 24.5, -79.9, 31.1),
@@ -63,9 +64,11 @@ async function main() {
   const lakePath = new Path2D();
   const swampPath = new Path2D();
   const lakeLabels: { name: string; km2: number; xy: XY }[] = [];
+  const wetlands: { km2: number; rings: XY[][] }[] = [];
   for (const w of state.water) {
     const rings = unpack(w.rings);
     (w.kind === "lake" ? lakePath : swampPath).addPath(ringsPath(rings));
+    if (w.kind === "swamp") wetlands.push({ km2: w.km2, rings });
     if (w.kind === "lake" && w.name) {
       const [x0, y0, x1, y1] = boxOf(rings.slice(0, 1));
       lakeLabels.push({ name: w.name, km2: w.km2, xy: [(x0 + x1) / 2, (y0 + y1) / 2] });
@@ -78,6 +81,7 @@ async function main() {
     if (!p) riverPaths.set(width, (p = new Path2D()));
     unpack([r.line])[0].forEach((q, i) => (i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1])));
   }
+  const glints = placeGlints(wetlands);
   /** Springs NHD maps that FDEP doesn't list: drawn, but not in the journal's list. */
   const extras = state.extraSprings.map(([lon, lat, name]) => ({ name, lon, lat, xy: project(lon, lat) }));
   const springs: Spring[] = file.springs.map(([id, name, county, lon, lat, mag, onRainMap], i) => ({
@@ -94,7 +98,7 @@ async function main() {
   let C: Record<string, string> = {};
   let glow = true;
   const readColors = () => {
-    C = Object.fromEntries(["bg", "ink", "muted", "spring", "under", "sea", "shore", "coral", "marsh", "stream"].map((n) => [n, cssVar(`--${n}`)]));
+    C = Object.fromEntries(["bg", "ink", "muted", "spring", "under", "sea", "shore", "coral", "marsh", "stream", "glint"].map((n) => [n, cssVar(`--${n}`)]));
     glow = isDark();
   };
 
@@ -129,7 +133,12 @@ async function main() {
       c.strokeStyle = C.shore;
       c.lineWidth = 0.8 / s;
       c.stroke(land);
-      // Wetlands in the marsh stipple, held to screen pixels; lakes as open water.
+      // Wetlands: a faint wash so their reach reads, the marsh stipple (held to screen
+      // pixels) over it, and glints on the animated layer. Lakes are open water.
+      c.fillStyle = C.marsh;
+      c.globalAlpha = 0.45;
+      c.fill(swampPath, "evenodd");
+      c.globalAlpha = 1;
       const marsh = marshPattern(c, C.marsh);
       marsh.setTransform(new DOMMatrix().scaleSelf(1 / s, 1 / s));
       c.fillStyle = marsh;
@@ -255,6 +264,29 @@ async function main() {
     c.setTransform(view.DPR, 0, 0, view.DPR, 0, 0);
     c.clearRect(0, 0, W, H);
     const now = performance.now() / 1000;
+    // Wetland glints, batched by brightness: most are dark at any moment.
+    const size = Math.min(2.4, Math.max(1.1, Math.sqrt(view.scale / 700)));
+    const lit = [new Path2D(), new Path2D(), new Path2D()];
+    for (const g of glints) {
+      const a = glintAlpha(g, now);
+      if (a < 0.04) continue;
+      const x = X(g.xy[0]);
+      const y = Y(g.xy[1]);
+      if (x < -4 || y < -4 || x > W + 4 || y > H + 4) continue;
+      const b = a > 0.6 ? 2 : a > 0.25 ? 1 : 0;
+      lit[b].rect(x - size / 2, y - size / 2, size, size);
+      // The brightest catch the light as a tiny cross.
+      if (b === 2) {
+        lit[0].rect(x - size * 1.8, y - 0.35, size * 3.6, 0.7);
+        lit[0].rect(x - 0.35, y - size * 1.8, 0.7, size * 3.6);
+      }
+    }
+    c.fillStyle = C.glint;
+    [0.35, 0.65, 0.95].forEach((alpha, b) => {
+      c.globalAlpha = alpha;
+      c.fill(lit[b]);
+    });
+    c.globalAlpha = 1;
     for (const s of springs) {
       if (!big(s)) continue;
       const x = X(s.xy[0]);

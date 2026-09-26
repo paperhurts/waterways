@@ -78,7 +78,7 @@ LAGOONS = {
 }
 LAGOON_SIMPLIFY_DEG = 0.002
 #: Lakes and wetlands this big (km²) are drawn, simplified this much (degrees).
-LAKE_KM2, SWAMP_KM2 = 2.0, 25.0
+LAKE_KM2, SWAMP_KM2 = 2.0, 10.0
 LAKE_SIMPLIFY_DEG, SWAMP_SIMPLIFY_DEG, SWAMP_SPECK_KM2, LAKE_SPECK_KM2 = 0.0008, 0.004, 5.0, 0.3
 #: Rivers with this much creek upstream (km) are drawn.
 RIVER_KM = 250
