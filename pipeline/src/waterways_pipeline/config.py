@@ -139,6 +139,8 @@ FGS_POTENTIOMETRIC = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/F
 SWFWMD_SPRINGSHEDS = "https://www25.swfwmd.state.fl.us/arcgis12/rest/services/BaseVector/MajorSpringsheds/MapServer/0"
 #: FDEP's Springs Priority Focus Areas, drawn around Outstanding Florida Springs.
 FDEP_PRIORITY_FOCUS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/STATEWIDE_BMAP/MapServer/1"
+#: FDEP's state park boundaries (layer 0) and its map of the parks' natural communities (layer 5).
+FDEP_PARKS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/PARKS_BOUNDARIES/MapServer"
 USGS_API = "https://api.waterdata.usgs.gov/ogcapi/v1/collections"
 #: USGS's bulk NHDPlus HR release, one zipped file geodatabase per 4-digit HUC.
 NHD_BULK = "https://prd-tnm.s3.amazonaws.com/StagedProducts/Hydrography/NHDPlusHR/Beta/GDB/NHDPLUS_H_{hu4}_HU4_GDB.zip"

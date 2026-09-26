@@ -86,7 +86,7 @@ describe("snorkel spots in the journal", () => {
   });
 
   it("lists springs, curated spots, and members' spots together", () => {
-    const places = allPlaces([["ginnie-spring--gilchrist", "Ginnie Spring", "Gilchrist", -82.7, 29.83, 0, 1]], [mine]);
+    const places = allPlaces([["ginnie-spring--gilchrist", "Ginnie Spring", "Gilchrist", -82.7, 29.83, 0, 1, ""]], [mine]);
     const ids = places.map((p) => p[0]);
     expect(ids).toContain("ginnie-spring--gilchrist");
     expect(ids).toContain("bathtub-reef-beach--martin");

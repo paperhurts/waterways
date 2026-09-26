@@ -2,6 +2,7 @@ import "./journal.css";
 import "../shared/nav";
 import type { Session } from "@supabase/supabase-js";
 import { loadData } from "../shared/data";
+import { parkHref } from "../shared/parks";
 import { isDark, onColorSchemeChange } from "../shared/theme";
 import { allPlaces, placeInfo } from "../shared/places";
 import { KIND_LABEL } from "../shared/snorkel";
@@ -294,7 +295,7 @@ function openSpring(id: string) {
   if (!s) return;
   const sum = summary.get(id);
   $("springTitle").textContent = s[1];
-  $("springMeta").textContent = [s[2] ? `${s[2]} County` : "", dupes.has(`${s[1]}|${s[2]}`) ? coords(s) : "", ...kindBits(s), sum ? `${sum.visits} visit${sum.visits > 1 ? "s" : ""}` : "Not visited yet", sum?.rating ? `${sum.rating.toFixed(1)} ★` : ""].filter(Boolean).join(" · ");
+  $("springMeta").textContent = [s[2] ? `${s[2]} County` : "", dupes.has(`${s[1]}|${s[2]}`) ? coords(s) : "", s[7], ...kindBits(s), sum ? `${sum.visits} visit${sum.visits > 1 ? "s" : ""}` : "Not visited yet", sum?.rating ? `${sum.rating.toFixed(1)} ★` : ""].filter(Boolean).join(" · ");
   const spot = info(id).member;
   $("springNotes").textContent = spot?.notes ?? "";
   $("springNotes").hidden = !spot?.notes;
@@ -304,6 +305,7 @@ function openSpring(id: string) {
   ];
   // A plain link, not a chip: chips act here, links go to another page.
   if (s[6]) actions.push(h("a", { class: "go", href: `rain.html#${s[3]},${s[4]}` }, "See it on the Rain map"));
+  if (s[7]) actions.push(h("a", { class: "go", href: parkHref(s[7]) }, "Its state park"));
   if (spot && spot.created_by === myId()) actions.push(h("button", { type: "button", class: "chip", onclick: () => openSpotForm(spot) }, "Edit spot"));
   $("springActions").replaceChildren(...actions);
   const mine = journal.visits.filter((v) => v.spring_id === id);

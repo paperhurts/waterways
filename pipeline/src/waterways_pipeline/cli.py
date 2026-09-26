@@ -7,12 +7,12 @@ import json
 import shutil
 from pathlib import Path
 
-from . import aquifer, crw, irl, lakeo, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
+from . import aquifer, crw, irl, lakeo, parks, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
 from . import config as C
 from .config import OUT
 from .fetch import log
 
-DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "statewide", "snapshot"]
+DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "statewide", "parks", "snapshot"]
 
 
 def write(out: Path, name: str, data: dict, quiet: bool = False) -> None:
@@ -56,6 +56,8 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
         write(out, "lake-o.json", lakeo.build(refresh))
     elif dataset == "statewide":
         write(out, "statewide.json", statewide.build(refresh))
+    elif dataset == "parks":
+        write(out, "parks.json", parks.build(refresh))
     elif dataset == "snapshot":
         # Always fresh: this is the point of the snapshot.
         snap = usgs.latest()

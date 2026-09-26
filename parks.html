@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Florida's state parks keep its water</title>
+<meta name="description" content="Every Florida state park, trail, and historic site, shaded by the water it protects: springs, rivers, lakes and wetlands, coast, or reef. Which of the state's springs are in them, and the two parks that hold living reef.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Florida's state parks keep its water">
+<meta property="og:description" content="Every Florida state park, trail, and historic site, shaded by the water it protects: springs, rivers, lakes and wetlands, coast, or reef. Which of the state's springs are in them, and the two parks that hold living reef.">
+<meta property="og:url" content="https://waterways.paperhurts.dev/parks.html">
+<meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="/src/parks/main.ts"></script>
+</head>
+<body>
+<div id="wrap">
+<header>
+  <!-- site-nav -->
+  <h1>Florida's <em>state parks</em> keep its water</h1>
+  <p class="lede" id="lede">Loading the parks…</p>
+</header>
+<div id="stage" role="img" aria-label="Map of Florida's state parks, trails, and historic sites, each shaded by the water it protects, with FDEP's springs bright inside the parks and faint outside them">
+  <canvas id="base"></canvas>
+  <canvas id="fx"></canvas>
+  <div id="legend">
+    <span><i class="park" style="--c:var(--spring)"></i>Springs</span>
+    <span><i class="park" style="--c:var(--tannin)"></i>Rivers</span>
+    <span><i class="park" style="--c:var(--park-lake)"></i>Lakes and wetlands</span>
+    <span><i class="park" style="--c:var(--park-coast)"></i>Coast</span>
+    <span><i class="park" style="--c:var(--park-reef)"></i>Reef</span>
+    <span><i class="park dry" style="--c:var(--muted)"></i>Mostly dry land</span>
+    <span><i class="dot"></i>A spring in a park <i class="dot out"></i>outside</span>
+  </div>
+  <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
+</div>
+<div class="tools">
+  <button id="bAll" type="button">Whole state</button>
+  <select id="view" aria-label="Zoom to a region">
+    <option value="">Zoom to…</option>
+    <option value="pan">Panhandle</option>
+    <option value="bend">Big Bend and the Suwannee</option>
+    <option value="ne">Northeast: St. Augustine to the St. Johns</option>
+    <option value="central">Central: Ocala to Tampa and Orlando</option>
+    <option value="sw">Southwest: Sarasota to the Ten Thousand Islands</option>
+    <option value="se">Southeast: Sebastian Inlet to Miami</option>
+    <option value="keys">Florida Keys</option>
+  </select>
+  <select id="water" aria-label="Show parks by their water">
+    <option value="">Every park</option>
+  </select>
+  <input id="find" type="search" list="parkList" placeholder="Find a park" aria-label="Find a state park by name">
+  <datalist id="parkList"></datalist>
+</div>
+<div id="status">Shading: living reef first, then springs (a spring run, a big spring, or the springs a park is named for), then whichever water covers most of a park on FDEP's map of its natural communities. Sources: FDEP (parks, natural communities, springs), FWC's Unified Florida Reef Map, US Census Bureau coastline, USGS NHD.</div>
+</div>
+</body>
+</html>

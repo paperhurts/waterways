@@ -8,6 +8,7 @@ import {
   FLOW_KEYS,
   IRL_KEYS,
   LAKEO_KEYS,
+  PARK_WATER,
   RAINBOW_KEYS,
   SALINITY_KEYS,
   STLUCIE_KEYS,
@@ -18,6 +19,7 @@ import {
   type ReefsFile,
   type LakeOFile,
   type LakesFile,
+  type ParksFile,
   type RainbowFile,
   type RiversFile,
   type Snapshot,
@@ -27,6 +29,7 @@ import {
   type StatewideFile,
   type StLucieFile,
 } from "../src/shared/types";
+import { MAP_LINKS, NOTES, PLAN_2024 } from "../src/parks/content";
 
 const read = <T>(path: string): T => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), "utf8"));
 const rivers = read<RiversFile>("public/data/rivers.json");
@@ -41,9 +44,18 @@ const stLucie = read<StLucieFile>("public/data/st-lucie.json");
 const lakeO = read<LakeOFile>("public/data/lake-o.json");
 const irl = read<IndianRiverFile>("public/data/indian-river.json");
 const reefs = read<ReefsFile>("public/data/reefs.json");
+const parks = read<ParksFile>("public/data/parks.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
 const snorkel = read<SnorkelFile>("config/snorkel.json");
+
+/** Delta-packed rings ([x0, y0, dx, dy, ...]) to plain packed ones. */
+const undelta = (rings: number[][]): number[][] =>
+  rings.map((r) => {
+    const out: number[] = [];
+    for (let i = 0; i < r.length; i += 2) out.push((out[i - 2] ?? 0) + r[i], (out[i - 1] ?? 0) + r[i + 1]);
+    return out;
+  });
 
 /** Even-odd ray casting over packed rings, the same rule the maps fill with. */
 function inPacked(rings: number[][], [ox, oy]: [number, number], k: number, lon: number, lat: number): boolean {
@@ -129,6 +141,18 @@ describe("springs.json", () => {
       expect(mag >= 0 && mag <= 8).toBe(true);
       expect([0, 1]).toContain(onMap);
     }
+  });
+
+  it("names each spring's state park, if it's in one, as parks.json does", () => {
+    const names = new Set(parks.parks.map((p) => p.name));
+    const inParks = springs.filter((s) => s[7]);
+    expect(inParks.length).toBeGreaterThan(100);
+    expect(inParks.filter((s) => !names.has(s[7])).map((s) => s[7])).toEqual([]);
+    const park = (id: string) => springs.find((s) => s[0] === id)?.[7];
+    expect(park("wakulla-spring--wakulla")).toBe("Edward Ball Wakulla Springs State Park");
+    expect(park("manatee-spring--levy")).toBe("Manatee Springs State Park");
+    // Ginnie is a private park.
+    expect(park("ginnie-spring--gilchrist")).toBe("");
   });
 
   it("has the springs people actually go to", () => {
@@ -500,6 +524,63 @@ describe("reefs.json", () => {
     expect(southeast.length).toBe(years.length);
     for (const v of [...keys, ...southeast]) if (v != null) expect(v >= 0 && v < 60).toBe(true);
     expect(keys[years.indexOf(2023)]).toBeGreaterThan(20);
+  });
+});
+
+describe("parks.json", () => {
+  const byName = new Map(parks.parks.map((p) => [p.name, p]));
+  const water = (n: string) => PARK_WATER[byName.get(n)?.water ?? -1];
+
+  it("has every state park with its water, once each", () => {
+    expect(parks.meta.classes).toEqual([...PARK_WATER]);
+    expect(parks.parks.length).toBeGreaterThan(170);
+    expect(byName.size).toBe(parks.parks.length);
+    for (const p of parks.parks) {
+      expect(PARK_WATER[p.water], p.name).toBeDefined();
+      expect(p.acres, p.name).toBeGreaterThanOrEqual(0);
+      if (p.url) expect(p.url).toMatch(/^https:\/\/www\.floridastateparks\.org\//);
+      expect(p.rings.length, p.name).toBeGreaterThan(0);
+      for (const r of p.rings) expect(r.length % 2).toBe(0);
+    }
+  });
+
+  it("puts each park's marker inside it", () => {
+    const outside = parks.parks.filter((p) => !inPacked(undelta(p.rings), parks.meta.coordOrigin, parks.meta.coordScale, ...p.at));
+    expect(outside.map((p) => p.name)).toEqual([]);
+  });
+
+  it("shades the parks by the water they're known for", () => {
+    expect(water("Edward Ball Wakulla Springs State Park")).toBe("springs");
+    expect(water("Silver Springs State Park")).toBe("springs");
+    expect(water("Ichetucknee Springs State Park")).toBe("springs");
+    expect(water("John Pennekamp Coral Reef State Park")).toBe("reef");
+    expect(water("Hillsborough River State Park")).toBe("rivers");
+    expect(water("Kissimmee Prairie Preserve State Park")).toBe("lakes");
+    expect(water("Honeymoon Island State Park")).toBe("coast");
+    expect(water("Big Lagoon State Park")).toBe("coast");
+    expect(water("San Pedro Underwater Archaeological Preserve State Park")).toBe("coast");
+    expect(water("Ybor City Museum State Park")).toBe("land");
+    // Windley Key's reef is a fossil, on land.
+    expect(water("Windley Key Fossil Reef Geological State Park")).not.toBe("reef");
+  });
+
+  it("counts springs and first-magnitude springs the way springs.json does", () => {
+    const counted = parks.parks.reduce((n, p) => n + p.springs, 0);
+    expect(counted).toBe(statewide.springs.filter((s) => s[7]).length);
+    const big = parks.parks.reduce((n, p) => n + p.big, 0);
+    expect(big).toBeGreaterThan(5);
+    expect(big).toBeLessThan(parks.firstMagnitude);
+    expect(parks.firstMagnitude).toBeGreaterThan(20);
+    expect(parks.firstMagnitude).toBeLessThan(40);
+    expect(byName.get("Edward Ball Wakulla Springs State Park")?.big).toBe(1);
+    // Silver's first-magnitude vents are one spring.
+    expect(byName.get("Silver Springs State Park")?.big).toBe(1);
+  });
+
+  it("names only real parks in the page's hand-written content", () => {
+    const named = [...PLAN_2024, ...Object.keys(NOTES), ...Object.keys(MAP_LINKS)];
+    expect(named.filter((n) => !byName.has(n))).toEqual([]);
+    expect(PLAN_2024.size).toBe(9);
   });
 });
 

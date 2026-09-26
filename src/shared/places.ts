@@ -6,7 +6,7 @@
 import { KIND_LABEL, SALT_KINDS, snorkelSprings, snorkelSpots } from "./snorkel";
 import type { MemberSpot, SpotKind, StatewideSpring } from "./types";
 
-const tuple = (id: string, name: string, county: string, lon: number, lat: number): StatewideSpring => [id, name, county, lon, lat, 0, 0];
+const tuple = (id: string, name: string, county: string, lon: number, lat: number): StatewideSpring => [id, name, county, lon, lat, 0, 0, ""];
 
 export function allPlaces(springs: StatewideSpring[], members: MemberSpot[] = []): StatewideSpring[] {
   return [...springs, ...snorkelSpots.map((s) => tuple(s.id, s.name, s.county, s.lon, s.lat)), ...members.map((s) => tuple(s.id, s.name, "", s.lon, s.lat))];

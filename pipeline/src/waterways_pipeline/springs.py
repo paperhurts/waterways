@@ -3,7 +3,8 @@
 FDEP lists vents separately ("SILVER SPRING #1" … "#12", "RAINBOW SPRING #3"),
 so vents that share a base name within VENT_MERGE_M merge into one spring.
 Every spring gets a stable id from its FDEP base name and county; the journal
-stores visits against that id, so ids must not depend on display names.
+stores visits against that id, so ids must not depend on display names. Each also
+names the state park it's in, if any (parks.py).
 """
 
 from __future__ import annotations
@@ -150,13 +151,16 @@ def in_areas(p: LonLat, areas: list[C.Bbox]) -> bool:
 
 def build(refresh: bool = False) -> dict:
     """springs.json: the journal's statewide list."""
+    from . import parks  # parks.py lists springs too
+
     springs = fetch(refresh)
+    park = parks.park_names(refresh)
     return {
         "meta": {
             "generator": "waterways-pipeline springs",
             "generatedAt": date.today().isoformat(),
-            "sources": [C.FDEP_SPRINGS],
-            "fields": ["id", "name", "county", "lon", "lat", "magnitude", "onRainMap"],
+            "sources": [C.FDEP_SPRINGS, parks.BOUNDARIES],
+            "fields": ["id", "name", "county", "lon", "lat", "magnitude", "onRainMap", "park"],
         },
-        "springs": [[s.id, s.name, s.county, round(s.lon, 5), round(s.lat, 5), s.mag, int(in_areas((s.lon, s.lat), [C.FLORIDA_BBOX]))] for s in springs],
+        "springs": [[s.id, s.name, s.county, round(s.lon, 5), round(s.lat, 5), s.mag, int(in_areas((s.lon, s.lat), [C.FLORIDA_BBOX])), park.get(s.id, "")] for s in springs],
     }
