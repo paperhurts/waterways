@@ -15,6 +15,9 @@
 .site a[aria-current="page"] { color: var(--ink); text-decoration: underline 2px var(--spring); text-underline-offset: 5px }
 .site .journal { border-left: 1px solid var(--line); padding-left: 14px }
 .site small, .site .menu { display: none }
+/* The header is its own stacking layer (z-index 2), and the chip row and gauge strip after
+   it sit on the same level, so an open menu would slide under them: lift the header. */
+header:has(.site.open) { z-index: 20 }
 .site a:focus-visible, .site button:focus-visible { outline: 2px solid var(--spring); outline-offset: 2px; border-radius: 2px }
 
 @media (max-width: 640px) {
@@ -31,7 +34,9 @@
   .site.open .menu::after { margin-top: 3px; transform: rotate(-135deg) }
   .site ul {
     display: none; position: absolute; top: calc(100% + 6px); left: -8px; right: -8px; max-width: 22rem;
-    flex-direction: column; gap: 0; padding: 6px 0;
+    flex-direction: column; flex-wrap: nowrap; gap: 0; padding: 6px 0;
+    /* A dozen maps run taller than a phone: the list scrolls, and stops above the screen's edge. */
+    max-height: calc(100vh - 110px); max-height: calc(100dvh - 110px); overflow-y: auto; overscroll-behavior: contain;
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, .3); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }

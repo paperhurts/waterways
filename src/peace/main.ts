@@ -23,9 +23,12 @@ const MAX_DROPS = 8000;
 /** Visual speed down the rivers (km a second). */
 const KMS = 2.2;
 const LABEL_SCALE = 1500;
-/** The drawdown shade is strongest at this many feet, and fades out over this many cells at the grid's edges. */
+/** The drawdown shade is strongest at this many feet. It glows around the river and its
+ * creeks, fading with distance from them (map units, ~25 km), so the grid never shows as a
+ * box, and fades out over EDGE_CELLS at the grid's edges besides. */
 const FULL_FT = 35;
-const EDGE_CELLS = 10;
+const GLOW_UNITS = 0.22;
+const EDGE_CELLS = 12;
 
 interface Gauge extends GaugeConfig {
   key: PeaceKey;
@@ -93,6 +96,18 @@ async function main() {
   const shade = document.createElement("canvas");
   shade.width = aq.nx;
   shade.height = aq.ny;
+  // How much each cell glows: near the river and its creeks, measured on thinned copies of
+  // them, once, since there are tens of thousands of cells.
+  const thin = PEACE_RIVERS.map((n) => polyline(lines[n].pts.filter((_, i, a) => i % 4 === 0 || i === a.length - 1)));
+  const glowAt = new Float32Array(aq.nx * aq.ny);
+  for (let row = 0; row < aq.ny; row++) {
+    for (let col = 0; col < aq.nx; col++) {
+      const [x, y] = project(aq.lon0 + col * aq.res, aq.lat0 + row * aq.res);
+      const d = Math.min(...thin.map((l) => nearestDistance(l, x, y)));
+      const edge = Math.min(1, Math.min(col, row, aq.nx - 1 - col, aq.ny - 1 - row) / EDGE_CELLS);
+      glowAt[row * aq.nx + col] = Math.exp(-((d / GLOW_UNITS) ** 2)) * edge;
+    }
+  }
   const [sx0, syTop] = project(aq.lon0 - aq.res / 2, aq.lat0 + (aq.ny - 0.5) * aq.res);
   const [sx1, syBottom] = project(aq.lon0 + (aq.nx - 0.5) * aq.res, aq.lat0 - aq.res / 2);
 
@@ -147,10 +162,9 @@ async function main() {
     const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
     for (let row = 0; row < aq.ny; row++) {
       for (let col = 0; col < aq.nx; col++) {
-        const ft = fallNow[row * aq.nx + col];
+        const i = row * aq.nx + col;
         const o = ((aq.ny - 1 - row) * aq.nx + col) * 4;
-        const edge = Math.min(1, Math.min(col, row, aq.nx - 1 - col, aq.ny - 1 - row) / EDGE_CELLS);
-        img.data.set([r, g, b, Math.round(Math.min(1, ft / FULL_FT) * edge * (glow ? 110 : 120))], o);
+        img.data.set([r, g, b, Math.round(Math.min(1, fallNow[i] / FULL_FT) * glowAt[i] * (glow ? 120 : 130))], o);
       }
     }
     ctx.putImageData(img, 0, 0);
