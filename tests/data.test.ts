@@ -10,6 +10,8 @@ import {
   KISS_CLASSES,
   KISS_KEYS,
   OCK_KEYS,
+  AP_KEYS,
+  AP_RIVERS,
   LAKEO_KEYS,
   PARK_WATER,
   RAINBOW_KEYS,
@@ -21,6 +23,7 @@ import {
   type IndianRiverFile,
   type KissimmeeFile,
   type OcklawahaFile,
+  type ApalachicolaFile,
   type ReefsFile,
   type LakeOFile,
   type LakesFile,
@@ -52,6 +55,7 @@ const reefs = read<ReefsFile>("public/data/reefs.json");
 const parks = read<ParksFile>("public/data/parks.json");
 const kiss = read<KissimmeeFile>("public/data/kissimmee.json");
 const ock = read<OcklawahaFile>("public/data/ocklawaha.json");
+const ap = read<ApalachicolaFile>("public/data/apalachicola.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
 const snorkel = read<SnorkelFile>("config/snorkel.json");
@@ -685,12 +689,57 @@ describe("ocklawaha.json", () => {
   });
 });
 
+describe("apalachicola.json", () => {
+  const [ox, oy] = ap.meta.coordOrigin;
+  const k = ap.meta.coordScale;
+  const first = (flat: number[]): [number, number] => [flat[0] / k + ox, flat[1] / k + oy];
+  const last = (flat: number[]): [number, number] => [flat[flat.length - 2] / k + ox, flat[flat.length - 1] / k + oy];
+  const km = (a: [number, number], b: [number, number]) => Math.hypot((a[0] - b[0]) * 96, (a[1] - b[1]) * 110.6);
+  const dam = (n: string): [number, number] => {
+    const s = ap.structures.find((x) => x.name === n)!;
+    return [s.lon, s.lat];
+  };
+
+  it("meets the Chattahoochee and the Flint at Jim Woodruff Dam, and runs the Apalachicola to the bay", () => {
+    for (const n of AP_RIVERS) {
+      const r = ap.rivers[n];
+      expect(r.pool.length, n).toBe(r.p.length / 2);
+    }
+    const woodruff = dam("Jim Woodruff Dam");
+    expect(km(last(ap.rivers["Chattahoochee River"].p), woodruff)).toBeLessThan(3);
+    expect(km(last(ap.rivers["Flint River"].p), woodruff)).toBeLessThan(3);
+    expect(km(first(ap.rivers["Apalachicola River"].p), woodruff)).toBeLessThan(3);
+    expect(km(first(ap.rivers["Chattahoochee River"].p), dam("Buford Dam"))).toBeLessThan(3);
+    expect(last(ap.rivers["Apalachicola River"].p)[1]).toBeLessThan(29.8);
+    // The Chattahoochee pools behind its dams.
+    expect(ap.rivers["Chattahoochee River"].pool.filter((f) => f === 1).length).toBeGreaterThan(50);
+  });
+
+  it("has the reservoirs, the sea, oyster beds, state lines, and streams", () => {
+    const names = new Set(ap.water.map((b) => b.name));
+    for (const n of ["Lake Sidney Lanier", "West Point Lake", "Walter F George Reservoir", "Lake Seminole"]) expect(names, n).toContain(n);
+    expect(ap.water[0].kind).toBe("sea");
+    expect(ap.oysters.length).toBeGreaterThan(50);
+    expect(ap.borders.length).toBeGreaterThanOrEqual(3);
+    expect(ap.context.length).toBeGreaterThan(100);
+  });
+
+  it("has the flow into Florida since the 1920s", () => {
+    const { years, CHAT } = ap.history;
+    expect(years[0]).toBeLessThan(1930);
+    expect(CHAT.length).toBe(years.length);
+    expect(CHAT.filter((v) => v != null).length).toBeGreaterThan(90);
+    for (const v of CHAT) if (v != null) expect(v).toBeGreaterThan(1000);
+  });
+});
+
 describe("gauges and snapshot", () => {
-  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS, ...KISS_KEYS, ...OCK_KEYS];
+  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS, ...KISS_KEYS, ...OCK_KEYS, ...AP_KEYS];
 
   it("has one gauge per flow key with unique site ids", () => {
     expect(gauges.map((g) => g.key).sort()).toEqual([...keys].sort());
-    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river", "kissimmee", "ocklawaha"]).toContain(g.page);
+    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river", "kissimmee", "ocklawaha", "apalachicola"]).toContain(g.page);
+    expect(gauges.filter((g) => g.page === "apalachicola").map((g) => g.key).sort()).toEqual([...AP_KEYS].sort());
     expect(gauges.filter((g) => g.page === "ocklawaha").map((g) => g.key).sort()).toEqual([...OCK_KEYS].sort());
     expect(gauges.filter((g) => g.page === "kissimmee").map((g) => g.key).sort()).toEqual([...KISS_KEYS].sort());
     expect(gauges.filter((g) => g.page === "indian-river").map((g) => g.key).sort()).toEqual([...IRL_KEYS].sort());
@@ -729,7 +778,7 @@ describe("gauges and snapshot", () => {
       for (const v of [snapshot.ppt[k].top, snapshot.ppt[k].bottom]) if (v != null) expect(v >= 0 && v <= 45).toBe(true);
     }
     // Only the canals' structures can read below zero.
-    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL"), ...KISS_KEYS, ...OCK_KEYS]) {
+    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL"), ...KISS_KEYS, ...OCK_KEYS, ...AP_KEYS]) {
       const v = snapshot.cfs[k];
       if (v != null) expect(v).toBeGreaterThanOrEqual(0);
     }

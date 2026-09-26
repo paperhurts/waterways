@@ -41,5 +41,13 @@
   {"id": "02240000", "short": "Conner", "name": "Ocklawaha River near Conner", "key": "CON", "page": "ocklawaha", "river": "Ocklawaha River", "lon": -81.98592, "lat": 29.2146989},
   {"id": "02240500", "short": "Eureka", "name": "Ocklawaha River at Eureka", "key": "EUR", "page": "ocklawaha", "river": "Ocklawaha River", "lon": -81.9019444, "lat": 29.3716667},
   {"id": "02243000", "short": "Orange Creek", "name": "Orange Creek at Orange Springs", "key": "ORC", "page": "ocklawaha", "river": "Orange Creek", "lon": -81.9462, "lat": 29.5096927},
-  {"id": "02243960", "short": "Rodman Dam", "name": "Ocklawaha River at Rodman Dam", "key": "ROD", "page": "ocklawaha", "river": "Ocklawaha River", "lon": -81.8041667, "lat": 29.5083333}
+  {"id": "02243960", "short": "Rodman Dam", "name": "Ocklawaha River at Rodman Dam", "key": "ROD", "page": "ocklawaha", "river": "Ocklawaha River", "lon": -81.8041667, "lat": 29.5083333},
+  {"id": "02334430", "short": "Buford Dam", "name": "Chattahoochee River at Buford Dam", "key": "BUF", "page": "apalachicola", "river": "Chattahoochee River", "lon": -84.07842, "lat": 34.15667},
+  {"id": "02336000", "short": "Atlanta", "name": "Chattahoochee River at Atlanta", "key": "ATL", "page": "apalachicola", "river": "Chattahoochee River", "lon": -84.45444, "lat": 33.85917},
+  {"id": "02341460", "short": "Columbus", "name": "Chattahoochee River at Columbus", "key": "COL", "page": "apalachicola", "river": "Chattahoochee River", "lon": -84.99667, "lat": 32.47278},
+  {"id": "02356000", "short": "Flint, Bainbridge", "name": "Flint River at Bainbridge", "key": "BAIN", "page": "apalachicola", "river": "Flint River", "lon": -84.5805, "lat": 30.91031},
+  {"id": "02358000", "short": "Chattahoochee, FL", "name": "Apalachicola River at Chattahoochee", "key": "CHAT", "page": "apalachicola", "river": "Apalachicola River", "lon": -84.85909, "lat": 30.70103},
+  {"id": "02358700", "short": "Blountstown", "name": "Apalachicola River near Blountstown", "key": "BLT", "page": "apalachicola", "river": "Apalachicola River", "lon": -85.03131, "lat": 30.4252},
+  {"id": "02359000", "short": "Chipola, Altha", "name": "Chipola River near Altha", "key": "ALT", "page": "apalachicola", "river": "Chipola River", "lon": -85.1652, "lat": 30.53408},
+  {"id": "02359170", "short": "Sumatra", "name": "Apalachicola River near Sumatra", "key": "SUM", "page": "apalachicola", "river": "Apalachicola River", "lon": -85.01547, "lat": 29.94937}
 ]

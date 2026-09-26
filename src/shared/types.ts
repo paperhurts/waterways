@@ -275,6 +275,37 @@ export interface KissimmeeFile {
   history: { years: number[]; S65E: (number | null)[] };
 }
 
+// ---------- apalachicola.json (Apalachicola River map) ----------
+
+export const AP_RIVERS = ["Chattahoochee River", "Flint River", "Apalachicola River", "Chipola River"] as const;
+export type ApRiver = (typeof AP_RIVERS)[number];
+
+export interface ApStructure {
+  name: string;
+  /** The reservoir behind it. */
+  lake: string;
+  lon: number;
+  lat: number;
+  built: number;
+}
+
+export interface ApalachicolaFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
+  /** Each river upstream to downstream, packed like the lakes files, with `pool` flagging each vertex that's in a reservoir. */
+  rivers: Record<ApRiver, { p: number[]; pool: number[] }>;
+  /** The basin's other big streams, packed. */
+  context: number[][];
+  /** The sea and bay first, then lakes and wetlands; same shape as a lakes file's bodies. */
+  water: LakesFile["bodies"];
+  /** FWC's oyster beds in and around the bay, packed rings. */
+  oysters: number[][];
+  /** The Florida, Georgia, and Alabama lines, packed. */
+  borders: number[][];
+  structures: ApStructure[];
+  /** Water-year mean flow (cfs) of the Apalachicola at Chattahoochee. */
+  history: { years: number[]; CHAT: (number | null)[] };
+}
+
 // ---------- ocklawaha.json (Ocklawaha River map) ----------
 
 export interface OckStructure {
@@ -419,7 +450,12 @@ export const OCK_KEYS = ["MB", "SILV", "CON", "EUR", "ORC", "ROD"] as const;
 export type OckKey = (typeof OCK_KEYS)[number];
 export type OckFlows = Record<OckKey, number | null>;
 
-export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey | KissKey | OckKey;
+/** The Apalachicola map's gauges, upstream first: the Chattahoochee below Buford Dam, at Atlanta, and at Columbus; the Flint at Bainbridge; the Apalachicola at Chattahoochee and Blountstown; the Chipola near Altha; and the Apalachicola near Sumatra. */
+export const AP_KEYS = ["BUF", "ATL", "COL", "BAIN", "CHAT", "BLT", "ALT", "SUM"] as const;
+export type ApKey = (typeof AP_KEYS)[number];
+export type ApFlows = Record<ApKey, number | null>;
+
+export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey | KissKey | OckKey | ApKey;
 
 export interface GaugeConfig {
   id: string;
@@ -428,7 +464,7 @@ export interface GaugeConfig {
   name?: string;
   key: GaugeKey;
   /** Which map draws it. */
-  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river" | "kissimmee" | "ocklawaha";
+  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river" | "kissimmee" | "ocklawaha" | "apalachicola";
   /** Where its readings come from: USGS (the default, `id` is the site number) or the Corps' CWMS (`ts` names the time series). */
   source?: "cwms";
   ts?: string;
@@ -479,7 +515,7 @@ export interface Snapshot {
   /** ISO 8601 time of the newest reading. */
   time: string;
   /** Every gauge in config/gauges.json, all maps. */
-  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey | KissKey | OckKey, number | null>;
+  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey | KissKey | OckKey | ApKey, number | null>;
   /** Every station in config/salinity.json. */
   ppt: Record<SalinityKey, Salinity>;
   /** Coral Reef Watch heat stress on the reef; absent when NOAA didn't answer. */

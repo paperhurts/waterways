@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Apalachicola starts at a dam</title>
+<meta name="description" content="Florida's biggest river starts at Jim Woodruff Dam on the Georgia line, where the Chattahoochee and the Flint meet, after Atlanta and southwest Georgia's farms take their share. An animated map of the whole basin to Apalachicola Bay and its oysters, with live USGS flow and the flow into Florida since 1923.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The Apalachicola starts at a dam">
+<meta property="og:description" content="Florida's biggest river starts at Jim Woodruff Dam on the Georgia line, where the Chattahoochee and the Flint meet, after Atlanta and southwest Georgia's farms take their share. An animated map of the whole basin to Apalachicola Bay and its oysters, with live USGS flow and the flow into Florida since 1923.">
+<meta property="og:url" content="https://waterways.paperhurts.dev/apalachicola.html">
+<meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="/src/apalachicola/main.ts"></script>
+</head>
+<body>
+<div id="wrap">
+<header>
+  <!-- site-nav -->
+  <h1>The Apalachicola <em>starts at a dam</em></h1>
+  <p class="lede" id="lede">Loading the river…</p>
+</header>
+<div id="stage" aria-label="Animated map of the Apalachicola-Chattahoochee-Flint basin from Lake Lanier to Apalachicola Bay: the Chattahoochee and the Flint meeting at Jim Woodruff Dam on the Georgia line, the Corps' dams, the Apalachicola and the Chipola, and the bay's oyster beds" role="img">
+  <canvas id="base"></canvas>
+  <canvas id="fx"></canvas>
+  <div id="legend">
+    <span><i class="river"></i>The Chattahoochee, Flint, Apalachicola, and Chipola</span>
+    <span><i class="stream"></i>Other big streams in the basin</span>
+    <span><i class="dam"></i>A Corps of Engineers dam</span>
+    <span><i class="line"></i>State line</span>
+    <span><i class="oyster"></i>Oyster beds</span>
+  </div>
+  <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
+</div>
+<section id="hist" aria-label="Flow into Florida since 1923">
+  <div id="histTitle">Flow into Florida since 1923</div>
+  <p id="histRead"></p>
+  <div id="histChart"></div>
+  <details class="note"><summary>About this data</summary>Yearly means for each water year (October through September), from USGS daily records for the Apalachicola River at Chattahoochee, Florida (02358000), just below Jim Woodruff Dam: all the water the Chattahoochee and the Flint send into Florida.</details>
+</section>
+<div class="tools">
+  <button id="bAll" type="button">The whole basin</button>
+  <button id="bGeorgia" type="button">Georgia</button>
+  <button id="bLine" type="button">The Florida line</button>
+  <button id="bBay" type="button">The bay</button>
+  <button id="bHist" type="button" aria-pressed="false">Flow since 1923</button>
+  <button id="bPause" type="button" aria-pressed="false">Pause</button>
+</div>
+<div id="profile" aria-label="USGS gauges"></div>
+<div id="status"></div>
+</div>
+</body>
+</html>
