@@ -21,6 +21,7 @@ export const SITE_MAPS: SitePage[] = [
   { href: "ocklawaha.html", name: "Ocklawaha", title: "The Ocklawaha is still dammed for an unfinished canal" },
   { href: "rainbow.html", name: "Rainbow River", title: "Rainbow River starts full grown" },
   { href: "indian-river.html", name: "Indian River Lagoon", title: "The Indian River Lagoon barely trades with the sea" },
+  { href: "peace.html", name: "Peace River", title: "The Peace River lost its spring" },
   { href: "kissimmee.html", name: "Kissimmee", title: "The Kissimmee got its bends back" },
   { href: "lake-o.html", name: "Lake O", title: "Lake Okeechobee used to drain south" },
   { href: "st-lucie.html", name: "St. Lucie", title: "The St. Lucie was plumbed to a lake" },

@@ -49,5 +49,14 @@
   {"id": "02358000", "short": "Chattahoochee, FL", "name": "Apalachicola River at Chattahoochee", "key": "CHAT", "page": "apalachicola", "river": "Apalachicola River", "lon": -84.85909, "lat": 30.70103},
   {"id": "02358700", "short": "Blountstown", "name": "Apalachicola River near Blountstown", "key": "BLT", "page": "apalachicola", "river": "Apalachicola River", "lon": -85.03131, "lat": 30.4252},
   {"id": "02359000", "short": "Chipola, Altha", "name": "Chipola River near Altha", "key": "ALT", "page": "apalachicola", "river": "Chipola River", "lon": -85.1652, "lat": 30.53408},
-  {"id": "02359170", "short": "Sumatra", "name": "Apalachicola River near Sumatra", "key": "SUM", "page": "apalachicola", "river": "Apalachicola River", "lon": -85.01547, "lat": 29.94937}
+  {"id": "02359170", "short": "Sumatra", "name": "Apalachicola River near Sumatra", "key": "SUM", "page": "apalachicola", "river": "Apalachicola River", "lon": -85.01547, "lat": 29.94937},
+  {"id": "02294650", "short": "Bartow", "name": "Peace River at Bartow", "key": "BAR", "page": "peace", "river": "Peace River", "lon": -81.817304, "lat": 27.902248},
+  {"id": "02294775", "short": "Clear Springs", "name": "Peace River at Clear Springs", "key": "CLR", "page": "peace", "river": "Peace River", "lon": -81.8075, "lat": 27.863333},
+  {"id": "02294781", "short": "Homeland", "name": "Peace River near Homeland", "key": "HOM", "page": "peace", "river": "Peace River", "lon": -81.801749, "lat": 27.824473},
+  {"id": "02294898", "short": "Fort Meade", "name": "Peace River at Fort Meade", "key": "FTM", "page": "peace", "river": "Peace River", "lon": -81.782027, "lat": 27.751419},
+  {"id": "02295637", "short": "Zolfo Springs", "name": "Peace River at Zolfo Springs", "key": "ZOL", "page": "peace", "river": "Peace River", "lon": -81.800172, "lat": 27.504519},
+  {"id": "02296750", "short": "Arcadia", "name": "Peace River at Arcadia", "key": "ARC", "page": "peace", "river": "Peace River", "lon": -81.876195, "lat": 27.220882},
+  {"id": "02296500", "short": "Charlie Creek", "name": "Charlie Creek near Gardner", "key": "CHR", "page": "peace", "river": "Charlie Creek", "lon": -81.796471, "lat": 27.375043},
+  {"id": "02297310", "short": "Horse Creek", "name": "Horse Creek near Arcadia", "key": "HRS", "page": "peace", "river": "Horse Creek", "lon": -81.988419, "lat": 27.199495},
+  {"id": "02297100", "short": "Joshua Creek", "name": "Joshua Creek at Nocatee", "key": "JOS", "page": "peace", "river": "Joshua Creek", "lon": -81.879528, "lat": 27.166718}
 ]

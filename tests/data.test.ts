@@ -12,6 +12,8 @@ import {
   OCK_KEYS,
   AP_KEYS,
   AP_RIVERS,
+  PEACE_KEYS,
+  PEACE_RIVERS,
   LAKEO_KEYS,
   PARK_WATER,
   RAINBOW_KEYS,
@@ -24,6 +26,7 @@ import {
   type KissimmeeFile,
   type OcklawahaFile,
   type ApalachicolaFile,
+  type PeaceFile,
   type ReefsFile,
   type LakeOFile,
   type LakesFile,
@@ -56,6 +59,7 @@ const parks = read<ParksFile>("public/data/parks.json");
 const kiss = read<KissimmeeFile>("public/data/kissimmee.json");
 const ock = read<OcklawahaFile>("public/data/ocklawaha.json");
 const ap = read<ApalachicolaFile>("public/data/apalachicola.json");
+const peace = read<PeaceFile>("public/data/peace.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
 const snorkel = read<SnorkelFile>("config/snorkel.json");
@@ -733,12 +737,59 @@ describe("apalachicola.json", () => {
   });
 });
 
+describe("peace.json", () => {
+  const [ox, oy] = peace.meta.coordOrigin;
+  const k = peace.meta.coordScale;
+  const first = (flat: number[]): [number, number] => [flat[0] / k + ox, flat[1] / k + oy];
+  const last = (flat: number[]): [number, number] => [flat[flat.length - 2] / k + ox, flat[flat.length - 1] / k + oy];
+  const aq = peace.aquifer;
+  const bytes = (b64: string) => Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+  const cell = (z: Uint8Array, lon: number, lat: number) => z[Math.round((lat - aq.lat0) / aq.res) * aq.nx + Math.round((lon - aq.lon0) / aq.res)];
+
+  it("runs the Peace from Bartow to Charlotte Harbor, with its creeks", () => {
+    const p = peace.rivers["Peace River"];
+    expect(first(p)[1]).toBeGreaterThan(27.85);
+    expect(last(p)[1]).toBeLessThan(27.0);
+    for (const n of PEACE_RIVERS) expect(peace.rivers[n].length, n).toBeGreaterThan(20);
+    for (const key of Object.values(peace.tributaries)) if (key) expect(PEACE_KEYS).toContain(key);
+  });
+
+  it("has Kissengen Spring, the sinks near it, and the mined land", () => {
+    const ids = new Set(statewide.springs.map((s) => s[0]));
+    expect(ids).toContain("kissengen-spring--polk");
+    expect(peace.sinks.length).toBeGreaterThanOrEqual(5);
+    for (const [, lon, lat] of peace.sinks) expect(Math.hypot(lon - peace.kissengen[0], lat - peace.kissengen[1])).toBeLessThan(0.2);
+    expect(peace.mines.length).toBeGreaterThan(20);
+    expect(peace.minesKm2).toBeGreaterThan(100);
+  });
+
+  it("shows the aquifer fallen under the upper Peace, more in the dry season", () => {
+    const now = bytes(aq.now);
+    const dry = bytes(aq.dry);
+    expect(now.length).toBe(aq.nx * aq.ny);
+    expect(dry.length).toBe(aq.nx * aq.ny);
+    const [lon, lat] = peace.kissengen;
+    expect(cell(now, lon, lat)).toBeGreaterThan(10);
+    expect(cell(dry, lon, lat)).toBeGreaterThanOrEqual(cell(now, lon, lat));
+    expect(aq.dryMax).toBeGreaterThanOrEqual(aq.nowMax);
+  });
+
+  it("has the river's flow since the 1930s at Bartow and Arcadia", () => {
+    const { years, BAR, ARC } = peace.history;
+    expect(years[0]).toBeLessThanOrEqual(1940);
+    expect(BAR.length).toBe(years.length);
+    expect(ARC.filter((v) => v != null).length).toBeGreaterThan(80);
+    for (const v of [...BAR, ...ARC]) if (v != null) expect(v).toBeGreaterThan(0);
+  });
+});
+
 describe("gauges and snapshot", () => {
-  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS, ...KISS_KEYS, ...OCK_KEYS, ...AP_KEYS];
+  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS, ...KISS_KEYS, ...OCK_KEYS, ...AP_KEYS, ...PEACE_KEYS];
 
   it("has one gauge per flow key with unique site ids", () => {
     expect(gauges.map((g) => g.key).sort()).toEqual([...keys].sort());
-    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river", "kissimmee", "ocklawaha", "apalachicola"]).toContain(g.page);
+    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river", "kissimmee", "ocklawaha", "apalachicola", "peace"]).toContain(g.page);
+    expect(gauges.filter((g) => g.page === "peace").map((g) => g.key).sort()).toEqual([...PEACE_KEYS].sort());
     expect(gauges.filter((g) => g.page === "apalachicola").map((g) => g.key).sort()).toEqual([...AP_KEYS].sort());
     expect(gauges.filter((g) => g.page === "ocklawaha").map((g) => g.key).sort()).toEqual([...OCK_KEYS].sort());
     expect(gauges.filter((g) => g.page === "kissimmee").map((g) => g.key).sort()).toEqual([...KISS_KEYS].sort());
@@ -778,7 +829,7 @@ describe("gauges and snapshot", () => {
       for (const v of [snapshot.ppt[k].top, snapshot.ppt[k].bottom]) if (v != null) expect(v >= 0 && v <= 45).toBe(true);
     }
     // Only the canals' structures can read below zero.
-    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL"), ...KISS_KEYS, ...OCK_KEYS, ...AP_KEYS]) {
+    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL"), ...KISS_KEYS, ...OCK_KEYS, ...AP_KEYS, ...PEACE_KEYS]) {
       const v = snapshot.cfs[k];
       if (v != null) expect(v).toBeGreaterThanOrEqual(0);
     }

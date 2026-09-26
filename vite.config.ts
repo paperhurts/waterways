@@ -29,6 +29,7 @@ export default defineConfig({
         ocklawaha: resolve(import.meta.dirname, "ocklawaha.html"),
         rainbow: resolve(import.meta.dirname, "rainbow.html"),
         stLucie: resolve(import.meta.dirname, "st-lucie.html"),
+        peace: resolve(import.meta.dirname, "peace.html"),
         kissimmee: resolve(import.meta.dirname, "kissimmee.html"),
         lakeO: resolve(import.meta.dirname, "lake-o.html"),
         indianRiver: resolve(import.meta.dirname, "indian-river.html"),

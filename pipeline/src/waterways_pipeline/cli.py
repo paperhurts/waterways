@@ -7,12 +7,12 @@ import json
 import shutil
 from pathlib import Path
 
-from . import apalachicola, aquifer, crw, cwms, irl, kissimmee, lakeo, ocklawaha, parks, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
+from . import apalachicola, aquifer, crw, cwms, irl, kissimmee, lakeo, ocklawaha, parks, peace, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
 from . import config as C
 from .config import OUT
 from .fetch import log
 
-DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "kissimmee", "ocklawaha", "apalachicola", "statewide", "parks", "snapshot"]
+DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "kissimmee", "ocklawaha", "apalachicola", "peace", "statewide", "parks", "snapshot"]
 
 
 def write(out: Path, name: str, data: dict, quiet: bool = False) -> None:
@@ -58,6 +58,8 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
         write(out, "ocklawaha.json", ocklawaha.build(refresh))
     elif dataset == "apalachicola":
         write(out, "apalachicola.json", apalachicola.build(refresh))
+    elif dataset == "peace":
+        write(out, "peace.json", peace.build(refresh))
     elif dataset == "lake-o":
         write(out, "lake-o.json", lakeo.build(refresh))
     elif dataset == "statewide":

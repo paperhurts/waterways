@@ -126,9 +126,10 @@ def to_features(names, data, geoms, area: C.Bbox, fields: str, vaa: dict[int, tu
     return out
 
 
-def level_path(hu4: str, bbox: C.Bbox, name: str, start: tuple[float, float], end: tuple[float, float]) -> list[tuple[float, float]]:
+def level_path(hu4: str, bbox: C.Bbox, name: str, start: tuple[float, float] | None = None, end: tuple[float, float] | None = None) -> list[tuple[float, float]]:
     """The level path carrying most of a bulk file's flowlines with this name in the box,
-    upstream to downstream, cut between its vertices nearest `start` and `end`."""
+    upstream to downstream, cut between its vertices nearest `start` and `end` (its
+    ends in the box, if not given)."""
     cols, geoms = table(hu4, "NHDFlowline", ["NHDPlusID", "GNIS_Name", "LengthKM"], bbox=bbox, geometry=True)
     ids = [int(i) for i in cols["nhdplusid"]]
     vaa, _ = table(hu4, "NHDPlusFlowlineVAA", ["NHDPlusID", "HydroSeq", "LevelPathI"])
@@ -150,5 +151,6 @@ def level_path(hu4: str, bbox: C.Bbox, name: str, start: tuple[float, float], en
     def nearest(q: tuple[float, float]) -> int:
         return min(range(len(pts)), key=lambda k: (pts[k][0] - q[0]) ** 2 + (pts[k][1] - q[1]) ** 2)
 
-    a, b = nearest(start), nearest(end)
+    a = nearest(start) if start else 0
+    b = nearest(end) if end else len(pts) - 1
     return pts[a : b + 1]
