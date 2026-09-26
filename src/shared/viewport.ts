@@ -128,14 +128,27 @@ export class Viewport {
     type Drag = { x: number; y: number; tx: number; ty: number } | { pinch: number; s: number; cx: number; cy: number; tx: number; ty: number };
     let drag: Drag | null = null;
     let moved = 0;
+    // Stage pixels from the client position: offsetX is relative to whatever element was
+    // hit, and WebKit doesn't always agree with other browsers on what that is.
+    const at = (e: MouseEvent): XY => {
+      const r = stage.getBoundingClientRect();
+      return [e.clientX - r.left, e.clientY - r.top];
+    };
 
     stage.addEventListener("pointerdown", (e) => {
       if ((e.target as Element).closest("button,#card")) return;
+      // A primary pointer starts a new gesture, so nothing else is down: anything still
+      // listed is a finger whose up event never came (iOS can drop it). Pairing with it
+      // would turn the next one-finger pan into a wild pinch.
+      if (e.isPrimary) ptrs.clear();
+      // A third finger doesn't join the pinch.
+      if (ptrs.size >= 2) return;
       stage.setPointerCapture(e.pointerId);
-      ptrs.set(e.pointerId, [e.offsetX, e.offsetY]);
+      const [x, y] = at(e);
+      ptrs.set(e.pointerId, [x, y]);
       moved = 0;
       this.flight = null;
-      if (ptrs.size === 1) drag = { x: e.offsetX, y: e.offsetY, tx: this.cam.tx, ty: this.cam.ty };
+      if (ptrs.size === 1) drag = { x, y, tx: this.cam.tx, ty: this.cam.ty };
       if (ptrs.size === 2) {
         const [a, b] = [...ptrs.values()];
         drag = { pinch: Math.hypot(a[0] - b[0], a[1] - b[1]), s: this.cam.s, cx: (a[0] + b[0]) / 2, cy: (a[1] + b[1]) / 2, tx: this.cam.tx, ty: this.cam.ty };
@@ -144,11 +157,12 @@ export class Viewport {
 
     stage.addEventListener("pointermove", (e) => {
       if (!ptrs.has(e.pointerId)) return;
-      ptrs.set(e.pointerId, [e.offsetX, e.offsetY]);
+      const [x, y] = at(e);
+      ptrs.set(e.pointerId, [x, y]);
       if (!drag) return;
       if (ptrs.size === 1 && !("pinch" in drag)) {
-        const dx = e.offsetX - drag.x;
-        const dy = e.offsetY - drag.y;
+        const dx = x - drag.x;
+        const dy = y - drag.y;
         moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
         this.cam.tx = drag.tx + dx;
         this.cam.ty = drag.ty + dy;
@@ -162,18 +176,22 @@ export class Viewport {
       this.redraw();
     });
 
-    const end = (e: PointerEvent) => {
+    const end = (e: PointerEvent, tap: boolean) => {
+      if (!ptrs.has(e.pointerId)) return;
       const n = ptrs.size;
       ptrs.delete(e.pointerId);
-      if (n === 1 && moved < TAP_SLOP_PX) this.opts.onTap(e.offsetX, e.offsetY);
+      if (tap && n === 1 && moved < TAP_SLOP_PX) this.opts.onTap(...at(e));
       if (!ptrs.size) drag = null;
       else {
         const [p] = [...ptrs.values()];
         drag = { x: p[0], y: p[1], tx: this.cam.tx, ty: this.cam.ty };
       }
     };
-    stage.addEventListener("pointerup", end);
-    stage.addEventListener("pointercancel", end);
+    stage.addEventListener("pointerup", (e) => end(e, true));
+    stage.addEventListener("pointercancel", (e) => end(e, false));
+    stage.addEventListener("lostpointercapture", (e) => end(e, false));
+    // Safari's own pinch events: keep them from zooming the page under the map.
+    stage.addEventListener("gesturestart", (e) => e.preventDefault());
 
     stage.addEventListener(
       "wheel",
@@ -182,7 +200,8 @@ export class Viewport {
         this.flight = null;
         const s = this.clampScale(this.cam.s * Math.exp(-e.deltaY * 0.0015));
         const k = s / this.cam.s;
-        this.cam = { s, tx: e.offsetX - (e.offsetX - this.cam.tx) * k, ty: e.offsetY - (e.offsetY - this.cam.ty) * k };
+        const [x, y] = at(e);
+        this.cam = { s, tx: x - (x - this.cam.tx) * k, ty: y - (y - this.cam.ty) * k };
         this.redraw();
       },
       { passive: false },
