@@ -169,6 +169,27 @@ export interface LakeOFile {
   history: { years: number[]; east: (number | null)[]; west: (number | null)[]; south: (number | null)[] };
 }
 
+// ---------- indian-river.json (Indian River Lagoon map) ----------
+
+export interface IndianRiverFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
+  /** The sea with the lagoon in it, then lakes; the same shape as a lakes file's bodies. */
+  water: LakesFile["bodies"];
+  /** The lagoon itself: the salt water behind the barrier islands, packed like the water's rings. */
+  lagoon: number[][];
+  /**
+   * km by water from each cell of the lagoon to the nearest inlet: base64 uint8, row 0
+   * south, 255 = not lagoon. Cells are res degrees from (lon0, lat0). farthest: the most km.
+   */
+  grid: { lon0: number; lat0: number; res: number; nx: number; ny: number; km: string; farthest: number };
+  /** North to south. cut: the year the channel was dug; the others are natural. */
+  inlets: { name: string; lon: number; lat: number; cut?: number }[];
+  /** Each gauge's path into the lagoon, packed flat; Haulover's runs west to east. */
+  streams: Record<IrlKey, number[]>;
+  /** Water-year mean flow (cfs) into the lagoon from the drainage canals and from the creeks, in years every gauge of a group reports. */
+  history: { years: number[]; canals: (number | null)[]; creeks: (number | null)[] };
+}
+
 // ---------- statewide.json (statewide springs map; the springs are springs.json) ----------
 
 export interface AreaFile {
@@ -260,7 +281,16 @@ export const LAKEO_KEYS = ["S77", "S79", "S351H", "S351N", "S354", "FEC"] as con
 export type LakeOKey = (typeof LAKEO_KEYS)[number];
 export type LakeOFlows = Record<LakeOKey | "S308", number | null>;
 
-export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey;
+/**
+ * The Indian River Lagoon map's gauges: Haulover Canal between Mosquito Lagoon and the
+ * Indian River (signed: positive is east, toward Mosquito Lagoon), and the creeks and
+ * drainage canals that run into the lagoon.
+ */
+export const IRL_KEYS = ["HAUL", "EG", "CRANE", "TURKEY", "SEBN", "FELL", "SEBS", "NCAN", "MCAN", "SCAN"] as const;
+export type IrlKey = (typeof IRL_KEYS)[number];
+export type IrlFlows = Record<IrlKey, number | null>;
+
+export type GaugeKey = FlowKey | RainbowKey | StLucieKey | LakeOKey | IrlKey;
 
 export interface GaugeConfig {
   id: string;
@@ -269,7 +299,7 @@ export interface GaugeConfig {
   name?: string;
   key: GaugeKey;
   /** Which map draws it. */
-  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o";
+  page: "santa-fe" | "rainbow" | "st-lucie" | "lake-o" | "indian-river";
   /** Flow can run backward here, and USGS reports it as negative. */
   signed?: boolean;
   river?: string;
@@ -301,7 +331,7 @@ export interface Snapshot {
   /** ISO 8601 time of the newest reading. */
   time: string;
   /** Every gauge in config/gauges.json, all maps. */
-  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey, number | null>;
+  cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey, number | null>;
   /** Every station in config/salinity.json. */
   ppt: Record<SalinityKey, Salinity>;
 }

@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   FLOW_KEYS,
+  IRL_KEYS,
   LAKEO_KEYS,
   RAINBOW_KEYS,
   SALINITY_KEYS,
@@ -13,6 +14,7 @@ import {
   type AquiferFile,
   type ContoursFile,
   type GaugeConfig,
+  type IndianRiverFile,
   type LakeOFile,
   type LakesFile,
   type RainbowFile,
@@ -36,6 +38,7 @@ const rainbow = read<RainbowFile>("public/data/rainbow.json");
 const statewideMap = read<StatewideFile>("public/data/statewide.json");
 const stLucie = read<StLucieFile>("public/data/st-lucie.json");
 const lakeO = read<LakeOFile>("public/data/lake-o.json");
+const irl = read<IndianRiverFile>("public/data/indian-river.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
 const snorkel = read<SnorkelFile>("config/snorkel.json");
@@ -420,16 +423,64 @@ describe("config/snorkel.json", () => {
   });
 });
 
+describe("indian-river.json", () => {
+  const g = irl.grid;
+  const km = Uint8Array.from(atob(g.km), (ch) => ch.charCodeAt(0));
+  const at = (lon: number, lat: number) => km[Math.floor((lat - g.lat0) / g.res) * g.nx + Math.floor((lon - g.lon0) / g.res)];
+
+  it("has a flushing grid of the right size, with the inlets at zero", () => {
+    expect(km.length).toBe(g.nx * g.ny);
+    expect(g.farthest).toBeGreaterThan(40);
+    expect(irl.inlets.map((i) => i.name)).toEqual(["Ponce de Leon Inlet", "Sebastian Inlet", "Fort Pierce Inlet", "St. Lucie Inlet", "Jupiter Inlet"]);
+    // Three were dug; Ponce de Leon and Jupiter are natural.
+    expect(irl.inlets.filter((i) => i.cut).length).toBe(3);
+    // The lagoon right inside each inlet is a km or two from it.
+    for (const [lon, lat] of [[-80.458, 27.86], [-80.31, 27.47]]) expect(at(lon, lat), `${lon},${lat}`).toBeLessThanOrEqual(3);
+  });
+
+  it("puts the slowest water far from any inlet: the northern lagoon and the Banana River", () => {
+    // The Banana River's north end, the Indian River at Titusville and at Cocoa, versus Melbourne.
+    expect(at(-80.61, 28.47)).toBeGreaterThan(60);
+    expect(at(-80.79, 28.61)).toBeGreaterThan(40);
+    expect(at(-80.72, 28.36)).toBeGreaterThan(40);
+    expect(at(-80.59, 28.08)).toBeLessThan(40);
+    // Mainland and open sea aren't lagoon.
+    expect(at(-80.9, 28.0)).toBe(255);
+    expect(at(-80.2, 28.0)).toBe(255);
+  });
+
+  it("brings every gauge's water into the lagoon", () => {
+    for (const k of IRL_KEYS) {
+      const line = irl.streams[k];
+      expect(line.length, k).toBeGreaterThanOrEqual(4);
+      expect(line.length % 2).toBe(0);
+    }
+    // Haulover runs west to east, the way USGS counts positive.
+    const h = irl.streams.HAUL;
+    expect(h[h.length - 2]).toBeGreaterThan(h[0]);
+  });
+
+  it("has freshwater history from both groups", () => {
+    const { years, canals, creeks } = irl.history;
+    expect(canals.length).toBe(years.length);
+    expect(creeks.length).toBe(years.length);
+    expect(canals.filter((v) => v != null).length).toBeGreaterThan(20);
+    expect(creeks.filter((v) => v != null).length).toBeGreaterThan(10);
+    for (const v of [...canals, ...creeks]) if (v != null) expect(v).toBeGreaterThan(0);
+  });
+});
+
 describe("gauges and snapshot", () => {
-  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS];
+  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS];
 
   it("has one gauge per flow key with unique site ids", () => {
     expect(gauges.map((g) => g.key).sort()).toEqual([...keys].sort());
-    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o"]).toContain(g.page);
+    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river"]).toContain(g.page);
+    expect(gauges.filter((g) => g.page === "indian-river").map((g) => g.key).sort()).toEqual([...IRL_KEYS].sort());
     expect(gauges.filter((g) => g.page === "rainbow").map((g) => g.key).sort()).toEqual([...RAINBOW_KEYS].sort());
     expect(gauges.filter((g) => g.page === "st-lucie").map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS].sort());
-    // Only the canals' structures run backward; the rivers and creeks can't.
-    expect(gauges.filter((g) => g.signed).map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS, ...LAKEO_KEYS.filter((k) => k !== "FEC")].sort());
+    // Only the canals' structures and Haulover Canal, which the wind and tide push either way, run backward.
+    expect(gauges.filter((g) => g.signed).map((g) => g.key).sort()).toEqual([...STLUCIE_KEYS, ...LAKEO_KEYS.filter((k) => k !== "FEC"), "HAUL"].sort());
     expect(new Set(gauges.map((g) => g.id)).size).toBe(gauges.length);
     for (const g of gauges) expect(g.id).toMatch(/^\d{8,15}$/);
   });
@@ -448,7 +499,7 @@ describe("gauges and snapshot", () => {
       for (const v of [snapshot.ppt[k].top, snapshot.ppt[k].bottom]) if (v != null) expect(v >= 0 && v <= 45).toBe(true);
     }
     // Only the canals' structures can read below zero.
-    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const]) {
+    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL")]) {
       const v = snapshot.cfs[k];
       if (v != null) expect(v).toBeGreaterThanOrEqual(0);
     }
