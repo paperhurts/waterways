@@ -1,0 +1,8 @@
+/* The Ocklawaha River map, over the shared story-page layout. */
+h1 em { color: var(--spring) }
+.gauge .v small { font-size: .7em; color: var(--muted); margin-left: 2px }
+#legend i.river { width: 16px; height: 3px; border-radius: 2px; background: var(--tannin) }
+#legend i.silver { width: 16px; height: 3px; border-radius: 2px; background: var(--spring) }
+#legend i.reservoir { width: 12px; height: 9px; border-radius: 2px; border: 1px solid var(--under); background: color-mix(in srgb, var(--under) 20%, transparent) }
+#legend i.drowned { width: 8px; height: 8px; border-radius: 50%; border: 1.4px solid var(--spring); background: none; margin: 0 2px }
+#legend i.canal { width: 16px; height: 3px; border-radius: 0; background: var(--muted) }

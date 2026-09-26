@@ -7,12 +7,12 @@ import json
 import shutil
 from pathlib import Path
 
-from . import aquifer, crw, cwms, irl, kissimmee, lakeo, parks, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
+from . import aquifer, crw, cwms, irl, kissimmee, lakeo, ocklawaha, parks, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
 from . import config as C
 from .config import OUT
 from .fetch import log
 
-DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "kissimmee", "statewide", "parks", "snapshot"]
+DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "kissimmee", "ocklawaha", "statewide", "parks", "snapshot"]
 
 
 def write(out: Path, name: str, data: dict, quiet: bool = False) -> None:
@@ -54,6 +54,8 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
         write(out, "reefs.json", reefs.build(refresh))
     elif dataset == "kissimmee":
         write(out, "kissimmee.json", kissimmee.build(refresh))
+    elif dataset == "ocklawaha":
+        write(out, "ocklawaha.json", ocklawaha.build(refresh))
     elif dataset == "lake-o":
         write(out, "lake-o.json", lakeo.build(refresh))
     elif dataset == "statewide":

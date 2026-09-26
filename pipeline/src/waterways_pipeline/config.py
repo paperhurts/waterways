@@ -121,6 +121,18 @@ KISS_STRUCTURES = [
     {"name": "S-65E", "lon": -80.9628, "lat": 27.2250, "role": "mouth"},
     {"name": "S-68", "lon": -81.2544, "lat": 27.3297, "role": "istokpoga"},
 ]
+#: The Ocklawaha River map: Moss Bluff and Silver Springs down to the St. Johns.
+OCK_VIEW: Bbox = (-82.12, 29.02, -81.58, 29.62)
+OCK_WATER: Bbox = (-82.4, 28.85, -81.35, 29.8)
+#: Where the Ocklawaha meets the St. Johns, and the head of the Silver River.
+OCK_MOUTH = (-81.665, 29.465)
+SILVER_HEAD = (-82.0525, 29.2155)
+#: The barge canal's structures on the river (from OpenStreetMap).
+OCK_STRUCTURES = [
+    {"name": "Kirkpatrick Dam", "lon": -81.8052, "lat": 29.5082, "role": "dam"},
+    {"name": "Eureka Dam", "lon": -81.8943, "lat": 29.3774, "role": "unfinished"},
+    {"name": "Buckman Lock", "lon": -81.7286, "lat": 29.5457, "role": "lock"},
+]
 #: OpenStreetMap's Overpass API, for which stretches of C-38 were backfilled.
 OVERPASS = "https://overpass-api.de/api/interpreter"
 #: The Corps of Engineers' public CWMS Data API (water levels and flows at SFWMD structures).

@@ -9,6 +9,7 @@ import {
   IRL_KEYS,
   KISS_CLASSES,
   KISS_KEYS,
+  OCK_KEYS,
   LAKEO_KEYS,
   PARK_WATER,
   RAINBOW_KEYS,
@@ -19,6 +20,7 @@ import {
   type GaugeConfig,
   type IndianRiverFile,
   type KissimmeeFile,
+  type OcklawahaFile,
   type ReefsFile,
   type LakeOFile,
   type LakesFile,
@@ -49,6 +51,7 @@ const irl = read<IndianRiverFile>("public/data/indian-river.json");
 const reefs = read<ReefsFile>("public/data/reefs.json");
 const parks = read<ParksFile>("public/data/parks.json");
 const kiss = read<KissimmeeFile>("public/data/kissimmee.json");
+const ock = read<OcklawahaFile>("public/data/ocklawaha.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
 const snorkel = read<SnorkelFile>("config/snorkel.json");
@@ -639,12 +642,56 @@ describe("kissimmee.json", () => {
   });
 });
 
+describe("ocklawaha.json", () => {
+  const [ox, oy] = ock.meta.coordOrigin;
+  const k = ock.meta.coordScale;
+  const lonlat = (flat: number[], i: number): [number, number] => [flat[i * 2] / k + ox, flat[i * 2 + 1] / k + oy];
+
+  it("runs the Ocklawaha from Moss Bluff to the St. Johns, through the reservoir", () => {
+    const { p, res } = ock.rivers["Ocklawaha River"];
+    expect(res.length).toBe(p.length / 2);
+    const [lon0, lat0] = lonlat(p, 0);
+    const [lon1, lat1] = lonlat(p, res.length - 1);
+    // Moss Bluff is south of the St. Johns, and west of it.
+    expect(lat0).toBeLessThan(29.1);
+    expect(lat1).toBeGreaterThan(29.45);
+    expect(lon1).toBeGreaterThan(lon0);
+    // In the reservoir somewhere in the middle, free at both ends.
+    expect(res.filter((f) => f === 1).length).toBeGreaterThan(5);
+    expect([res[0], res[res.length - 1]]).toEqual([0, 0]);
+  });
+
+  it("has the Silver River, Orange Creek, the canal, and the reservoir", () => {
+    for (const n of ["Silver River", "Orange Creek"] as const) expect(ock.rivers[n].p.length, n).toBeGreaterThan(20);
+    expect(ock.canal.length).toBeGreaterThan(0);
+    expect(ock.reservoirKm2).toBeGreaterThan(20);
+    expect(ock.reservoir.length).toBeGreaterThan(0);
+    expect(ock.structures.map((s) => s.role).sort()).toEqual(["dam", "lock", "unfinished"]);
+  });
+
+  it("finds FDEP springs under the reservoir, all in springs.json", () => {
+    const ids = new Set(statewide.springs.map((s) => s[0]));
+    expect(ock.drowned.length).toBeGreaterThanOrEqual(5);
+    for (const [id] of ock.drowned) expect(ids, id).toContain(id);
+  });
+
+  it("has Silver Springs' flow since the 1930s", () => {
+    const { years, SILV, EUR } = ock.history;
+    expect(years[0]).toBeLessThanOrEqual(1933);
+    expect(SILV.length).toBe(years.length);
+    expect(EUR.length).toBe(years.length);
+    expect(SILV.filter((v) => v != null).length).toBeGreaterThan(80);
+    for (const v of [...SILV, ...EUR]) if (v != null) expect(v).toBeGreaterThan(0);
+  });
+});
+
 describe("gauges and snapshot", () => {
-  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS, ...KISS_KEYS];
+  const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS, ...KISS_KEYS, ...OCK_KEYS];
 
   it("has one gauge per flow key with unique site ids", () => {
     expect(gauges.map((g) => g.key).sort()).toEqual([...keys].sort());
-    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river", "kissimmee"]).toContain(g.page);
+    for (const g of gauges) expect(["santa-fe", "rainbow", "st-lucie", "lake-o", "indian-river", "kissimmee", "ocklawaha"]).toContain(g.page);
+    expect(gauges.filter((g) => g.page === "ocklawaha").map((g) => g.key).sort()).toEqual([...OCK_KEYS].sort());
     expect(gauges.filter((g) => g.page === "kissimmee").map((g) => g.key).sort()).toEqual([...KISS_KEYS].sort());
     expect(gauges.filter((g) => g.page === "indian-river").map((g) => g.key).sort()).toEqual([...IRL_KEYS].sort());
     expect(gauges.filter((g) => g.page === "rainbow").map((g) => g.key).sort()).toEqual([...RAINBOW_KEYS].sort());
@@ -682,7 +729,7 @@ describe("gauges and snapshot", () => {
       for (const v of [snapshot.ppt[k].top, snapshot.ppt[k].bottom]) if (v != null) expect(v >= 0 && v <= 45).toBe(true);
     }
     // Only the canals' structures can read below zero.
-    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL"), ...KISS_KEYS]) {
+    for (const k of [...FLOW_KEYS, ...RAINBOW_KEYS, "FEC" as const, ...IRL_KEYS.filter((k) => k !== "HAUL"), ...KISS_KEYS, ...OCK_KEYS]) {
       const v = snapshot.cfs[k];
       if (v != null) expect(v).toBeGreaterThanOrEqual(0);
     }
