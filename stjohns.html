@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The St. Johns runs north, barely downhill</title>
+<meta name="description" content="Florida's longest river runs north 310 miles and falls less than 30 feet, and the tide pushes it backward as far as Lake George. An animated map from the headwater marshes to Jacksonville with live USGS flow, including the tidal gauges where it runs upstream, and the river's fall mile by mile.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The St. Johns runs north, barely downhill">
+<meta property="og:description" content="Florida's longest river runs north 310 miles and falls less than 30 feet, and the tide pushes it backward as far as Lake George. An animated map from the headwater marshes to Jacksonville with live USGS flow, including the tidal gauges where it runs upstream, and the river's fall mile by mile.">
+<meta property="og:url" content="https://waterways.paperhurts.dev/stjohns.html">
+<meta property="og:image" content="https://waterways.paperhurts.dev/github-social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="/src/stjohns/main.ts"></script>
+</head>
+<body>
+<div id="wrap">
+<header>
+  <!-- site-nav -->
+  <h1>The St. Johns runs north, <em>barely downhill</em></h1>
+  <p class="lede" id="lede">Loading the river…</p>
+</header>
+<div id="stage" aria-label="Animated map of the St. Johns River from its headwater marshes north to the Atlantic at Mayport, with its lakes, the springs that feed it, and the tide pushing the lower river back upstream as far as Lake George" role="img">
+  <canvas id="base"></canvas>
+  <canvas id="fx"></canvas>
+  <div id="legend">
+    <span><i class="river"></i>The St. Johns, running north</span>
+    <span><i class="back"></i>Water the tide is pushing back</span>
+    <span><i class="tide"></i>How far up the tide reaches</span>
+    <span><i class="spring"></i>A big spring that feeds it</span>
+  </div>
+  <div id="card" role="dialog" aria-live="polite"><button type="button" id="cardX" aria-label="Close">×</button><div id="cardBody"></div></div>
+</div>
+<section id="hist" aria-label="The river's fall">
+  <div id="histTitle">The river's fall</div>
+  <p id="histRead"></p>
+  <div id="histChart"></div>
+  <details class="note"><summary>About this data</summary>The height of the river's surface above sea level, in feet, every 5 miles from the sea, from NHDPlus High Resolution's smoothed flowline elevations along the river's path. They're approximate, and flat across its lakes. The river's name, and this path, begin at Lake Hell 'n' Blazes; its marshes reach farther south.</details>
+</section>
+<div class="tools">
+  <button id="bAll" type="button">The whole river</button>
+  <button id="bUpper" type="button">The headwaters</button>
+  <button id="bMiddle" type="button">Lake Monroe to Lake George</button>
+  <button id="bLower" type="button">The tidal river</button>
+  <button id="bHist" type="button" aria-pressed="false">The river's fall</button>
+  <button id="bPause" type="button" aria-pressed="false">Pause</button>
+</div>
+<div id="profile" aria-label="USGS gauges"></div>
+<div id="status"></div>
+</div>
+</body>
+</html>

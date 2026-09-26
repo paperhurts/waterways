@@ -15,6 +15,8 @@ export interface Measure {
   year: string;
   /** What the lines are, for the chart's accessible label. */
   what: string;
+  /** Label the x axis at multiples of this (default every 10 years). */
+  xStep?: number;
 }
 
 export const FLOW: Measure = { unit: "cfs", format: fmtCfs, year: "Water year", what: "yearly mean flow" };
@@ -86,7 +88,7 @@ export function renderHistory(host: HTMLElement, years: number[], series: Series
     el("text", { x: PAD.l - 6, y: y(v) + 4, class: "tick", "text-anchor": "end" }, svg).textContent = v.toLocaleString();
   }
   years.forEach((yr, i) => {
-    if (yr % 10 === 0) el("text", { x: x(i), y: H - 5, class: "tick", "text-anchor": "middle" }, svg).textContent = String(yr);
+    if (yr % (measure.xStep ?? 10) === 0) el("text", { x: x(i), y: H - 5, class: "tick", "text-anchor": "middle" }, svg).textContent = String(yr);
   });
 
   const ends: { v: number; y: number }[] = [];

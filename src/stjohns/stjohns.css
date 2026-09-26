@@ -1,0 +1,7 @@
+/* The St. Johns River map, over the shared story-page layout. */
+h1 em { color: var(--atl) }
+.gauge .v small { font-size: .7em; color: var(--muted); margin-left: 2px }
+#legend i.river { width: 16px; height: 3px; border-radius: 2px; background: var(--tannin) }
+#legend i.back { width: 16px; height: 3px; border-radius: 2px; background: var(--atl) }
+#legend i.tide { width: 16px; height: 0; border-radius: 0; border-top: 1.5px dashed var(--atl) }
+#legend i.spring { width: 7px; height: 7px; border-radius: 50%; background: var(--spring); margin: 0 2px }

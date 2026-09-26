@@ -161,6 +161,14 @@ KISSENGEN = (-81.81094, 27.84258)
 PEACE_GRID = {"lon0": -82.25, "lat0": 26.88, "res": 0.01, "nx": 71, "ny": 125}
 #: Land mined for phosphate under FDEP's mandatory reclamation program (its 2021 map).
 FDEP_MINED_UNITS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/MMP_MINEDUNITS/MapServer/2"
+#: The St. Johns River map: the headwater marshes to the Atlantic at Mayport.
+SJ_VIEW: Bbox = (-81.85, 27.55, -80.55, 30.5)
+SJ_WATER: Bbox = (-82.3, 27.2, -80.1, 30.8)
+#: The sea reaches much wider, coarsely: the tall map on a wide screen shows degrees either side.
+SJ_SEA: Bbox = (-84.0, 26.0, -77.5, 32.5)
+#: None: the river's whole path in the view, from its head; the mouth at Mayport.
+SJ_HEAD = None
+SJ_MOUTH = (-81.40, 30.40)
 #: OpenStreetMap's Overpass API, for which stretches of C-38 were backfilled.
 OVERPASS = "https://overpass-api.de/api/interpreter"
 #: The Corps of Engineers' public CWMS Data API (water levels and flows at SFWMD structures).
