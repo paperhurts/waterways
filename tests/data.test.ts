@@ -15,6 +15,7 @@ import {
   type ContoursFile,
   type GaugeConfig,
   type IndianRiverFile,
+  type ReefsFile,
   type LakeOFile,
   type LakesFile,
   type RainbowFile,
@@ -39,6 +40,7 @@ const statewideMap = read<StatewideFile>("public/data/statewide.json");
 const stLucie = read<StLucieFile>("public/data/st-lucie.json");
 const lakeO = read<LakeOFile>("public/data/lake-o.json");
 const irl = read<IndianRiverFile>("public/data/indian-river.json");
+const reefs = read<ReefsFile>("public/data/reefs.json");
 const gauges = read<GaugeConfig[]>("config/gauges.json");
 const salinity = read<SalinityStation[]>("config/salinity.json");
 const snorkel = read<SnorkelFile>("config/snorkel.json");
@@ -470,6 +472,37 @@ describe("indian-river.json", () => {
   });
 });
 
+describe("reefs.json", () => {
+  it("has the reef tract, patch reefs, hard bottom, and seagrass in both stations' regions", () => {
+    for (const k of ["keys", "southeast"] as const) {
+      expect(reefs.habitat.reef[k].length, k).toBeGreaterThan(50);
+      expect(reefs.habitat.patches[k].length / 2, k).toBeGreaterThan(1000);
+    }
+    expect(reefs.habitat.hardbottom.length).toBeGreaterThan(100);
+    expect(reefs.habitat.seagrass.length).toBeGreaterThan(100);
+    for (const r of [...reefs.habitat.reef.keys, ...reefs.habitat.hardbottom, ...reefs.sea]) {
+      expect(r.length % 2).toBe(0);
+      expect(r.length).toBeGreaterThanOrEqual(8);
+    }
+  });
+
+  it("names FWC's twelve reef regions, each covered by a station", () => {
+    expect(reefs.regions).toHaveLength(12);
+    for (const r of reefs.regions) expect(["keys", "southeast"]).toContain(r.station);
+    const station = (n: string) => reefs.regions.find((r) => r.name === n)?.station;
+    expect([station("Dry Tortugas"), station("Upper Keys"), station("Martin"), station("Biscayne")]).toEqual(["keys", "keys", "southeast", "southeast"]);
+  });
+
+  it("has NOAA's yearly heat stress since 1985, with 2023's record", () => {
+    const { years, keys, southeast } = reefs.heat;
+    expect(years[0]).toBe(1985);
+    expect(keys.length).toBe(years.length);
+    expect(southeast.length).toBe(years.length);
+    for (const v of [...keys, ...southeast]) if (v != null) expect(v >= 0 && v < 60).toBe(true);
+    expect(keys[years.indexOf(2023)]).toBeGreaterThan(20);
+  });
+});
+
 describe("gauges and snapshot", () => {
   const keys = [...FLOW_KEYS, ...RAINBOW_KEYS, ...STLUCIE_KEYS, ...LAKEO_KEYS, ...IRL_KEYS];
 
@@ -488,6 +521,15 @@ describe("gauges and snapshot", () => {
   it("has one salinity station per key", () => {
     expect(salinity.map((s) => s.key).sort()).toEqual([...SALINITY_KEYS].sort());
     for (const s of salinity) expect(s.id).toMatch(/^\d{8,15}$/);
+  });
+
+  it("has the reef's heat stress, when NOAA answered", () => {
+    if (!snapshot.reef) return;
+    for (const h of Object.values(snapshot.reef)) {
+      expect(h.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(h.dhw >= 0 && h.dhw <= h.peak + 0.05).toBe(true);
+      expect(Number.isInteger(h.level) && h.level >= 0 && h.level <= 7).toBe(true);
+    }
   });
 
   it("has a dated reading for every gauge and station", () => {

@@ -18,6 +18,8 @@
   --lake: #1b2224; --shore: #2d3837; --marsh: #34362a; --sea: #1f2c30;
   /* Rivers under the springs map's springs: quiet, but clear of the land and the sea. */
   --stream: #3d6670;
+  /* Reef heat stress, three steps: watch and warning, Alert Levels 1-2, Alert Levels 3-5 (checked with the dataviz validator; the levels are always named in text too). */
+  --heat-1: #f2d45c; --heat-2: #f0843c; --heat-3: #d8306e;
   /* Glints over the springs map's wetlands: sun on the water in the sawgrass. */
   --glint: #e4efc0;
   /* Chart lines: the water colors stepped into a line chart's lightness band (checked with the dataviz validator). */
@@ -37,7 +39,7 @@
     --coral: #c4552b;
     --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
     --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c; --sea: #c2d0d1;
-    --stream: #7fa3ab; --glint: #5f7d1f;
+    --stream: #7fa3ab; --glint: #5f7d1f; --heat-1: #c8a531; --heat-2: #c0441c; --heat-3: #6e0a3e;
     --chart-spring: #0a8f86; --chart-tannin: #9a5a12; --chart-lake: #4d7a17; --chart-estuary: #2f5fa8;
     color-scheme: light;
   }
@@ -51,7 +53,7 @@
   --coral: #c4552b;
   --gulf: #9a5a12; --atl: #2f5fa8; --sink: #6b50c8; --inland: #8b8577; --off: #a8a697;
   --lake: #c9d3d1; --shore: #a9b8b5; --marsh: #b3b69c; --sea: #c2d0d1;
-  --stream: #7fa3ab; --glint: #5f7d1f;
+  --stream: #7fa3ab; --glint: #5f7d1f; --heat-1: #c8a531; --heat-2: #c0441c; --heat-3: #6e0a3e;
   --chart-spring: #0a8f86; --chart-tannin: #9a5a12; --chart-lake: #4d7a17; --chart-estuary: #2f5fa8;
   color-scheme: light;
 }
