@@ -154,11 +154,13 @@ FWC_OYSTERS = "https://gis.myfwc.com/hosting/rest/services/Open_Data/Oyster_Beds
 #: The Peace River map: Bartow down the river to Charlotte Harbor.
 PEACE_VIEW: Bbox = (-82.25, 26.88, -81.55, 28.12)
 PEACE_WATER: Bbox = (-82.7, 26.5, -81.1, 28.5)
+#: The sea reaches much wider, coarsely: a phone-shaped screen shows a degree or more either side.
+PEACE_SEA: Bbox = (-85.0, 24.5, -79.0, 30.0)
 #: Where the Peace meets Charlotte Harbor, and Kissengen Spring (FDEP's point).
 PEACE_MOUTH = (-82.06, 26.94)
 KISSENGEN = (-81.81094, 27.84258)
-#: The aquifer drawdown grid, 0.01° over the view.
-PEACE_GRID = {"lon0": -82.25, "lat0": 26.88, "res": 0.01, "nx": 71, "ny": 125}
+#: The aquifer drawdown grid, 0.01°, well past the view: the page fades it out away from the river.
+PEACE_GRID = {"lon0": -82.6, "lat0": 26.6, "res": 0.01, "nx": 141, "ny": 186}
 #: Land mined for phosphate under FDEP's mandatory reclamation program (its 2021 map).
 FDEP_MINED_UNITS = "https://ca.dep.state.fl.us/arcgis/rest/services/OpenData/MMP_MINEDUNITS/MapServer/2"
 #: The St. Johns River map: the headwater marshes to the Atlantic at Mayport.

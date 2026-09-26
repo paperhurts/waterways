@@ -37,7 +37,7 @@ SIMPLIFY_DEG = 0.0002
 #: The tributaries drawn, each whole within the view, and the gauge whose water it brings.
 TRIBUTARIES = {"Charlie Creek": "CHR", "Horse Creek": "HRS", "Joshua Creek": "JOS", "Payne Creek": None, "Saddle Creek": None, "Shell Creek": None}
 LAKE_KM2, SWAMP_KM2 = 1.0, 3.0
-LAKE_TOL, SWAMP_TOL, SEA_TOL = 0.0008, 0.003, 0.0015
+LAKE_TOL, SWAMP_TOL, SEA_TOL, FAR_SEA_TOL = 0.0008, 0.003, 0.0015, 0.025
 MINE_TOL = 0.0012
 #: Contours are fetched this far past the grid, so its edges are shaped by lines outside it.
 FETCH_PAD_DEG = 0.35
@@ -105,10 +105,14 @@ def mines(refresh: bool = False) -> tuple[list[list[int]], int]:
 
 def water(refresh: bool = False) -> list[dict]:
     clip = box(*C.PEACE_WATER)
-    states = arcgis_query(C.CENSUS_STATES, C.PEACE_WATER, fields="STUSAB", refresh=refresh)
+    states = arcgis_query(C.CENSUS_STATES, C.PEACE_SEA, fields="STUSAB", refresh=refresh)
     land = unary_union([make_valid(shape(f["geometry"])) for f in states if f.get("geometry")])
-    sea = drop_specks(rain.salt_water(land, refresh).intersection(clip), 0.3).simplify(SEA_TOL, preserve_topology=True)
-    bodies = [{"name": None, "kind": "sea", "km2": round(sea.area * KM2_PER_DEG2), "rings": polygon_rings(sea)}]
+    salt = rain.salt_water(land, refresh).intersection(box(*C.PEACE_SEA))
+    # Charlotte Harbor and the coast beside it in detail; the rest only fills the screen's edges.
+    # The pieces meet without overlapping: the page fills every sea piece together even-odd.
+    near = drop_specks(salt.intersection(clip), 0.3).simplify(SEA_TOL, preserve_topology=True)
+    far = drop_specks(salt.difference(clip), 20.0).simplify(FAR_SEA_TOL, preserve_topology=True)
+    bodies = [{"name": None, "kind": "sea", "km2": round(g.area * KM2_PER_DEG2), "rings": polygon_rings(g)} for g in (near, far)]
     cols, geoms = nhd.table(HU4, "NHDWaterbody", ["GNIS_Name", "FType", "AreaSqKm"], bbox=C.PEACE_WATER, geometry=True)
     swamps = []
     for name, ft, a, g in zip(cols["gnis_name"], cols["ftype"], cols["areasqkm"], geoms):
