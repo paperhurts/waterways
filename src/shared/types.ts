@@ -190,6 +190,28 @@ export interface IndianRiverFile {
   history: { years: number[]; canals: (number | null)[]; creeks: (number | null)[] };
 }
 
+// ---------- reefs.json (coral reef map) ----------
+
+/** Rings and points are delta-packed like the rain map's (see RainSeg). */
+export interface ReefsFile {
+  meta: Provenance & { coordOrigin: [number, number]; coordScale: number };
+  /** The sea, with every bay in it. */
+  sea: number[][];
+  habitat: {
+    /** The reef tract: aggregate reefs and spur and groove, by station. */
+    reef: Record<ReefStation, number[][]>;
+    hardbottom: number[][];
+    seagrass: number[][];
+    /** One point per patch reef, and per artificial reef, by station: [x0, y0, dx1, dy1, ...]. */
+    patches: Record<ReefStation, number[]>;
+    artificial: Record<ReefStation, number[]>;
+  };
+  /** FWC's twelve reef regions and the station that covers each. */
+  regions: { name: string; station: ReefStation; rings: number[][] }[];
+  /** Each year's highest Degree Heating Weeks, since 1985. */
+  heat: { years: number[] } & Record<ReefStation, (number | null)[]>;
+}
+
 // ---------- statewide.json (statewide springs map; the springs are springs.json) ----------
 
 export interface AreaFile {
@@ -327,6 +349,22 @@ export interface Salinity {
   bottom: number | null;
 }
 
+/** NOAA Coral Reef Watch heat stress at one regional station, the latest day. */
+export interface ReefHeat {
+  /** YYYY-MM-DD, the latest day in NOAA's file. */
+  date: string;
+  /** Sea surface temperature, °C. */
+  sst: number;
+  /** Degree Heating Weeks, °C-weeks. */
+  dhw: number;
+  /** The week's highest alert level, 0 to 7: no stress, watch, warning, then Alert Levels 1 to 5. */
+  level: number;
+  /** The year's highest DHW so far. */
+  peak: number;
+}
+export const REEF_STATIONS = ["keys", "southeast"] as const;
+export type ReefStation = (typeof REEF_STATIONS)[number];
+
 export interface Snapshot {
   /** ISO 8601 time of the newest reading. */
   time: string;
@@ -334,6 +372,8 @@ export interface Snapshot {
   cfs: Flows & RainbowFlows & StLucieFlows & Record<LakeOKey | IrlKey, number | null>;
   /** Every station in config/salinity.json. */
   ppt: Record<SalinityKey, Salinity>;
+  /** Coral Reef Watch heat stress on the reef; absent when NOAA didn't answer. */
+  reef?: Record<ReefStation, ReefHeat>;
 }
 
 // ---------- aquifer.json ----------

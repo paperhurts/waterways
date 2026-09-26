@@ -7,12 +7,12 @@ import json
 import shutil
 from pathlib import Path
 
-from . import aquifer, irl, lakeo, rain, rainbow, rivers, springs, statewide, stlucie, usgs
+from . import aquifer, crw, irl, lakeo, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
 from . import config as C
 from .config import OUT
 from .fetch import log
 
-DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "statewide", "snapshot"]
+DATASETS = ["springs", "rain", "rivers", "lakes", "aquifer", "rainbow", "st-lucie", "lake-o", "indian-river", "reefs", "statewide", "snapshot"]
 
 
 def write(out: Path, name: str, data: dict, quiet: bool = False) -> None:
@@ -50,13 +50,21 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
         write(out, "st-lucie.json", stlucie.build(refresh))
     elif dataset == "indian-river":
         write(out, "indian-river.json", irl.build(refresh))
+    elif dataset == "reefs":
+        write(out, "reefs.json", reefs.build(refresh))
     elif dataset == "lake-o":
         write(out, "lake-o.json", lakeo.build(refresh))
     elif dataset == "statewide":
         write(out, "statewide.json", statewide.build(refresh))
     elif dataset == "snapshot":
         # Always fresh: this is the point of the snapshot.
-        write(out, "snapshot.json", usgs.latest())
+        snap = usgs.latest()
+        # The reef's heat stress rides along; NOAA being down mustn't lose the gauges.
+        try:
+            snap["reef"] = crw.latest()
+        except Exception as err:  # noqa: BLE001
+            log(f"snapshot: no reef heat stress ({err})")
+        write(out, "snapshot.json", snap)
 
 
 def main() -> None:

@@ -1,0 +1,6 @@
+/* The coral reef map, over the shared story-page layout. */
+h1 em { color: var(--coral) }
+.gauge .v small { font-size: .7em; color: var(--muted); margin-left: 2px }
+/* Heat chips carry their alert step as a bar; the level is named in the text too. */
+.gauge.heat { border-left: 4px solid var(--tier, var(--line)) }
+#legend i.tier { width: 30px; height: 9px; border-radius: 2px; background: linear-gradient(90deg, var(--heat-1), var(--heat-2), var(--heat-3)) }

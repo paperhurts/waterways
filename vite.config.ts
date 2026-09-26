@@ -29,6 +29,7 @@ export default defineConfig({
         stLucie: resolve(import.meta.dirname, "st-lucie.html"),
         lakeO: resolve(import.meta.dirname, "lake-o.html"),
         indianRiver: resolve(import.meta.dirname, "indian-river.html"),
+        reefs: resolve(import.meta.dirname, "reefs.html"),
         springs: resolve(import.meta.dirname, "springs.html"),
         journal: resolve(import.meta.dirname, "journal.html"),
       },

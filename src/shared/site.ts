@@ -20,6 +20,7 @@ export const SITE_MAPS: SitePage[] = [
   { href: "indian-river.html", name: "Indian River Lagoon", title: "The Indian River Lagoon barely flushes" },
   { href: "lake-o.html", name: "Lake O", title: "Lake Okeechobee used to drain south" },
   { href: "st-lucie.html", name: "St. Lucie", title: "The St. Lucie was plumbed to a lake" },
+  { href: "reefs.html", name: "Coral Reef", title: "Florida's Coral Reef lost its builders" },
 ];
 
 /** Members only: hidden until nav.ts finds a stored session, except on the journal itself. */

@@ -53,6 +53,19 @@ IRL_INLETS: list[dict] = [
 IRL_CANALS = ["FELL", "NCAN", "MCAN", "SCAN"]
 IRL_CREEKS = ["EG", "CRANE", "TURKEY", "SEBN", "SEBS"]
 
+# ---- coral reef map ----
+#: Florida's Coral Reef, Martin County to the Dry Tortugas.
+REEF_VIEW: Bbox = (-83.1, 24.35, -79.9, 27.3)
+#: Water is clipped much wider, so the sea runs off the screen's edges.
+REEF_WATER: Bbox = (-84.6, 23.5, -78.3, 28.3)
+#: FWC FWRI's Unified Florida Reef Map (habitat) and its regions.
+URM = "https://gis.myfwc.com/hosting/rest/services/Projects_FWC/UnifiedReefMapProject_v2_2/MapServer"
+#: Which Coral Reef Watch station covers each Unified Reef Map region.
+REEF_STATIONS = {
+    "keys": ["Upper Keys", "Middle Keys", "Lower Keys", "Marquesas", "Dry Tortugas", "Florida Bay"],
+    "southeast": ["Martin", "North Palm Beach", "South Palm Beach", "Deerfield", "Broward-Miami", "Biscayne"],
+}
+
 # ---- statewide rain map ----
 #: The 4-digit HUCs that drain Florida: the St. Marys, St. Johns, south Florida, Peace-Tampa
 #: Bay, Suwannee, Ochlockonee, Apalachicola, and Choctawhatchee-Escambia.
