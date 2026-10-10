@@ -7,7 +7,7 @@ import json
 import shutil
 from pathlib import Path
 
-from . import apalachicola, aquifer, crw, cwms, irl, kissimmee, lakeo, ocklawaha, panthers, parks, peace, stjohns, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
+from . import apalachicola, aquifer, crw, cwms, irl, kissimmee, lakeo, manatees, ocklawaha, panthers, parks, peace, stjohns, rain, rainbow, reefs, rivers, springs, statewide, stlucie, usgs
 from . import config as C
 from .config import OUT
 from .fetch import log
@@ -89,6 +89,11 @@ def run(dataset: str, out: Path, refresh: bool) -> None:
             snap["panthers"] = panthers.latest()
         except Exception as err:  # noqa: BLE001
             log(f"snapshot: no panther deaths ({err})")
+        # And the manatee cams' streams, which change with the season.
+        try:
+            snap["cams"] = manatees.latest()
+        except Exception as err:  # noqa: BLE001
+            log(f"snapshot: no manatee cams ({err})")
         write(out, "snapshot.json", snap)
 
 

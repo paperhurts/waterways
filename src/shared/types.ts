@@ -621,6 +621,8 @@ export interface Snapshot {
   reef?: Record<ReefStation, ReefHeat>;
   /** FWC's panther deaths this year; absent when FWC didn't answer. */
   panthers?: PantherYear;
+  /** Save the Manatee Club's manatee cam videos now, by spring id; absent when its page didn't answer. */
+  cams?: Record<string, { above: string; under: string }>;
 }
 
 // ---------- aquifer.json ----------

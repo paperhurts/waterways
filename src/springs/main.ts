@@ -11,9 +11,10 @@ import { parkLine } from "../shared/parks";
 import { KIND_LABEL, osmUrl, snorkelSprings, snorkelSpots } from "../shared/snorkel";
 import { drawBoil } from "../shared/streaks";
 import { cssVar, fontsReady, isDark, onColorSchemeChange } from "../shared/theme";
-import type { SnorkelSpot, SpringsFile, StatewideFile } from "../shared/types";
+import type { Snapshot, SnorkelSpot, SpringsFile, StatewideFile } from "../shared/types";
 import { Viewport, startLoop } from "../shared/viewport";
 import { CreekLayer } from "../rain/creeks";
+import { MANATEE_CAMS, MANATEE_PAGE, RIVER_CAM_PAGE, RIVER_CAMS, VIEW_LABEL, youtubeEmbed, type CamView } from "./cams";
 import { glintAlpha, placeGlints } from "./glints";
 
 const VIEWS = {
@@ -293,13 +294,35 @@ async function main() {
     const links: string[] = [];
     if (s.onRainMap) links.push(`<a href="rain.html#${s.lon},${s.lat}">Where its creek's rain goes</a>`);
     if (s.county === "Marion" && /^Rainbow/.test(s.name)) links.push('<a href="rainbow.html">The Rainbow River map</a>');
+    if (RIVER_CAMS[s.id]) links.push(`<a href="${RIVER_CAM_PAGE}" rel="noopener">${RIVER_CAMS[s.id]}</a>`);
+    const cams = MANATEE_CAMS[s.id] ? `<span class="cam" data-spring="${s.id}"><button type="button" data-view="above">Watch the manatee cams</button></span>` : "";
     const log = journal ? ` ${journalCardHtml(journal, s.id)}` : "";
     card.show({
       title: s.name,
       kind: `${s.snorkel ? "Spring · snorkel spot" : "Spring"} · ${s.county} County`,
-      body: `${parkLine(s.park)}${MAG_TEXT[s.mag] ?? ""}${s.mag ? "" : "FDEP hasn't rated its flow. "}${links.length ? `<span class="links">${links.join(" · ")}</span>` : ""}${log}`,
+      body: `${parkLine(s.park)}${MAG_TEXT[s.mag] ?? ""}${s.mag ? "" : "FDEP hasn't rated its flow. "}${cams}${links.length ? `<span class="links">${links.join(" · ")}</span>` : ""}${log}`,
     });
   }
+
+  // The manatee cams play in the card once asked, with the club's current videos from the
+  // snapshot (fetched then, and only once).
+  let camVideos: Promise<Snapshot["cams"] | null> | null = null;
+  document.getElementById("cardBody")!.addEventListener("click", async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>(".cam button[data-view]");
+    const box = b?.closest<HTMLElement>(".cam");
+    const spring = springs.find((s) => s.id === box?.dataset.spring);
+    if (!b || !box || !spring) return;
+    camVideos ??= loadData<Snapshot>("snapshot.json").then((s) => s.cams ?? null, () => null);
+    const ids = (await camVideos)?.[spring.id] ?? MANATEE_CAMS[spring.id];
+    // The card may have closed, or moved to another spring, while the snapshot loaded.
+    if (!box.closest("#card.on")) return;
+    const view = b.dataset.view as CamView;
+    const what = `Save the Manatee Club's ${VIEW_LABEL[view].toLowerCase()} cam at ${spring.name}`;
+    box.innerHTML =
+      `<span class="views" role="group" aria-label="Manatee cams">${(["above", "under"] as const).map((v) => `<button type="button" data-view="${v}" aria-pressed="${v === view}">${VIEW_LABEL[v]}</button>`).join("")}</span>` +
+      `<iframe src="${youtubeEmbed(ids[view])}" title="${escapeHtml(what)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>` +
+      `<span class="note">Save the Manatee Club's cams are live in manatee season, about November to mid-March, and play highlights the rest of the year. <a href="${MANATEE_PAGE}" rel="noopener">The club's page</a></span>`;
+  });
 
   function showSpot(s: Spot) {
     const links = [s.web ? `<a href="${escapeHtml(s.web)}" rel="noopener">Website</a>` : "", `<a href="${escapeHtml(osmUrl(s))}" rel="noopener">On OpenStreetMap</a>`].filter(Boolean);

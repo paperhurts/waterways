@@ -34,6 +34,8 @@ export class InfoCard {
 
   hide(): void {
     this.el.classList.remove("on");
+    // A video in the card would play on out of sight.
+    for (const f of this.bodyEl.querySelectorAll("iframe")) f.remove();
     this.onHide?.();
   }
 }

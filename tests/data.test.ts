@@ -4,6 +4,7 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { MANATEE_CAMS, RIVER_CAMS } from "../src/springs/cams";
 import {
   FLOW_KEYS,
   IRL_KEYS,
@@ -468,6 +469,22 @@ describe("config/snorkel.json", () => {
       if (x.web) expect(x.web).toMatch(/^https?:\/\//);
       expect(x.lon > -87.7 && x.lon < -79.9 && x.lat > 24.3 && x.lat < 31.1, x.name).toBe(true);
     }
+  });
+});
+
+describe("spring cams", () => {
+  const springIds = new Set(statewide.springs.map((x) => x[0]));
+  const video = /^[\w-]{11}$/;
+
+  it("are at springs in the journal's list", () => {
+    for (const id of [...Object.keys(MANATEE_CAMS), ...Object.keys(RIVER_CAMS)]) expect(springIds.has(id), id).toBe(true);
+    for (const v of Object.values(MANATEE_CAMS)) for (const id of [v.above, v.under]) expect(id).toMatch(video);
+  });
+
+  it("come from the snapshot for the same springs, when the club's page answered", () => {
+    if (!snapshot.cams) return;
+    expect(Object.keys(snapshot.cams).sort()).toEqual(Object.keys(MANATEE_CAMS).sort());
+    for (const v of Object.values(snapshot.cams)) for (const id of [v.above, v.under]) expect(id).toMatch(video);
   });
 });
 
