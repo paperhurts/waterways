@@ -53,6 +53,14 @@ def get_json(url: str, params: dict[str, Any] | None = None, *, refresh: bool = 
     return body
 
 
+def get_text(url: str) -> str:
+    """A page as text, uncached: for the snapshot, which is always fresh."""
+    log(f"GET {url}")
+    res = _session.get(url, timeout=(30, 120))
+    res.raise_for_status()
+    return res.text
+
+
 def download(url: str, path: Path) -> None:
     """Stream a big file to disk."""
     log(f"GET {url}")

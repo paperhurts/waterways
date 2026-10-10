@@ -20,3 +20,12 @@ h1 em { font-style: italic; color: var(--spring) }
 
 @media (max-width: 600px) { #legend { font-size: .76rem } }
 @media (min-width: 900px) { #card { left: auto; right: 16px; bottom: 16px } }
+
+/* The manatee cams in a spring's card (src/springs/cams.ts). The card's close button
+   is the only other button in it, positioned in its corner. */
+#card .cam { display: block; margin-top: .55em }
+#card .cam button { position: static; font: 600 .84rem var(--sans); color: var(--spring); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer }
+#card .cam button[aria-pressed="true"] { background: var(--spring); color: var(--bg); border-color: var(--spring) }
+#card .cam .views { display: flex; gap: 6px; margin-bottom: .45em }
+#card .cam iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 8px; background: var(--line) }
+#card .cam .note { display: block; margin-top: .35em; font: 400 .8rem/1.35 var(--sans); color: var(--muted) }
