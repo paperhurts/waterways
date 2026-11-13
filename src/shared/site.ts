@@ -33,6 +33,21 @@ export const SITE_MAPS: SitePage[] = [
 /** Members only: hidden until nav.ts finds a stored session, except on the journal itself. */
 export const SITE_JOURNAL: SitePage = { href: "journal.html", name: "Journal", title: "Our visits and wildlife" };
 
+/** What a page is called on a home screen: its map's short name, so each map added there opens itself. */
+export function appTitle(current: string): string {
+  return [...SITE_MAPS, SITE_JOURNAL].find((p) => p.href === current)?.name ?? "Waterways";
+}
+
+/** Home screen and installed-app icons, for every page's head. The manifest has no start_url,
+ *  so an installed page opens on itself rather than the homepage. */
+export function appHeadHtml(current: string): string {
+  return [
+    '<link rel="apple-touch-icon" href="/apple-touch-icon.png">',
+    '<link rel="manifest" href="/manifest.webmanifest">',
+    `<meta name="apple-mobile-web-app-title" content="${appTitle(current)}">`,
+  ].join("\n");
+}
+
 export function siteNavHtml(current: string): string {
   const item = (p: SitePage, attrs = "") =>
     `<li${attrs}><a href="${p.href}"${p.href === current ? ' aria-current="page"' : ""}>${p.name}<small>${p.title}</small></a></li>`;
