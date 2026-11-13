@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { SITE_JOURNAL, SITE_MAPS, siteNavHtml } from "../src/shared/site";
+import { appHeadHtml, appTitle, SITE_JOURNAL, SITE_MAPS, siteNavHtml } from "../src/shared/site";
 
 const root = new URL("../", import.meta.url);
 const read = (f: string) => readFileSync(new URL(f, root), "utf8");
@@ -33,5 +33,28 @@ describe("site nav", () => {
   it("orders the homepage like the nav", () => {
     const order = [...read("index.html").matchAll(/class="map" href="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(SITE_MAPS.map((p) => p.href));
+  });
+});
+
+/** A PNG's width and height, from its header. */
+const pngSize = (f: string) => {
+  const b = readFileSync(new URL(f, root));
+  return `${b.readUInt32BE(16)}x${b.readUInt32BE(20)}`;
+};
+
+describe("home screen icons", () => {
+  it("names each installed page after its map", () => {
+    expect(appTitle("springs.html")).toBe("Springs");
+    expect(appTitle("journal.html")).toBe("Journal");
+    expect(appTitle("index.html")).toBe("Waterways");
+    expect(appHeadHtml("rain.html")).toMatch(/<meta name="apple-mobile-web-app-title" content="Rain">/);
+  });
+
+  it("has every icon the manifest lists, at its size, and opens a page on itself", () => {
+    const manifest = JSON.parse(read("public/manifest.webmanifest"));
+    expect(manifest.start_url).toBeUndefined();
+    for (const icon of manifest.icons) expect(pngSize(`public/${icon.src}`), icon.src).toBe(icon.sizes);
+    expect(manifest.icons.some((i: { purpose?: string }) => i.purpose === "maskable")).toBe(true);
+    expect(pngSize("public/apple-touch-icon.png")).toBe("180x180");
   });
 });

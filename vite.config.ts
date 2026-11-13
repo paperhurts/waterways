@@ -1,12 +1,16 @@
 import { basename, resolve } from "node:path";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
-import { siteNavHtml } from "./src/shared/site";
+import { appHeadHtml, siteNavHtml } from "./src/shared/site";
 
-/** Writes the site nav into each page's <!-- site-nav -->, marking that page as current. */
+/** Writes the site nav into each page's <!-- site-nav -->, marking that page as current, and the
+ *  home screen icons and name into its head. */
 const siteNav = (): Plugin => ({
   name: "site-nav",
-  transformIndexHtml: (html, ctx) => html.replace("<!-- site-nav -->", siteNavHtml(basename(ctx.filename))),
+  transformIndexHtml: (html, ctx) => {
+    const page = basename(ctx.filename);
+    return html.replace("<!-- site-nav -->", siteNavHtml(page)).replace("</head>", `${appHeadHtml(page)}\n</head>`);
+  },
 });
 
 // Multi-page static site. `base: "./"` keeps every URL relative, so the same
