@@ -31,6 +31,15 @@
         <button type="submit" class="primary">Email me a sign-in link</button>
       </div>
     </form>
+    <!-- The email's code, for where its link can't sign in: a journal added to an iPhone's home screen
+         keeps its own storage, and the link opens in the browser instead. -->
+    <form id="codeForm" class="signin" hidden>
+      <label for="code">Or type the code from the email</label>
+      <div class="row">
+        <input id="code" inputmode="numeric" autocomplete="one-time-code" required>
+        <button type="submit" class="primary">Sign in</button>
+      </div>
+    </form>
     <p id="gateMsg" class="msg" role="status"></p>
   </section>
 

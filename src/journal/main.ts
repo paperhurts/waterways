@@ -159,7 +159,21 @@ $("signin").addEventListener("submit", async (e) => {
   const msg = $("gateMsg");
   msg.textContent = "Sending…";
   const { error } = await supabase().auth.signInWithOtp({ email, options: { emailRedirectTo: new URL("journal.html", document.baseURI).href } });
-  msg.textContent = error ? `That didn't send: ${error.message}` : `Check ${email} for a sign-in link. Open it on this device.`;
+  msg.textContent = error ? `That didn't send: ${error.message}` : `Check ${email}: tap the link in the email on this device, or type its code below.`;
+  $("codeForm").hidden = !!error;
+  if (!error) ($("code") as HTMLInputElement).focus();
+});
+
+// The same email's code signs in here too. A first sign-in's email is a signup confirmation.
+$("codeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = ($("email") as HTMLInputElement).value.trim();
+  const token = ($("code") as HTMLInputElement).value.replace(/\D/g, "");
+  const msg = $("gateMsg");
+  msg.textContent = "Checking…";
+  let { error } = await supabase().auth.verifyOtp({ email, token, type: "email" });
+  if (error) ({ error } = await supabase().auth.verifyOtp({ email, token, type: "signup" }));
+  msg.textContent = error ? `That code didn't work (${error.message}). Codes work once and expire, so ask for a new email if it's old.` : "";
 });
 
 async function reload() {
